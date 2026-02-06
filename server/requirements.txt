@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+pymongo
+pydantic
+requests
+dotenv
+motor
+jose
+python-jose[cryptography]
+pydantic[email]
+passlib[bcrypt]
+bcrypt==3.2.2
+python-multipart
