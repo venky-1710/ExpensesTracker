@@ -10,6 +10,7 @@ import DashboardLayout from "./components/Layout/DashboardLayout.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Transactions from "./pages/Transactions.jsx";
 import Profile from "./pages/Profile.jsx";
+import DetailView from "./pages/DetailView.jsx";
 import { DashboardProvider } from "./context/DashboardContext.jsx";
 
 function App() {
@@ -54,6 +55,14 @@ function App() {
             <ProtectedRoute>
               <DashboardLayout onLogout={handleLogout}>
                 <Transactions />
+              </DashboardLayout>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/dashboard/details/:type" element={
+            <ProtectedRoute>
+              <DashboardLayout onLogout={handleLogout}>
+                <DetailView />
               </DashboardLayout>
             </ProtectedRoute>
           } />

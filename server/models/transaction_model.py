@@ -67,7 +67,7 @@ class TransactionFilter(BaseModel):
 class PaginationParams(BaseModel):
     """Pagination parameters"""
     page: int = Field(1, ge=1)
-    limit: int = Field(10, ge=1, le=100)
+    limit: int = Field(10, ge=1, le=1000)
     sort_by: str = Field("date", pattern="^(date|amount|category|type)$")
     sort_order: str = Field("desc", pattern="^(asc|desc)$")
 

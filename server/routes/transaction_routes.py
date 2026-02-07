@@ -43,7 +43,7 @@ async def list_transactions(
     current_user: dict = Depends(get_current_user),
     # Pagination
     page: int = Query(1, ge=1),
-    limit: int = Query(10, ge=1, le=100),
+    limit: int = Query(10, ge=1, le=1000),
     sort_by: str = Query("date", pattern="^(date|amount|category|type)$"),
     sort_order: str = Query("desc", pattern="^(asc|desc)$"),
     # Filters

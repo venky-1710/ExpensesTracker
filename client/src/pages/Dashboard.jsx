@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FiTrendingUp, FiTrendingDown, FiDollarSign, FiActivity } from 'react-icons/fi';
 import { useDashboard } from '../context/DashboardContext';
 import TransactionModal from '../components/TransactionModal/TransactionModal';
@@ -20,6 +21,7 @@ const Dashboard = () => {
         refreshDashboard
     } = useDashboard();
 
+    const navigate = useNavigate();
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     // Refresh dashboard when dateFilter changes
@@ -35,6 +37,14 @@ const Dashboard = () => {
     const handleFilterChange = (newFilter) => {
         setDateFilter(newFilter);
         // Refresh dashboard will be triggered automatically by the useEffect in context
+    };
+
+    const handleKPIClick = (kpiType) => {
+        navigate(`/dashboard/details/${kpiType}`);
+    };
+
+    const handleWidgetClick = (widgetType) => {
+        navigate(`/dashboard/details/${widgetType}`);
     };
 
     // Calculate stats from KPIs (backend returns objects with current/previous/change_percent/trend)
@@ -54,7 +64,8 @@ const Dashboard = () => {
             trend: kpis?.total_credits?.change_percent
                 ? `${kpis.total_credits.change_percent > 0 ? '+' : ''}${kpis.total_credits.change_percent}%`
                 : '+0%',
-            isPositive: (kpis?.total_credits?.change_percent || 0) >= 0
+            isPositive: (kpis?.total_credits?.change_percent || 0) >= 0,
+            kpiType: 'income'
         },
         {
             title: 'Total Expenses',
@@ -64,7 +75,8 @@ const Dashboard = () => {
             trend: kpis?.total_debits?.change_percent
                 ? `${kpis.total_debits.change_percent > 0 ? '+' : ''}${kpis.total_debits.change_percent}%`
                 : '+0%',
-            isPositive: (kpis?.total_debits?.change_percent || 0) <= 0
+            isPositive: (kpis?.total_debits?.change_percent || 0) <= 0,
+            kpiType: 'expense'
         },
         {
             title: 'Balance',
@@ -74,7 +86,8 @@ const Dashboard = () => {
             trend: kpis?.net_balance?.change_percent
                 ? `${kpis.net_balance.change_percent > 0 ? '+' : ''}${kpis.net_balance.change_percent}%`
                 : '+0%',
-            isPositive: (kpis?.net_balance?.change_percent || 0) >= 0
+            isPositive: (kpis?.net_balance?.change_percent || 0) >= 0,
+            kpiType: 'balance'
         },
         {
             title: 'Transactions',
@@ -84,7 +97,8 @@ const Dashboard = () => {
             trend: kpis?.total_transactions?.change_percent
                 ? `${kpis.total_transactions.change_percent > 0 ? '+' : ''}${kpis.total_transactions.change_percent}%`
                 : '+0%',
-            isPositive: (kpis?.total_transactions?.change_percent || 0) >= 0
+            isPositive: (kpis?.total_transactions?.change_percent || 0) >= 0,
+            kpiType: 'transactions'
         }
     ];
 
@@ -125,7 +139,12 @@ const Dashboard = () => {
             {/* KPI Cards */}
             <div className="kpi-grid">
                 {kpiCards.map((card, index) => (
-                    <div key={index} className="kpi-card" style={{ '--accent-color': card.color }}>
+                    <div
+                        key={index}
+                        className="kpi-card clickable"
+                        style={{ '--accent-color': card.color }}
+                        onClick={() => handleKPIClick(card.kpiType)}
+                    >
                         <div className="kpi-header">
                             <div className="kpi-icon" style={{ background: `${card.color}20` }}>
                                 <card.icon size={24} style={{ color: card.color }} />
@@ -145,7 +164,7 @@ const Dashboard = () => {
             {/* Additional KPI Info */}
             {kpis && (
                 <div className="additional-info">
-                    <div className="info-card">
+                    <div className="info-card clickable" onClick={() => handleWidgetClick('top_categories')}>
                         <span className="info-label">Highest Expense Category</span>
                         <span className="info-value">{kpis.highest_expense_category?.current || 'N/A'}</span>
                     </div>
@@ -170,7 +189,7 @@ const Dashboard = () => {
                     )}
                 </div>
 
-                <div className="chart-card">
+                <div className="chart-card clickable" onClick={() => handleWidgetClick('top_categories')}>
                     <h3 className="chart-title">Category Breakdown</h3>
                     {loading.charts ? (
                         <div className="chart-placeholder">
@@ -184,10 +203,10 @@ const Dashboard = () => {
             </div>
 
             {/* Recent Transactions */}
-            <div className="recent-transactions">
+            <div className="recent-transactions clickable-section" onClick={() => handleKPIClick('transactions')}>
                 <div className="section-header">
                     <h3>Recent Transactions</h3>
-                    <button className="view-all-btn">View All</button>
+                    <button className="view-all-btn" onClick={(e) => { e.stopPropagation(); handleKPIClick('transactions'); }}>View All</button>
                 </div>
 
                 {loading.widgets ? (
