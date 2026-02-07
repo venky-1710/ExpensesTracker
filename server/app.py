@@ -2,7 +2,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from database.database import client, MONGODB_URI
-from routes.routes import router
 from routes.auth_routes import auth_router
 from contextlib import asynccontextmanager
 import os
@@ -30,7 +29,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(router)
+
 app.include_router(auth_router)
 
 
