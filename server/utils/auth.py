@@ -1,6 +1,6 @@
 import os
 from passlib.context import CryptContext
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, Depends
 from fastapi.security import OAuth2PasswordBearer
 from datetime import datetime, timedelta
 from database.database import db
@@ -46,5 +46,54 @@ async def get_user_by_username_or_email(identifier: str):
     if user:
         user["id"] = str(user.pop("_id"))
     return user
+
+
+async def get_user_by_email(email: str):
+    """Get user by email only"""
+    user = await db["auth_users"].find_one({"email": email, "is_deleted": False})
+    if user:
+        user["id"] = str(user.pop("_id"))
+    return user
+
+
+# Dependency for getting current authenticated user
+async def get_current_user(token: str = Depends(oauth2_scheme)):
+    """Get current user from JWT token"""
+    from bson import ObjectId
+    from jose import JWTError
+    from fastapi import HTTPException, status
+    
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+    
+    user = await db["auth_users"].find_one({"_id": ObjectId(user_id), "is_deleted": False})
+    if not user:
+        raise credentials_exception
+    
+    user["id"] = str(user.pop("_id"))
+    return user
+
+
+def require_role(required_role: str):
+    """Decorator to require specific role"""
+    async def role_checker(current_user: dict = Depends(get_current_user)):
+        if current_user.get("role") != required_role:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access denied. {required_role} role required."
+            )
+        return current_user
+    return role_checker
 
 

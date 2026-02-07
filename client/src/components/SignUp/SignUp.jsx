@@ -16,7 +16,7 @@ const SignUp = ({ onLoginSuccess, initialMode = "signup" }) => {
   const serverURL = config.SERVER_URL;  // Backend URL
 
   // Form states
-  const [signupData, setSignupData] = useState({ username: '', email: '', password: '' });
+  const [signupData, setSignupData] = useState({ full_name: '', username: '', email: '', password: '' });
   const [signinData, setSigninData] = useState({ username: '', password: '' });
   const [loading, setLoading] = useState(false);
 
@@ -144,11 +144,24 @@ const SignUp = ({ onLoginSuccess, initialMode = "signup" }) => {
                 <div className="input-group">
                   <input
                     type="text"
-                    placeholder="Your name"
+                    placeholder="Full Name"
+                    className="email-input"
+                    value={signupData.full_name}
+                    onChange={(e) => setSignupData({ ...signupData, full_name: e.target.value })}
+                    required
+                    minLength="2"
+                  />
+                </div>
+
+                <div className="input-group">
+                  <input
+                    type="text"
+                    placeholder="Username"
                     className="email-input"
                     value={signupData.username}
                     onChange={(e) => setSignupData({ ...signupData, username: e.target.value })}
                     required
+                    minLength="3"
                   />
                 </div>
 
@@ -163,14 +176,16 @@ const SignUp = ({ onLoginSuccess, initialMode = "signup" }) => {
                   />
                 </div>
 
+
                 <div className="input-group">
                   <input
                     type="password"
-                    placeholder="Password"
+                    placeholder="Password (min 8 characters)"
                     className="email-input"
                     value={signupData.password}
                     onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
                     required
+                    minLength="8"
                   />
                 </div>
 
