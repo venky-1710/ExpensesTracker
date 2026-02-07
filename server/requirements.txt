@@ -5,9 +5,8 @@ pydantic
 requests
 dotenv
 motor
-jose
 python-jose[cryptography]
 pydantic[email]
 passlib[bcrypt]
-bcrypt==3.2.2
+bcrypt>=4.0.0
 python-multipart
