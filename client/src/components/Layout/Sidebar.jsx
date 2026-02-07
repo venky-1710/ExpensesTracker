@@ -13,8 +13,7 @@ import {
 } from 'react-icons/fi';
 import './Sidebar.css';
 
-const Sidebar = ({ onLogout }) => {
-    const [isCollapsed, setIsCollapsed] = useState(false);
+const Sidebar = ({ onLogout, isCollapsed, toggleSidebar }) => {
     const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
     const location = useLocation();
     const navigate = useNavigate();
@@ -25,10 +24,6 @@ const Sidebar = ({ onLogout }) => {
         { path: '/profile', icon: FiUser, label: 'Profile' },
         { path: '/settings', icon: FiSettings, label: 'Settings' },
     ];
-
-    const toggleSidebar = () => {
-        setIsCollapsed(!isCollapsed);
-    };
 
     const toggleTheme = () => {
         const newTheme = theme === 'light' ? 'dark' : 'light';
@@ -96,19 +91,6 @@ const Sidebar = ({ onLogout }) => {
                     <FiLogOut size={20} />
                     {!isCollapsed && <span>Logout</span>}
                 </button>
-
-                {/* User Info */}
-                {!isCollapsed && (
-                    <div className="user-info">
-                        <div className="user-avatar">
-                            <FiUser size={18} />
-                        </div>
-                        <div className="user-details">
-                            <p className="user-name">{localStorage.getItem('userName') || 'User'}</p>
-                            <p className="user-email">{localStorage.getItem('userEmail') || 'user@example.com'}</p>
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     );

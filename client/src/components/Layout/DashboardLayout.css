@@ -8,9 +8,13 @@
     flex: 1;
     margin-left: 260px;
     padding: 30px;
-    transition: margin-left 0.3s ease;
+    transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     min-height: 100vh;
     overflow-x: hidden;
+}
+
+.dashboard-layout.collapsed .main-content {
+    margin-left: 70px;
 }
 
 /* Responsive */

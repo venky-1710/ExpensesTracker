@@ -39,6 +39,9 @@ const DetailView = () => {
                 params.type = 'debit';
                 const response = await transactionService.getTransactions(params);
                 setData(response.transactions || []);
+            } else if (type === 'balance') {
+                const response = await transactionService.getTransactions(params);
+                setData(response.transactions || []);
             } else if (type === 'transactions' || type === 'recent_transactions') {
                 const response = await transactionService.getTransactions(params);
                 setData(response.transactions || []);

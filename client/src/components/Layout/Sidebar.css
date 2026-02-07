@@ -6,11 +6,13 @@
     width: 260px;
     background: linear-gradient(180deg, #1a0d35 0%, #0d0520 100%);
     color: #ffffff;
-    transition: width 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
     z-index: 1000;
-    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.4);
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
 }
 
 .sidebar.collapsed {
@@ -38,6 +40,17 @@
     -webkit-text-fill-color: transparent;
     background-clip: text;
     white-space: nowrap;
+    opacity: 1;
+    transform: translateX(0);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.sidebar.collapsed .app-title {
+    opacity: 0;
+    transform: translateX(-10px);
+    pointer-events: none;
+    position: absolute;
+    /* Take out of flow when hidden to prevent layout issues */
 }
 
 .toggle-btn {
@@ -116,10 +129,14 @@
     font-size: 14px;
     font-weight: 500;
     white-space: nowrap;
+    opacity: 1;
+    transition: opacity 0.2s ease;
 }
 
 .collapsed .nav-label {
-    display: none;
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
 }
 
 /* Footer */
@@ -155,10 +172,15 @@
 .footer-btn span {
     margin-left: 12px;
     white-space: nowrap;
+    opacity: 1;
+    transition: opacity 0.2s ease;
 }
 
 .collapsed .footer-btn span {
-    display: none;
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+    margin-left: 0;
 }
 
 .logout-btn:hover {
@@ -167,50 +189,7 @@
 }
 
 /* User Info */
-.user-info {
-    display: flex;
-    align-items: center;
-    padding: 12px;
-    margin-top: 10px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
-}
-
-.user-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #c850ff 0%, #6d4aff 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 10px;
-    flex-shrink: 0;
-}
-
-.user-details {
-    flex: 1;
-    min-width: 0;
-}
-
-.user-name {
-    margin: 0;
-    font-size: 13px;
-    font-weight: 600;
-    color: #ffffff;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.user-email {
-    margin: 2px 0 0;
-    font-size: 11px;
-    color: #8a82b5;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
+/* User Info - Removed */
 
 /* Scrollbar */
 .sidebar-nav::-webkit-scrollbar {
