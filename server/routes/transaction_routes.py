@@ -128,7 +128,8 @@ async def export_transactions(
         content = await TransactionService.export_transactions(
             current_user["id"],
             filters,
-            format
+            format,
+            user=current_user
         )
         
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')

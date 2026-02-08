@@ -171,7 +171,7 @@ class TransactionService:
         }
     
     @staticmethod
-    async def export_transactions(user_id: str, filters: TransactionFilter, format: str = "csv") -> Any:
+    async def export_transactions(user_id: str, filters: TransactionFilter, format: str = "csv", user: Dict[str, Any] = None) -> Any:
         """Export transactions to specified format"""
         # Build query (similar to list_transactions but no pagination)
         query = {"user_id": ObjectId(user_id)}
@@ -196,7 +196,7 @@ class TransactionService:
         if format == "csv":
             return TransactionService._export_to_csv(transactions)
         elif format == "pdf":
-            return TransactionService._export_to_pdf(transactions, filters)
+            return TransactionService._export_to_pdf(transactions, filters, user)
         elif format == "xlsx":
             return TransactionService._export_to_excel(transactions)
         else:
@@ -228,68 +228,178 @@ class TransactionService:
         return output.getvalue()
 
     @staticmethod
-    def _export_to_pdf(transactions: List[Dict], filters: TransactionFilter) -> bytes:
-        """Generate PDF bytes"""
+    def _export_to_pdf(transactions: List[Dict], filters: TransactionFilter, user: Dict[str, Any] = None) -> bytes:
+        """Generate PDF with Professional Design (No charts, clear user details)"""
         from reportlab.lib import colors
-        from reportlab.lib.pagesizes import letter
+        from reportlab.lib.pagesizes import A4
         from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
+        from reportlab.lib.units import inch
+        from reportlab.graphics.shapes import Drawing, Rect, String
         
         buffer = io.BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=letter)
+        doc = SimpleDocTemplate(
+            buffer, 
+            pagesize=A4,
+            rightMargin=30, leftMargin=30, 
+            topMargin=30, bottomMargin=30
+        )
         elements = []
         styles = getSampleStyleSheet()
         
+        # Colors
+        theme_purple = colors.HexColor('#483D8B') # DarkSlateBlue
+        text_color = colors.HexColor('#374151')
+        
+        # Styles
+        styles.add(ParagraphStyle(name='SectionTitle', fontSize=14, textColor=theme_purple, fontName='Helvetica-Bold', spaceBefore=15, spaceAfter=10))
+
+        # --- 1. Header (Drawing) ---
+        # Increased height to accommodate user details cleanly
+        header_height = 100
+        header_drawing = Drawing(A4[0] - 60, header_height)
+        
+        # Purple Background
+        rect = Rect(0, 0, A4[0] - 60, header_height)
+        rect.fillColor = theme_purple
+        rect.strokeColor = theme_purple
+        header_drawing.add(rect)
+        
         # Title
-        title = "Transaction Report"
-        if filters.start_date and filters.end_date:
-            title += f" ({filters.start_date.strftime('%Y-%m-%d')} - {filters.end_date.strftime('%Y-%m-%d')})"
-        elements.append(Paragraph(title, styles['Title']))
-        elements.append(Spacer(1, 12))
+        title = String(20, 65, "PERSONAL")
+        title.fontName = 'Helvetica-Bold'
+        title.fontSize = 20
+        title.fillColor = colors.white
+        header_drawing.add(title)
         
-        # Table Data
-        data = [["Date", "Type", "Category", "Amount", "Method", "Description"]]
+        title2 = String(20, 40, "EXPENSES TRACKER")
+        title2.fontName = 'Helvetica-Bold'
+        title2.fontSize = 20
+        title2.fillColor = colors.white
+        header_drawing.add(title2)
         
+        # User Details (Right Aligned in Header)
+        if user:
+            # Name
+            name_text = String(A4[0] - 80, 70, user.get('full_name', 'User').upper())
+            name_text.fontName = 'Helvetica-Bold'
+            name_text.fontSize = 14
+            name_text.fillColor = colors.white
+            name_text.textAnchor = 'end'
+            header_drawing.add(name_text)
+            
+            # Email
+            email_text = String(A4[0] - 80, 50, user.get('email', ''))
+            email_text.fontName = 'Helvetica'
+            email_text.fontSize = 10
+            email_text.fillColor = colors.white  # Slightly transparent look is hard in modest PDF, stick to white
+            email_text.textAnchor = 'end'
+            header_drawing.add(email_text)
+            
+            # Report Date
+            date_str = datetime.now().strftime('%B %d, %Y')
+            date_text = String(A4[0] - 80, 25, f"Report Date: {date_str}")
+            date_text.fontName = 'Helvetica-Oblique'
+            date_text.fontSize = 9
+            date_text.fillColor = colors.lightgrey
+            date_text.textAnchor = 'end'
+            header_drawing.add(date_text)
+
+        elements.append(header_drawing)
+        elements.append(Spacer(1, 25))
+
+        # --- 2. Expenses Table ---
+        elements.append(Paragraph("TRANSACTION HISTORY", styles['SectionTitle']))
+        
+        table_data = [[
+            "DESCRIPTION",
+            "CATEGORY", 
+            "DATE",
+            "AMOUNT"
+        ]]
+        
+        row_colors = []
         total_credit = 0
         total_debit = 0
         
-        for t in transactions:
-            amount = t['amount']
-            if t['type'] == 'credit':
-                total_credit += amount
-            else:
-                total_debit += amount
-                
-            data.append([
-                t["date"].strftime("%Y-%m-%d"),
-                t["type"],
-                t["category"],
-                f"{amount:.2f}",
-                t["payment_method"],
-                t.get("description", "")[:20]  # Truncate description
-            ])
+        for i, t in enumerate(transactions):
+            row_colors.append(colors.white if i % 2 == 0 else colors.whitesmoke)
             
-        # Summary
-        elements.append(Paragraph(f"Total Income: {total_credit:.2f}", styles['Normal']))
-        elements.append(Paragraph(f"Total Expenses: {total_debit:.2f}", styles['Normal']))
-        elements.append(Paragraph(f"Net Balance: {total_credit - total_debit:.2f}", styles['Normal']))
-        elements.append(Spacer(1, 12))
+            amt = t['amount']
+            if t['type'] == 'credit':
+                total_credit += amt
+                amt_str = f"+{amt:,.2f}"
+                amt_color = colors.green
+            else:
+                total_debit += amt
+                amt_str = f"-{amt:,.2f}"
+                amt_color = colors.red
+            
+            table_data.append([
+                Paragraph(t.get("description", "")[:40], styles['Normal']),
+                t['category'],
+                t["date"].strftime("%b %d, %Y"),
+                Paragraph(amt_str, ParagraphStyle('Amt', parent=styles['Normal'], alignment=TA_RIGHT, textColor=amt_color))
+            ])
 
-        # Table Style
-        table = Table(data)
-        style = TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        t_style = TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), theme_purple),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0,0), (-1,0), 9),
+            ('BOTTOMPADDING', (0,0), (-1,0), 12),
+            ('TOPPADDING', (0,0), (-1,0), 12),
+            ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+            ('ALIGN', (3,0), (3,-1), 'RIGHT'), # Amount column
+            ('GRID', (0,0), (-1,-1), 0, colors.white),
         ])
-        table.setStyle(style)
-        elements.append(table)
         
-        doc.build(elements)
+        for i, color in enumerate(row_colors):
+            t_style.add('BACKGROUND', (0, i+1), (-1, i+1), color)
+
+        trans_table = Table(table_data, colWidths=[3*inch, 1.5*inch, 1.2*inch, 1.2*inch], repeatRows=1)
+        trans_table.setStyle(t_style)
+        elements.append(trans_table)
+        elements.append(Spacer(1, 30))
+        
+        # --- 3. Financial Summary (Professional Table) ---
+        elements.append(Paragraph("FINANCIAL SUMMARY", styles['SectionTitle']))
+        
+        net_balance = total_credit - total_debit
+        
+        summary_data = [
+            ['Total Income', f"+{total_credit:,.2f}"],
+            ['Total Expense', f"-{total_debit:,.2f}"],
+            ['Net Balance', f"{net_balance:,.2f}"]
+        ]
+        
+        summary_table = Table(summary_data, colWidths=[3*inch, 2*inch], hAlign='LEFT')
+        summary_table.setStyle(TableStyle([
+            ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
+            ('FONTSIZE', (0,0), (-1,-1), 11),
+            ('TEXTCOLOR', (1,0), (1,0), colors.green), # Income
+            ('TEXTCOLOR', (1,1), (1,1), colors.red),   # Expense
+            ('TEXTCOLOR', (1,2), (1,2), theme_purple), # Net
+            ('FONTNAME', (0,2), (-1,2), 'Helvetica-Bold'), # Net Row Bold
+            ('LINEABOVE', (0,2), (-1,2), 1, colors.lightgrey),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 8),
+            ('TOPPADDING', (0,0), (-1,-1), 8),
+        ]))
+        
+        elements.append(summary_table)
+
+        # Build
+        def add_footer(canvas, doc):
+            canvas.saveState()
+            canvas.setFont('Helvetica', 8)
+            canvas.setFillColor(colors.grey)
+            page_num = canvas.getPageNumber()
+            canvas.drawString(30, 20, "Generated by Expense Tracker")
+            canvas.drawRightString(A4[0] - 30, 20, f"Page {page_num}")
+            canvas.restoreState()
+
+        doc.build(elements, onFirstPage=add_footer, onLaterPages=add_footer)
         buffer.seek(0)
         return buffer.getvalue()
 

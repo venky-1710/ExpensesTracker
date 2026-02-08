@@ -10,7 +10,7 @@ import './DetailView.css';
 const DetailView = () => {
     const { type } = useParams();
     const navigate = useNavigate();
-    const { dateFilter } = useDashboard();
+    const { dateFilter, kpis, fetchKPIs } = useDashboard();
 
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -24,8 +24,14 @@ const DetailView = () => {
     const [filters, setFilters] = useState({
         category: '',
         payment_method: '',
-        type: '' // Allow overriding or additional filtering
+        type: ''
     });
+
+    useEffect(() => {
+        if (!kpis) {
+            fetchKPIs();
+        }
+    }, [kpis, fetchKPIs]);
 
     useEffect(() => {
         fetchData();
@@ -187,6 +193,9 @@ const DetailView = () => {
             return 0;
         });
 
+    // Calculate Total for current view
+    const totalAmount = processedData.reduce((sum, item) => sum + item.amount, 0);
+
     // Pagination Logic
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -209,6 +218,22 @@ const DetailView = () => {
                     <div>
                         <h1>{config.title}</h1>
                         <p>{config.description}</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Summary Stats */}
+            <div className="summary-stats-grid">
+                <div className="stat-card">
+                    <div className="stat-label">Total {config.title.replace(' Details', '')}</div>
+                    <div className="stat-value" style={{ color: config.color }}>
+                        ₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </div>
+                </div>
+                <div className="stat-card">
+                    <div className="stat-label">Available Wallet Balance</div>
+                    <div className="stat-value text-primary">
+                        ₹{kpis?.available_balance?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '0.00'}
                     </div>
                 </div>
             </div>
