@@ -32,7 +32,7 @@ const CategoryChart = ({ data }) => {
             return (
                 <div className="custom-tooltip">
                     <p className="label">{payload[0].name}</p>
-                    <p className="value">${payload[0].value.toLocaleString()}</p>
+                    <p className="value">₹{payload[0].value.toLocaleString()}</p>
                 </div>
             );
         }
@@ -85,7 +85,7 @@ const CategoryChart = ({ data }) => {
                         color: 'var(--text-primary, #ffffff)',
                         fontSize: '12px'
                     }}
-                    formatter={(value, entry) => `${value}: $${entry.payload.value.toLocaleString()}`}
+                    formatter={(value, entry) => `${value}: ₹${entry.payload.value.toLocaleString()}`}
                 />
             </PieChart>
         </ResponsiveContainer>

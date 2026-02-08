@@ -58,7 +58,7 @@ const Dashboard = () => {
     const kpiCards = [
         {
             title: 'Total Income',
-            value: `$${stats.totalIncome.toLocaleString()}`,
+            value: `₹${stats.totalIncome.toLocaleString()}`,
             icon: FiTrendingUp,
             color: '#10b981',
             trend: kpis?.total_credits?.change_percent
@@ -69,7 +69,7 @@ const Dashboard = () => {
         },
         {
             title: 'Total Expenses',
-            value: `$${stats.totalExpense.toLocaleString()}`,
+            value: `₹${stats.totalExpense.toLocaleString()}`,
             icon: FiTrendingDown,
             color: '#ef4444',
             trend: kpis?.total_debits?.change_percent
@@ -80,7 +80,7 @@ const Dashboard = () => {
         },
         {
             title: 'Balance',
-            value: `$${stats.balance.toLocaleString()}`,
+            value: `₹${stats.balance.toLocaleString()}`,
             icon: FiDollarSign,
             color: '#6d4aff',
             trend: kpis?.net_balance?.change_percent
@@ -126,7 +126,12 @@ const Dashboard = () => {
             <div className="dashboard-header">
                 <div>
                     <h1>Dashboard</h1>
-                    <p className="subtitle">Welcome back! Here's your financial overview.</p>
+                    <p className="subtitle">
+                        Welcome back! Available Balance:
+                        <span style={{ color: '#10b981', fontWeight: 'bold', marginLeft: '8px' }}>
+                            ₹{(kpis?.available_balance || 0).toLocaleString()}
+                        </span>
+                    </p>
                 </div>
                 <div className="header-actions">
                     <DateFilter currentFilter={dateFilter} onFilterChange={handleFilterChange} />
@@ -170,7 +175,7 @@ const Dashboard = () => {
                     </div>
                     <div className="info-card">
                         <span className="info-label">Average Monthly Expense</span>
-                        <span className="info-value">${(kpis.average_monthly_expense?.current || 0).toLocaleString()}</span>
+                        <span className="info-value">₹{(kpis.average_monthly_expense?.current || 0).toLocaleString()}</span>
                     </div>
                 </div>
             )}
@@ -223,7 +228,7 @@ const Dashboard = () => {
                                     <span className="transaction-date">{new Date(transaction.date).toLocaleDateString()}</span>
                                 </div>
                                 <div className={`transaction-amount ${transaction.type}`}>
-                                    {transaction.type === 'credit' ? '+' : '-'}${Math.abs(transaction.amount).toLocaleString()}
+                                    {transaction.type === 'credit' ? '+' : '-'}₹{Math.abs(transaction.amount).toLocaleString()}
                                 </div>
                             </div>
                         ))}

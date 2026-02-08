@@ -25,7 +25,8 @@
 .flip-card {
   width: 100%;
   max-width: 400px;
-  height: 430px;          /* keep height fixed so flip is smooth */
+  height: 430px;
+  /* keep height fixed so flip is smooth */
   perspective: 1000px;
 }
 

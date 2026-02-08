@@ -57,10 +57,34 @@ class DashboardService:
             "average_monthly_expense": DashboardService._build_kpi_comparison(
                 current_stats["avg_monthly_expense"],
                 previous_stats["avg_monthly_expense"]
-            )
+            ),
+            "available_balance": await DashboardService._calculate_total_balance(user_id)
         }
         
         return kpis
+
+    @staticmethod
+    async def _calculate_total_balance(user_id: str) -> float:
+        """Calculate total wallet balance (all-time)"""
+        pipeline = [
+            {"$match": {"user_id": ObjectId(user_id)}},
+            {"$group": {
+                "_id": "$type",
+                "total": {"$sum": "$amount"}
+            }}
+        ]
+        result = await db.transactions.aggregate(pipeline).to_list(length=None)
+        
+        credits = 0
+        debits = 0
+        
+        for item in result:
+            if item["_id"] == "credit":
+                credits = item["total"]
+            elif item["_id"] == "debit":
+                debits = item["total"]
+                
+        return round(credits - debits, 2)
     
     @staticmethod
     async def _calculate_period_stats(user_id: str, start_date: datetime, end_date: datetime) -> Dict[str, Any]:
@@ -170,12 +194,55 @@ class DashboardService:
             if date_key not in timeline_dict:
                 timeline_dict[date_key] = {"date": date_key, "credits": 0, "debits": 0}
             
+            
             if item["_id"]["type"] == "credit":
                 timeline_dict[date_key]["credits"] = round(item["amount"], 2)
             else:
                 timeline_dict[date_key]["debits"] = round(item["amount"], 2)
         
-        return sorted(timeline_dict.values(), key=lambda x: x["date"])
+        # Sort by date to calculate running balance
+        sorted_timeline = sorted(timeline_dict.values(), key=lambda x: x["date"])
+        
+        # Calculate opening balance before the start date
+        current_balance = await DashboardService._calculate_opening_balance(user_id, start_date)
+        
+        # Calculate cumulative balance
+        for point in sorted_timeline:
+            net_change = point["credits"] - point["debits"]
+            current_balance += net_change
+            point["balance"] = round(current_balance, 2)
+        
+        return sorted_timeline
+
+    @staticmethod
+    async def _calculate_opening_balance(user_id: str, before_date: datetime) -> float:
+        """Calculate balance before a specific date"""
+        pipeline = [
+            {
+                "$match": {
+                    "user_id": ObjectId(user_id),
+                    "date": {"$lt": before_date}
+                }
+            },
+            {
+                "$group": {
+                    "_id": "$type",
+                    "total": {"$sum": "$amount"}
+                }
+            }
+        ]
+        result = await db.transactions.aggregate(pipeline).to_list(length=None)
+        
+        credits = 0
+        debits = 0
+        
+        for item in result:
+            if item["_id"] == "credit":
+                credits = item["total"]
+            elif item["_id"] == "debit":
+                debits = item["total"]
+                
+        return credits - debits
     
     @staticmethod
     async def _get_category_chart(user_id: str, start_date: datetime, end_date: datetime) -> List[Dict[str, Any]]:

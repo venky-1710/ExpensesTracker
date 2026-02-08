@@ -231,7 +231,7 @@ const DetailView = () => {
                                             </td>
                                             <td className={`amount-cell text-right ${item.type}`}>
                                                 {item.type === 'credit' ? '+' : '-'}
-                                                ${Math.abs(item.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                ₹{Math.abs(item.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                             </td>
                                             <td>
                                                 <span className="status-badge success">Completed</span>

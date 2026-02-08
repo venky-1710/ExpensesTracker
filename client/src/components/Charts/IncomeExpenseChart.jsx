@@ -41,7 +41,7 @@ const IncomeExpenseChart = ({ data }) => {
                         borderRadius: '8px',
                         color: 'var(--text-primary, #ffffff)'
                     }}
-                    formatter={(value) => `$${value.toLocaleString()}`}
+                    formatter={(value) => `₹${value.toLocaleString()}`}
                 />
                 <Legend
                     wrapperStyle={{ color: 'var(--text-primary, #ffffff)' }}
@@ -62,6 +62,15 @@ const IncomeExpenseChart = ({ data }) => {
                     strokeWidth={2}
                     name="Expenses"
                     dot={{ fill: '#ef4444', r: 4 }}
+                    activeDot={{ r: 6 }}
+                />
+                <Line
+                    type="monotone"
+                    dataKey="balance"
+                    stroke="#8b5cf6"
+                    strokeWidth={2}
+                    name="Available Balance"
+                    dot={{ fill: '#8b5cf6', r: 4 }}
                     activeDot={{ r: 6 }}
                 />
             </LineChart>
