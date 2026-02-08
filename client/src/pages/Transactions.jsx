@@ -1,14 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { FiPlus, FiFilter, FiDownload } from 'react-icons/fi';
+import { FiPlus, FiDownload, FiChevronDown } from 'react-icons/fi';
 import { transactionService } from '../services/transactionService';
 import TransactionModal from '../components/TransactionModal/TransactionModal';
 import SubLoader from '../components/SubLoader/SubLoader';
+import DateFilter from '../components/DateFilter/DateFilter';
+import TransactionFilters from '../components/TransactionFilters/TransactionFilters';
 import './Transactions.css';
 
 const Transactions = () => {
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [showExportMenu, setShowExportMenu] = useState(false);
+
+    // Filters State
+    const [dateFilter, setDateFilter] = useState({
+        type: 'month',
+        startDate: null,
+        endDate: null
+    });
+
+    const [filters, setFilters] = useState({
+        type: '',
+        category: '',
+        payment_method: ''
+    });
+
     const [pagination, setPagination] = useState({
         page: 1,
         limit: 20,
@@ -18,17 +35,30 @@ const Transactions = () => {
 
     useEffect(() => {
         fetchTransactions();
-    }, [pagination.page]);
+    }, [pagination.page, dateFilter, filters]);
 
     const fetchTransactions = async () => {
         setLoading(true);
         try {
-            const response = await transactionService.getTransactions({
+            const params = {
                 page: pagination.page,
                 limit: pagination.limit,
                 sort_by: 'date',
-                sort_order: 'desc'
+                sort_order: 'desc',
+                filter_type: dateFilter.type,
+                start_date: dateFilter.startDate,
+                end_date: dateFilter.endDate,
+                ...filters
+            };
+
+            // Clean empty filters
+            Object.keys(params).forEach(key => {
+                if (params[key] === '' || params[key] === null) {
+                    delete params[key];
+                }
             });
+
+            const response = await transactionService.getTransactions(params);
 
             setTransactions(response.transactions || []);
             setPagination(prev => ({
@@ -43,8 +73,42 @@ const Transactions = () => {
         }
     };
 
+    const handleExport = async (format) => {
+        try {
+            const params = {
+                format,
+                filter_type: dateFilter.type,
+                start_date: dateFilter.startDate,
+                end_date: dateFilter.endDate,
+                ...filters
+            };
+
+            // Clean params
+            Object.keys(params).forEach(key => {
+                if (params[key] === '' || params[key] === null) {
+                    delete params[key];
+                }
+            });
+
+            const blob = await transactionService.exportTransactions(params);
+
+            // Create download link
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `transactions_${new Date().toISOString().split('T')[0]}.${format === 'excel' ? 'xlsx' : format}`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            setShowExportMenu(false);
+        } catch (error) {
+            console.error('Export failed:', error);
+            alert('Failed to export transactions');
+        }
+    };
+
     const handleTransactionSuccess = () => {
-        // Refresh transaction list
         fetchTransactions();
     };
 
@@ -71,15 +135,35 @@ const Transactions = () => {
                     <p className="subtitle">Manage your income and expenses</p>
                 </div>
                 <div className="header-actions">
-                    <button className="secondary-btn" onClick={() => alert('Export coming soon!')}>
-                        <FiDownload size={18} />
-                        Export
-                    </button>
+                    <div className="export-wrapper">
+                        <button
+                            className="secondary-btn"
+                            onClick={() => setShowExportMenu(!showExportMenu)}
+                        >
+                            <FiDownload size={18} />
+                            Export
+                            <FiChevronDown />
+                        </button>
+                        {showExportMenu && (
+                            <div className="export-menu">
+                                <button onClick={() => handleExport('csv')}>Export as CSV</button>
+                                <button onClick={() => handleExport('xlsx')}>Export as Excel</button>
+                                <button onClick={() => handleExport('pdf')}>Export as PDF</button>
+                            </div>
+                        )}
+                    </div>
+
                     <button className="primary-btn" onClick={() => setIsModalOpen(true)}>
                         <FiPlus size={18} />
                         Add Transaction
                     </button>
                 </div>
+            </div>
+
+            {/* Filters Section */}
+            <div className="filters-section">
+                <DateFilter currentFilter={dateFilter} onFilterChange={setDateFilter} />
+                <TransactionFilters filters={filters} onFilterChange={setFilters} />
             </div>
 
             {loading ? (
@@ -143,16 +227,15 @@ const Transactions = () => {
             ) : (
                 <div className="content-placeholder">
                     <div className="placeholder-icon">💰</div>
-                    <h3>No Transactions Yet</h3>
-                    <p>Start tracking your finances by adding your first transaction.</p>
+                    <h3>No Transactions Found</h3>
+                    <p>Try adjusting your filters or add a new transaction.</p>
                     <button className="primary-btn" onClick={() => setIsModalOpen(true)}>
                         <FiPlus size={18} />
-                        Add Your First Transaction
+                        Add New Transaction
                     </button>
                 </div>
             )}
 
-            {/* Transaction Modal */}
             <TransactionModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}

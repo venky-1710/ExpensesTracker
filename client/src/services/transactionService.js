@@ -21,9 +21,9 @@ export const transactionService = {
     return response.data;
   },
 
-  async exportCSV(filters = {}) {
+  async exportTransactions(params = {}) {
     const response = await api.get('/transactions/export', {
-      params: filters,
+      params,
       responseType: 'blob',
     });
     return response.data;

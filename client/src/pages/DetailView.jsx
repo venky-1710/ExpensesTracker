@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FiArrowLeft, FiFilter, FiDownload, FiSearch, FiTrendingUp, FiTrendingDown, FiDollarSign, FiActivity, FiList, FiPieChart, FiAlertCircle } from 'react-icons/fi';
+import { FiArrowLeft, FiFilter, FiDownload, FiSearch, FiTrendingUp, FiTrendingDown, FiDollarSign, FiActivity, FiList, FiPieChart, FiChevronDown } from 'react-icons/fi';
 import { transactionService } from '../services/transactionService';
 import { useDashboard } from '../context/DashboardContext';
 import SubLoader from '../components/SubLoader/SubLoader';
+import TransactionFilters from '../components/TransactionFilters/TransactionFilters';
 import './DetailView.css';
 
 const DetailView = () => {
@@ -17,46 +18,96 @@ const DetailView = () => {
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
     const [searchTerm, setSearchTerm] = useState('');
+    const [showExportMenu, setShowExportMenu] = useState(false);
+    const [showFilters, setShowFilters] = useState(false);
+
+    const [filters, setFilters] = useState({
+        category: '',
+        payment_method: '',
+        type: '' // Allow overriding or additional filtering
+    });
 
     useEffect(() => {
         fetchData();
-    }, [type, dateFilter, itemsPerPage, currentPage]); // Re-fetch when dependencies change
+    }, [type, dateFilter, itemsPerPage, currentPage, filters]);
 
     const fetchData = async () => {
         try {
             setLoading(true);
             const params = {
                 filter_type: dateFilter.type,
-                limit: 1000, // Fetch more for the full page view
+                limit: 1000,
                 ...(dateFilter.startDate && { start_date: dateFilter.startDate }),
-                ...(dateFilter.endDate && { end_date: dateFilter.endDate })
+                ...(dateFilter.endDate && { end_date: dateFilter.endDate }),
+                ...filters
             };
 
+            // Clean empty filters
+            Object.keys(params).forEach(key => {
+                if (params[key] === '' || params[key] === null) {
+                    delete params[key];
+                }
+            });
+
+            // Override type based on route if not explicitly set in filters (or merge logic)
+            // If user selects a type in filter, it should probably override or intersect.
+            // For now, let's say if route is 'income', we force type='credit' unless user filters specifically? 
+            // Actually, usually detail view for 'Income' implies ONLY income.
             if (type === 'income') {
                 params.type = 'credit';
-                const response = await transactionService.getTransactions(params);
-                setData(response.transactions || []);
             } else if (type === 'expense') {
                 params.type = 'debit';
-                const response = await transactionService.getTransactions(params);
-                setData(response.transactions || []);
-            } else if (type === 'balance') {
-                const response = await transactionService.getTransactions(params);
-                setData(response.transactions || []);
-            } else if (type === 'transactions' || type === 'recent_transactions') {
-                const response = await transactionService.getTransactions(params);
-                setData(response.transactions || []);
-            } else if (type === 'top_categories') {
-                // For categories, we might need a different endpoint or aggregation
-                // Using transactions for now but could be enhanced to show category grouping
-                const response = await transactionService.getTransactions(params);
-                setData(response.transactions || []);
             }
+
+            // If user explicitly selected a type in filters, that might conflict. 
+            // Let's assume the component will visually hide the type selector if we are in strict mode, 
+            // OR we just send what we have. 
+            // If I am in "Income" view, I shouldn't be able to filter for "Expense".
+
+            const response = await transactionService.getTransactions(params);
+            setData(response.transactions || []);
 
         } catch (error) {
             console.error('Failed to fetch detail data:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleExport = async (format) => {
+        try {
+            const params = {
+                format,
+                filter_type: dateFilter.type,
+                ...(dateFilter.startDate && { start_date: dateFilter.startDate }),
+                ...(dateFilter.endDate && { end_date: dateFilter.endDate }),
+                ...filters
+            };
+
+            if (type === 'income') params.type = 'credit';
+            if (type === 'expense') params.type = 'debit';
+
+            // Clean params
+            Object.keys(params).forEach(key => {
+                if (params[key] === '' || params[key] === null) {
+                    delete params[key];
+                }
+            });
+
+            const blob = await transactionService.exportTransactions(params);
+
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${type}_details_${new Date().toISOString().split('T')[0]}.${format === 'excel' ? 'xlsx' : format}`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            setShowExportMenu(false);
+        } catch (error) {
+            console.error('Export failed:', error);
+            alert('Failed to export data');
         }
     };
 
@@ -112,7 +163,7 @@ const DetailView = () => {
         }));
     };
 
-    // Filter & Sort Data
+    // Filter & Sort Data (Client-side search)
     const processedData = [...data]
         .filter(item =>
         (searchTerm === '' ||
@@ -174,14 +225,40 @@ const DetailView = () => {
                     />
                 </div>
                 <div className="actions">
-                    <button className="action-btn">
-                        <FiFilter /> Filter
+                    <button
+                        className={`action-btn ${showFilters ? 'active' : ''}`}
+                        onClick={() => setShowFilters(!showFilters)}
+                    >
+                        <FiFilter /> Filters
                     </button>
-                    <button className="action-btn">
-                        <FiDownload /> Export
-                    </button>
+
+                    <div className="export-wrapper">
+                        <button
+                            className="action-btn"
+                            onClick={() => setShowExportMenu(!showExportMenu)}
+                        >
+                            <FiDownload /> Export
+                        </button>
+                        {showExportMenu && (
+                            <div className="export-menu">
+                                <button onClick={() => handleExport('csv')}>Export as CSV</button>
+                                <button onClick={() => handleExport('xlsx')}>Export as Excel</button>
+                                <button onClick={() => handleExport('pdf')}>Export as PDF</button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
+
+            {/* Expandable Filters */}
+            {showFilters && (
+                <div className="filters-container">
+                    <TransactionFilters
+                        filters={filters}
+                        onFilterChange={setFilters}
+                    />
+                </div>
+            )}
 
             {/* Data Table Card */}
             <div className="data-card">

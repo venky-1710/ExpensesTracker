@@ -109,14 +109,14 @@ async def list_transactions(
 
 @transaction_router.get("/export")
 async def export_transactions(
-    format: str = Query("csv", pattern="^(csv)$"),
+    format: str = Query("csv", pattern="^(csv|pdf|xlsx)$"),
     type: Optional[str] = Query(None, pattern="^(credit|debit)$"),
     category: Optional[str] = None,
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
     current_user: dict = Depends(get_current_user)
 ):
-    """Export transactions to CSV"""
+    """Export transactions to CSV, PDF, or Excel"""
     try:
         filters = TransactionFilter(
             type=type,
@@ -125,18 +125,38 @@ async def export_transactions(
             end_date=end_date
         )
         
-        csv_content = await TransactionService.export_transactions(
+        content = await TransactionService.export_transactions(
             current_user["id"],
-            filters
+            filters,
+            format
         )
         
-        filename = f"transactions_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         
-        return StreamingResponse(
-            io.StringIO(csv_content),
-            media_type="text/csv",
-            headers={"Content-Disposition": f"attachment; filename={filename}"}
-        )
+        if format == "csv":
+            media_type = "text/csv"
+            filename = f"transactions_{timestamp}.csv"
+            return StreamingResponse(
+                io.StringIO(content),
+                media_type=media_type,
+                headers={"Content-Disposition": f"attachment; filename={filename}"}
+            )
+        elif format == "pdf":
+            media_type = "application/pdf"
+            filename = f"transactions_{timestamp}.pdf"
+            return StreamingResponse(
+                io.BytesIO(content),
+                media_type=media_type,
+                headers={"Content-Disposition": f"attachment; filename={filename}"}
+            )
+        elif format == "xlsx":
+            media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            filename = f"transactions_{timestamp}.xlsx"
+            return StreamingResponse(
+                io.BytesIO(content),
+                media_type=media_type,
+                headers={"Content-Disposition": f"attachment; filename={filename}"}
+            )
         
     except Exception as e:
         logger.error(f"❌ Export transactions error: {str(e)}")
