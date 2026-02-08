@@ -3,7 +3,7 @@ Consolidated Payloads and Models
 """
 from pydantic import BaseModel, Field, EmailStr, field_validator
 from datetime import datetime
-from typing import Optional, Literal, Dict, Any, List
+from typing import Optional, List, Dict, Any, Union, List, Literal
 
 
 # --- Response Models ---
@@ -133,6 +133,30 @@ class TransactionUpdate(BaseModel):
         if v is not None:
             return round(v, 2)
         return v
+
+
+# Chat Models
+class ChatRequest(BaseModel):
+    message: str = Field(..., description="The user's message to the chatbot")
+    history: Optional[List[dict]] = Field(default=[], description="Chat history for context")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "message": "How much did I spend on food this month?",
+                "history": [{"role": "user", "content": "Hi"}, {"role": "model", "content": "Hello! How can I help you with your finances?"}]
+            }
+        }
+
+class ChatResponse(BaseModel):
+    response: str = Field(..., description="The chatbot's response")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "response": "You spent ₹5,000 on food this month."
+            }
+        }
 
 
 class TransactionResponse(BaseModel):

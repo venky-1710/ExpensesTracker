@@ -1,7 +1,7 @@
 """
 Transaction routes - Transaction management endpoints
 """
-from fastapi import APIRouter, Depends, Query, Response, status, HTTPException
+from fastapi import APIRouter, Depends, Query, Response, status, HTTPException, Request
 from typing import Optional
 from fastapi.responses import StreamingResponse
 from models.payloads import (
@@ -21,6 +21,7 @@ from utils.date_helpers import get_date_range
 
 import io
 import traceback
+from utils.cache import cached
 
 transaction_router = APIRouter()
 
@@ -49,7 +50,9 @@ async def create_transaction(
 
 
 @transaction_router.get("", response_model=TransactionListResponse)
+@cached(ttl_seconds=60)
 async def list_transactions(
+    request: Request,
     page: int = Query(1, ge=1),
     limit: int = Query(10, ge=1, le=1000),
     sort_by: str = Query("date", pattern="^(date|amount|category|type)$"),

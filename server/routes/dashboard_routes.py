@@ -1,7 +1,7 @@
 """
 Dashboard routes - Analytics and dashboard data endpoints
 """
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from models.payloads import APIResponse
 from services.dashboard_service import DashboardService
 from utils.auth import get_current_user
@@ -16,8 +16,9 @@ dashboard_router = APIRouter()
 
 
 @dashboard_router.get("/kpis")
-# Caching handled manually or via improved decorator in future.
+@cached(ttl_seconds=300)
 async def get_kpis(
+    request: Request,
     current_user: dict = Depends(get_current_user),
     filter_type: str = Query("month", pattern="^(6days|week|month|6months|year|custom)$"),
     start_date: Optional[datetime] = None,
@@ -51,7 +52,9 @@ async def get_kpis(
 
 
 @dashboard_router.get("/charts")
+@cached(ttl_seconds=300)
 async def get_charts(
+    request: Request,
     current_user: dict = Depends(get_current_user),
     filter_type: str = Query("month", pattern="^(6days|week|month|6months|year|custom)$"),
     start_date: Optional[datetime] = None,
@@ -81,7 +84,9 @@ async def get_charts(
 
 
 @dashboard_router.get("/widgets")
+@cached(ttl_seconds=300)
 async def get_widgets(
+    request: Request,
     current_user: dict = Depends(get_current_user),
     filter_type: str = Query("month", pattern="^(6days|week|month|6months|year|custom)$")
 ):

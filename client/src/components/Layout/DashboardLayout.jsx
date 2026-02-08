@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Sidebar from './Sidebar';
+import ChatWidget from '../ChatBot/ChatWidget';
 import './DashboardLayout.css';
 
 const DashboardLayout = ({ children, onLogout }) => {
@@ -19,6 +20,7 @@ const DashboardLayout = ({ children, onLogout }) => {
             <main className="main-content">
                 {children}
             </main>
+            <ChatWidget />
         </div>
     );
 };

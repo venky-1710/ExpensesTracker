@@ -8,6 +8,8 @@ from routes.auth_routes import auth_router
 from routes.user_routes import user_router
 from routes.transaction_routes import transaction_router
 from routes.dashboard_routes import dashboard_router
+from routes.chat_routes import router as chat_router
+from routes.cache_routes import router as cache_router
 from contextlib import asynccontextmanager
 import os
 import time
@@ -23,6 +25,14 @@ from utils.logger import logger
 async def lifespan(app: FastAPI):
     try:
         logger.info("🚀 Starting Expense Tracker API...")
+        
+        # Check API Key
+        api_key = os.getenv("GEMINI_API_KEY")
+        if api_key:
+            logger.info("✅ GEMINI_API_KEY found in environment.")
+        else:
+            logger.error("❌ GEMINI_API_KEY NOT found in environment!")
+
         await client.admin.command("ping")
         logger.info(f"✅ Database Connected: {MONGODB_URI}")
         
@@ -132,11 +142,16 @@ app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(user_router, prefix="/users", tags=["users"])
 app.include_router(transaction_router, prefix="/transactions", tags=["transactions"])
 app.include_router(dashboard_router, prefix="/dashboard", tags=["dashboard"])
+app.include_router(chat_router, prefix="/api/chat", tags=["AI Chatbot"])
+app.include_router(cache_router, prefix="/api/cache", tags=["Cache Management"])
 
 
 @app.get("/", include_in_schema=False)
 async def root():
     return RedirectResponse(url="/docs")
+
+
+
 
 
 @app.get("/health")
