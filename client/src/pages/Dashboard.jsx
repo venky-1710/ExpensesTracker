@@ -6,6 +6,7 @@ import TransactionModal from '../components/TransactionModal/TransactionModal';
 import IncomeExpenseChart from '../components/Charts/IncomeExpenseChart';
 import CategoryChart from '../components/Charts/CategoryChart';
 import DateFilter from '../components/DateFilter/DateFilter';
+import SubLoader from '../components/SubLoader/SubLoader';
 import './Dashboard.css';
 
 const Dashboard = () => {
@@ -113,8 +114,7 @@ const Dashboard = () => {
                     <p className="subtitle">Loading...</p>
                 </div>
                 <div className="loading-container">
-                    <div className="spinner"></div>
-                    <p>Fetching your financial data...</p>
+                    <SubLoader />
                 </div>
             </div>
         );
@@ -185,10 +185,7 @@ const Dashboard = () => {
                 <div className="chart-card">
                     <h3 className="chart-title">Income vs Expenses</h3>
                     {loading.charts ? (
-                        <div className="chart-placeholder">
-                            <div className="spinner"></div>
-                            <p>Loading chart...</p>
-                        </div>
+                        <SubLoader />
                     ) : (
                         <IncomeExpenseChart data={charts?.credit_vs_debit || []} />
                     )}
@@ -197,10 +194,7 @@ const Dashboard = () => {
                 <div className="chart-card clickable" onClick={() => handleWidgetClick('top_categories')}>
                     <h3 className="chart-title">Category Breakdown</h3>
                     {loading.charts ? (
-                        <div className="chart-placeholder">
-                            <div className="spinner"></div>
-                            <p>Loading chart...</p>
-                        </div>
+                        <SubLoader />
                     ) : (
                         <CategoryChart data={charts?.category_breakdown || []} />
                     )}
@@ -215,9 +209,7 @@ const Dashboard = () => {
                 </div>
 
                 {loading.widgets ? (
-                    <div className="table-placeholder">
-                        <p>Loading transactions...</p>
-                    </div>
+                    <SubLoader />
                 ) : recentTransactions.length > 0 ? (
                     <div className="transactions-list">
                         {recentTransactions.map((transaction, index) => (

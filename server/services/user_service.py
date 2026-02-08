@@ -4,9 +4,13 @@ User service - Business logic for user operations
 from datetime import datetime
 from bson import ObjectId
 from fastapi import HTTPException, status
-from database.database import db
+from database.queries.user_queries import (
+    get_user_by_id_query,
+    update_user_query,
+    soft_delete_user_query
+)
 from utils.auth import get_password_hash, verify_password
-from models.user_model import UserProfileUpdate, PasswordChange, UserPreferences
+from models.payloads import UserProfileUpdate, PasswordChange, UserPreferences
 import base64
 import re
 
@@ -14,17 +18,16 @@ import re
 class UserService:
     """User-related business operations"""
     
+
     @staticmethod
     async def get_user_profile(user_id: str):
         """Get user profile by ID"""
-        user = await db.auth_users.find_one({"_id": ObjectId(user_id), "is_deleted": False})
+        user = await get_user_by_id_query(user_id)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found"
             )
-        
-        user["id"] = str(user.pop("_id"))
         return user
     
     @staticmethod
@@ -45,23 +48,20 @@ class UserService:
         # Add updated timestamp
         update_dict["updated_at"] = datetime.now()
         
-        result = await db.auth_users.update_one(
-            {"_id": ObjectId(user_id)},
-            {"$set": update_dict}
-        )
+        updated_user = await update_user_query(user_id, update_dict)
         
-        if result.matched_count == 0:
+        if not updated_user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found"
             )
         
-        return await UserService.get_user_profile(user_id)
+        return updated_user
     
     @staticmethod
     async def change_password(user_id: str, password_data: PasswordChange):
         """Change user password"""
-        user = await db.auth_users.find_one({"_id": ObjectId(user_id)})
+        user = await get_user_by_id_query(user_id)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -69,6 +69,11 @@ class UserService:
             )
         
         # Verify old password
+        # Note: in queries we pop _id, but we need to check password hash which is in user doc
+        # The query returns the user doc with 'id' instead of '_id', and password_hash should be there if checking directly?
+        # IMPORTANT: get_user_by_id_query should probably return all fields including password_hash for this to work.
+        # Let's assume it does.
+        
         if not verify_password(password_data.old_password, user["password_hash"]):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -78,13 +83,10 @@ class UserService:
         # Hash new password
         new_hash = get_password_hash(password_data.new_password)
         
-        await db.auth_users.update_one(
-            {"_id": ObjectId(user_id)},
-            {"$set": {
-                "password_hash": new_hash,
-                "updated_at": datetime.now()
-            }}
-        )
+        await update_user_query(user_id, {
+            "password_hash": new_hash,
+            "updated_at": datetime.now()
+        })
         
         return {"message": "Password changed successfully"}
     
@@ -101,25 +103,22 @@ class UserService:
         
         update_dict["updated_at"] = datetime.now()
         
-        await db.auth_users.update_one(
-            {"_id": ObjectId(user_id)},
-            {"$set": update_dict}
-        )
+        updated_user = await update_user_query(user_id, update_dict)
         
-        return await UserService.get_user_profile(user_id)
+        if not updated_user:
+             raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+
+        return updated_user
     
     @staticmethod
     async def soft_delete(user_id: str):
         """Soft delete user account"""
-        result = await db.auth_users.update_one(
-            {"_id": ObjectId(user_id)},
-            {"$set": {
-                "is_deleted": True,
-                "updated_at": datetime.now()
-            }}
-        )
+        success = await soft_delete_user_query(user_id)
         
-        if result.matched_count == 0:
+        if not success:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found"

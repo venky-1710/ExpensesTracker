@@ -124,21 +124,19 @@ app.add_middleware(
     expose_headers=["X-Process-Time"]
 )
 
+
+from fastapi.responses import RedirectResponse
+
 # Register routers
-app.include_router(auth_router)
-app.include_router(user_router)
-app.include_router(transaction_router)
-app.include_router(dashboard_router)
+app.include_router(auth_router, prefix="/auth", tags=["auth"])
+app.include_router(user_router, prefix="/users", tags=["users"])
+app.include_router(transaction_router, prefix="/transactions", tags=["transactions"])
+app.include_router(dashboard_router, prefix="/dashboard", tags=["dashboard"])
 
 
-@app.get("/")
+@app.get("/", include_in_schema=False)
 async def root():
-    return {
-        "message": "Expense Tracker API",
-        "version": "1.0.0",
-        "status": "running",
-        "docs": "/docs"
-    }
+    return RedirectResponse(url="/docs")
 
 
 @app.get("/health")

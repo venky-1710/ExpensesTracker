@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FiPlus, FiFilter, FiDownload } from 'react-icons/fi';
 import { transactionService } from '../services/transactionService';
 import TransactionModal from '../components/TransactionModal/TransactionModal';
+import SubLoader from '../components/SubLoader/SubLoader';
 import './Transactions.css';
 
 const Transactions = () => {
@@ -83,8 +84,7 @@ const Transactions = () => {
 
             {loading ? (
                 <div className="loading-container">
-                    <div className="spinner"></div>
-                    <p>Loading transactions...</p>
+                    <SubLoader />
                 </div>
             ) : transactions.length > 0 ? (
                 <>

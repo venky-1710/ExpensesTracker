@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import axios from 'axios';
 import { config } from '../config';
+import Loader from './Loader/Loader';
 
 const ProtectedRoute = ({ children }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(null);
@@ -9,29 +10,34 @@ const ProtectedRoute = ({ children }) => {
 
     useEffect(() => {
         const checkAuth = async () => {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            setIsAuthenticated(false);
-            return;
-        }
+            // Minimum loading time of 1500ms
+            const minLoadTime = new Promise(resolve => setTimeout(resolve, 2000));
+            const token = localStorage.getItem('token');
+            let authSuccess = false;
 
-        try {
-            await axios.get(`${serverURL}/auth/me`, {
-            headers: {
-                Authorization: `Bearer ${token}`
+            if (token) {
+                try {
+                    await axios.get(`${serverURL}/auth/me`, {
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        }
+                    });
+                    authSuccess = true;
+                } catch (error) {
+                    authSuccess = false;
+                }
             }
-            });
-            setIsAuthenticated(true);
-        } catch (error) {
-            setIsAuthenticated(false);
-        }
-    };
 
-    checkAuth();
+            // Wait for both the auth check and the minimum time
+            await minLoadTime;
+            setIsAuthenticated(authSuccess);
+        };
+
+        checkAuth();
     }, []);
 
     if (isAuthenticated === null) {
-        return <div>Loading...</div>;
+        return <Loader />;
     }
 
     return isAuthenticated ? children : <Navigate to="/login" />;

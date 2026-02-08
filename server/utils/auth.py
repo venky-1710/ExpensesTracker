@@ -1,6 +1,6 @@
 import os
 from passlib.context import CryptContext
-from fastapi import HTTPException, status, Depends
+from fastapi import HTTPException, status, Depends, Request
 from fastapi.security import OAuth2PasswordBearer
 from datetime import datetime, timedelta
 from database.database import db
@@ -16,7 +16,7 @@ pwd_context = CryptContext(
     deprecated="auto",
 )
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
 
 MAX_PASSWORD_BYTES = 72
 
@@ -57,8 +57,10 @@ async def get_user_by_email(email: str):
 
 
 # Dependency for getting current authenticated user
-async def get_current_user(token: str = Depends(oauth2_scheme)):
-    """Get current user from JWT token"""
+
+# Dependency for getting current authenticated user
+async def get_current_user(request: Request = None, token: str = Depends(oauth2_scheme)):
+    """Get current user from JWT token (Header or Cookie)"""
     from bson import ObjectId
     from jose import JWTError
     from fastapi import HTTPException, status
@@ -68,6 +70,15 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+    # If token is not in header (oauth2_scheme), check cookie
+    if not token and request:
+        token = request.cookies.get("access_token")
+        if token and token.startswith("Bearer "):
+             token = token.split(" ")[1]
+    
+    if not token:
+        raise credentials_exception
     
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])

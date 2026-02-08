@@ -2,19 +2,19 @@
 User routes - Profile management endpoints
 """
 from fastapi import APIRouter, Depends, status, HTTPException
-from models.user_model import (
+from models.payloads import (
     UserProfileResponse,
     UserProfileUpdate,
     PasswordChange,
-    UserPreferences
+    UserPreferences,
+    APIResponse
 )
-from models.response_model import APIResponse
 from services.user_service import UserService
 from utils.auth import get_current_user
 from utils.logger import logger
 import traceback
 
-user_router = APIRouter(prefix="/users", tags=["users"])
+user_router = APIRouter()
 
 
 @user_router.get("/me", response_model=UserProfileResponse)

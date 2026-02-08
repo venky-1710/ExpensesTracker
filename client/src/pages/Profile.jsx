@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FiEdit2, FiSave, FiX, FiUser, FiMail, FiPhone, FiCalendar, FiLock, FiTrash2, FiCamera } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import { userService } from '../services/userService';
+import SubLoader from '../components/SubLoader/SubLoader';
 import './Profile.css';
 
 const Profile = () => {
@@ -169,8 +170,7 @@ const Profile = () => {
         return (
             <div className="profile-page">
                 <div className="loading-container">
-                    <div className="spinner"></div>
-                    <p>Loading profile...</p>
+                    <SubLoader />
                 </div>
             </div>
         );

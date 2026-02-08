@@ -2,7 +2,7 @@
 Dashboard routes - Analytics and dashboard data endpoints
 """
 from fastapi import APIRouter, Depends, Query, HTTPException
-from models.response_model import APIResponse
+from models.payloads import APIResponse
 from services.dashboard_service import DashboardService
 from utils.auth import get_current_user
 from utils.logger import logger
@@ -10,10 +10,13 @@ from datetime import datetime
 from typing import Optional
 import traceback
 
-dashboard_router = APIRouter(prefix="/dashboard", tags=["dashboard"])
+from utils.cache import cached
+
+dashboard_router = APIRouter()
 
 
 @dashboard_router.get("/kpis")
+# Caching handled manually or via improved decorator in future.
 async def get_kpis(
     current_user: dict = Depends(get_current_user),
     filter_type: str = Query("month", pattern="^(6days|week|month|6months|year|custom)$"),

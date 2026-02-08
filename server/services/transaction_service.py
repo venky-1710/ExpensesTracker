@@ -4,14 +4,24 @@ Transaction service - Business logic for transaction operations
 from datetime import datetime
 from bson import ObjectId
 from fastapi import HTTPException, status
-from database.database import db
-from models.transaction_model import (
+from models.payloads import (
     TransactionCreate, 
     TransactionUpdate, 
-    TransactionFilter, 
+    TransactionResponse,
+    TransactionFilter,
     PaginationParams,
-    TransactionResponse
+    TransactionListResponse
 )
+from database.queries.transaction_queries import (
+    create_transaction_query, 
+    get_transaction_by_id_query, 
+    update_transaction_query, 
+    delete_transaction_query,
+    list_transactions_query,
+    count_transactions_query,
+    get_all_transactions_query
+)
+
 from typing import List, Dict, Any
 import csv
 import io
@@ -21,35 +31,33 @@ import math
 class TransactionService:
     """Transaction-related business operations"""
     
+
     @staticmethod
     async def create_transaction(user_id: str, transaction_data: TransactionCreate) -> Dict[str, Any]:
         """Create a new transaction"""
-        doc = {
-            "user_id": ObjectId(user_id),
-            "amount": transaction_data.amount,
-            "type": transaction_data.type,
-            "category": transaction_data.category,
-            "description": transaction_data.description,
-            "payment_method": transaction_data.payment_method,
-            "date": transaction_data.date,
-            "created_at": datetime.now(),
-            "updated_at": datetime.now()
-        }
-        
-        result = await db.transactions.insert_one(doc)
-        doc["id"] = str(result.inserted_id)
-        doc["user_id"] = user_id
-        doc.pop("_id", None)
-        
-        return doc
+        try:
+            doc = {
+                "user_id": ObjectId(user_id),
+                "amount": transaction_data.amount,
+                "type": transaction_data.type,
+                "category": transaction_data.category,
+                "description": transaction_data.description,
+                "payment_method": transaction_data.payment_method,
+                "date": transaction_data.date,
+                "created_at": datetime.now(),
+                "updated_at": datetime.now()
+            }
+            
+            result = await create_transaction_query(doc)
+            result["user_id"] = str(result["user_id"])
+            return result
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
     
     @staticmethod
     async def get_transaction(user_id: str, transaction_id: str) -> Dict[str, Any]:
         """Get single transaction by ID"""
-        transaction = await db.transactions.find_one({
-            "_id": ObjectId(transaction_id),
-            "user_id": ObjectId(user_id)
-        })
+        transaction = await get_transaction_by_id_query(user_id, transaction_id)
         
         if not transaction:
             raise HTTPException(
@@ -78,31 +86,24 @@ class TransactionService:
         
         update_dict["updated_at"] = datetime.now()
         
-        result = await db.transactions.update_one(
-            {
-                "_id": ObjectId(transaction_id),
-                "user_id": ObjectId(user_id)
-            },
-            {"$set": update_dict}
-        )
+        updated_transaction = await update_transaction_query(user_id, transaction_id, update_dict)
         
-        if result.matched_count == 0:
+        if not updated_transaction:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Transaction not found"
             )
-        
-        return await TransactionService.get_transaction(user_id, transaction_id)
+            
+        updated_transaction["id"] = str(updated_transaction.pop("_id"))
+        updated_transaction["user_id"] = str(updated_transaction["user_id"])
+        return updated_transaction
     
     @staticmethod
     async def delete_transaction(user_id: str, transaction_id: str):
         """Delete transaction"""
-        result = await db.transactions.delete_one({
-            "_id": ObjectId(transaction_id),
-            "user_id": ObjectId(user_id)
-        })
+        success = await delete_transaction_query(user_id, transaction_id)
         
-        if result.deleted_count == 0:
+        if not success:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Transaction not found"
@@ -141,7 +142,7 @@ class TransactionService:
             query["description"] = {"$regex": filters.search, "$options": "i"}
         
         # Get total count
-        total = await db.transactions.count_documents(query)
+        total = await count_transactions_query(query)
         
         # Calculate pagination
         skip = (pagination.page - 1) * pagination.limit
@@ -152,8 +153,7 @@ class TransactionService:
         sort = [(pagination.sort_by, sort_order)]
         
         # Fetch transactions
-        cursor = db.transactions.find(query).sort(sort).skip(skip).limit(pagination.limit)
-        transactions = await cursor.to_list(length=pagination.limit)
+        transactions = await list_transactions_query(query, skip, pagination.limit, sort)
         
         # Format response
         formatted_transactions = []
@@ -191,8 +191,7 @@ class TransactionService:
             query["date"] = date_query
         
         # Fetch all matching transactions
-        cursor = db.transactions.find(query).sort("date", -1)
-        transactions = await cursor.to_list(length=None)
+        transactions = await get_all_transactions_query(query)
         
         # Generate CSV
         output = io.StringIO()

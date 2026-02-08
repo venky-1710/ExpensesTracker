@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { FiArrowLeft, FiFilter, FiDownload, FiSearch, FiTrendingUp, FiTrendingDown, FiDollarSign, FiActivity, FiList, FiPieChart, FiAlertCircle } from 'react-icons/fi';
 import { transactionService } from '../services/transactionService';
 import { useDashboard } from '../context/DashboardContext';
+import SubLoader from '../components/SubLoader/SubLoader';
 import './DetailView.css';
 
 const DetailView = () => {
@@ -186,8 +187,7 @@ const DetailView = () => {
             <div className="data-card">
                 {loading ? (
                     <div className="loading-state">
-                        <div className="spinner"></div>
-                        <p>Loading your data...</p>
+                        <SubLoader />
                     </div>
                 ) : processedData.length > 0 ? (
                     <>
