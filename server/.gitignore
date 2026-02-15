@@ -1,4 +1,4 @@
-.env
 .venv
 logs/
 trash.txt
+.env
