@@ -14,6 +14,12 @@ const DetailView = () => {
 
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [stats, setStats] = useState({
+        totalCredits: 0,
+        totalDebits: 0,
+        availableBalance: 0
+    });
+
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
@@ -55,23 +61,21 @@ const DetailView = () => {
                 }
             });
 
-            // Override type based on route if not explicitly set in filters (or merge logic)
-            // If user selects a type in filter, it should probably override or intersect.
-            // For now, let's say if route is 'income', we force type='credit' unless user filters specifically? 
-            // Actually, usually detail view for 'Income' implies ONLY income.
             if (type === 'income') {
                 params.type = 'credit';
             } else if (type === 'expense') {
                 params.type = 'debit';
             }
 
-            // If user explicitly selected a type in filters, that might conflict. 
-            // Let's assume the component will visually hide the type selector if we are in strict mode, 
-            // OR we just send what we have. 
-            // If I am in "Income" view, I shouldn't be able to filter for "Expense".
-
             const response = await transactionService.getTransactions(params);
             setData(response.transactions || []);
+
+            // Set stats from response
+            setStats({
+                totalCredits: response.total_credits || 0,
+                totalDebits: response.total_debits || 0,
+                availableBalance: response.available_balance || 0
+            });
 
         } catch (error) {
             console.error('Failed to fetch detail data:', error);
@@ -225,15 +229,21 @@ const DetailView = () => {
             {/* Summary Stats */}
             <div className="summary-stats-grid">
                 <div className="stat-card">
-                    <div className="stat-label">Total {config.title.replace(' Details', '')}</div>
-                    <div className="stat-value" style={{ color: config.color }}>
-                        ₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    <div className="stat-label">Total Credits</div>
+                    <div className="stat-value text-success">
+                        +₹{stats.totalCredits?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '0.00'}
+                    </div>
+                </div>
+                <div className="stat-card">
+                    <div className="stat-label">Total Debits</div>
+                    <div className="stat-value text-danger">
+                        -₹{stats.totalDebits?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '0.00'}
                     </div>
                 </div>
                 <div className="stat-card">
                     <div className="stat-label">Available Wallet Balance</div>
                     <div className="stat-value text-primary">
-                        ₹{kpis?.available_balance?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '0.00'}
+                        ₹{stats.availableBalance?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '0.00'}
                     </div>
                 </div>
             </div>

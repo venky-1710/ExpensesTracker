@@ -19,7 +19,9 @@ from database.queries.transaction_queries import (
     delete_transaction_query,
     list_transactions_query,
     count_transactions_query,
-    get_all_transactions_query
+    get_all_transactions_query,
+    get_filtered_totals_query,
+    get_total_balance_query
 )
 
 from typing import List, Dict, Any
@@ -162,12 +164,21 @@ class TransactionService:
             t["user_id"] = str(t["user_id"])
             formatted_transactions.append(t)
         
+        # Calculate filtered totals
+        filtered_totals = await get_filtered_totals_query(query)
+        
+        # Calculate available balance (all time)
+        available_balance = await get_total_balance_query(user_id)
+        
         return {
             "transactions": formatted_transactions,
             "total": total,
             "page": pagination.page,
             "limit": pagination.limit,
-            "total_pages": total_pages
+            "total_pages": total_pages,
+            "total_credits": filtered_totals["credit"],
+            "total_debits": filtered_totals["debit"],
+            "available_balance": available_balance
         }
     
     @staticmethod

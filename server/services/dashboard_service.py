@@ -21,45 +21,61 @@ class DashboardService:
     """Dashboard analytics and data aggregation"""
     
     @staticmethod
-    async def get_kpis(user_id: str, filter_type: str, start_date: datetime = None, end_date: datetime = None) -> Dict[str, Any]:
-        """Calculate all KPIs with period comparison"""
+    async def get_kpis(user_id: str, filter_type: str, start_date: datetime = None, end_date: datetime = None, kpi_type: str = None) -> Dict[str, Any]:
+        """Calculate all KPIs with period comparison (optionally filtered by type)"""
         # Get current period
         current_start, current_end = get_date_range(filter_type, start_date, end_date)
         
         # Get previous period for comparison
         previous_start, previous_end = get_previous_period(current_start, current_end)
         
-        # Get current period stats
-        current_stats = await DashboardService._calculate_period_stats(user_id, current_start, current_end)
+        # Initialize results
+        kpis = {}
         
-        # Get previous period stats
+        # Helper to decide if we should calculate a specific KPI
+        should_calc_all = kpi_type is None
+        
+        # We need basic stats for most KPIs anyway, but we can optimize return structure
+        # actually, calculating everything is likely fast enough, but let's be explicit for structure
+        
+        current_stats = await DashboardService._calculate_period_stats(user_id, current_start, current_end)
         previous_stats = await DashboardService._calculate_period_stats(user_id, previous_start, previous_end)
         
-        # Build KPI response with comparisons
-        kpis = {
-            "total_credits": DashboardService._build_kpi_comparison(
+        if should_calc_all or kpi_type == 'income':
+            kpis["total_credits"] = DashboardService._build_kpi_comparison(
                 current_stats["total_credits"],
-                previous_stats["total_credits"]
-            ),
-            "total_debits": DashboardService._build_kpi_comparison(
+                previous_stats["total_credits"],
+                current_stats["credit_stats"]
+            )
+            
+        if should_calc_all or kpi_type == 'expense':
+            kpis["total_debits"] = DashboardService._build_kpi_comparison(
                 current_stats["total_debits"],
-                previous_stats["total_debits"]
-            ),
-            "net_balance": DashboardService._build_kpi_comparison(
-                current_stats["net_balance"],
-                previous_stats["net_balance"]
-            ),
-            "total_transactions": DashboardService._build_kpi_comparison(
-                current_stats["transaction_count"],
-                previous_stats["transaction_count"]
-            ),
-            "highest_expense_category": current_stats["highest_category"],
-            "average_monthly_expense": DashboardService._build_kpi_comparison(
+                previous_stats["total_debits"],
+                current_stats["debit_stats"]
+            )
+            # These are usually associated with expense view in dashboard
+            kpis["highest_expense_category"] = current_stats["highest_category"]
+            kpis["average_monthly_expense"] = DashboardService._build_kpi_comparison(
                 current_stats["avg_monthly_expense"],
                 previous_stats["avg_monthly_expense"]
-            ),
-            "available_balance": await DashboardService._calculate_total_balance(user_id)
-        }
+            )
+            
+        if should_calc_all or kpi_type == 'balance':
+            kpis["net_balance"] = DashboardService._build_kpi_comparison(
+                current_stats["net_balance"],
+                previous_stats["net_balance"]
+            )
+            kpis["available_balance"] = await DashboardService._calculate_total_balance(user_id)
+            
+        if should_calc_all or kpi_type == 'transactions':
+            kpis["total_transactions"] = DashboardService._build_kpi_comparison(
+                current_stats["transaction_count"],
+                previous_stats["transaction_count"]
+            )
+            
+        # If specific type requested, we might want to ensure other keys exist as null or handle in frontend
+        # For simplicity in frontend merge, we return only what changed.
         
         return kpis
 
@@ -98,14 +114,18 @@ class DashboardService:
         total_credits = 0
         total_debits = 0
         transaction_count = 0
+        credit_stats = {"min": 0, "max": 0}
+        debit_stats = {"min": 0, "max": 0}
         
         for item in pipeline_result:
             if item["_id"] == "credit":
                 total_credits = item["total"]
                 transaction_count += item["count"]
+                credit_stats = {"min": item.get("min_transaction", 0), "max": item.get("max_transaction", 0)}
             elif item["_id"] == "debit":
                 total_debits = item["total"]
                 transaction_count += item["count"]
+                debit_stats = {"min": item.get("min_transaction", 0), "max": item.get("max_transaction", 0)}
         
         net_balance = total_credits - total_debits
         
@@ -129,11 +149,13 @@ class DashboardService:
             "net_balance": net_balance,
             "transaction_count": transaction_count,
             "highest_category": highest_category,
-            "avg_monthly_expense": avg_monthly_expense
+            "avg_monthly_expense": avg_monthly_expense,
+            "credit_stats": credit_stats,
+            "debit_stats": debit_stats
         }
     
     @staticmethod
-    def _build_kpi_comparison(current: float, previous: float) -> Dict[str, Any]:
+    def _build_kpi_comparison(current: float, previous: float, extra_stats: Dict[str, float] = None) -> Dict[str, Any]:
         """Build KPI with comparison"""
         if previous == 0:
             change_percent = 100.0 if current > 0 else 0.0
@@ -142,37 +164,44 @@ class DashboardService:
         
         trend = "up" if change_percent > 0 else ("down" if change_percent < 0 else "neutral")
         
-        return {
+        result = {
             "current": round(current, 2),
             "previous": round(previous, 2),
             "change_percent": round(change_percent, 1),
             "trend": trend
         }
+        
+        if extra_stats:
+            result.update(extra_stats)
+            
+        return result
     
     @staticmethod
-    async def get_charts(user_id: str, filter_type: str, start_date: datetime = None, end_date: datetime = None) -> Dict[str, Any]:
-        """Get all chart data"""
+    async def get_charts(user_id: str, filter_type: str, start_date: datetime = None, end_date: datetime = None, chart_type: str = None) -> Dict[str, Any]:
+        """Get all chart data (optionally filtered)"""
         current_start, current_end = get_date_range(filter_type, start_date, end_date)
         interval = group_by_interval(filter_type)
         
+        should_calc_all = chart_type is None
+        charts = {}
+        
         # Credit vs Debit timeline
-        timeline_data = await DashboardService._get_timeline_chart(user_id, current_start, current_end, interval)
+        if should_calc_all or chart_type == 'credit_vs_debit':
+            charts["credit_vs_debit"] = await DashboardService._get_timeline_chart(user_id, current_start, current_end, interval)
         
         # Category breakdown
-        category_data = await DashboardService._get_category_chart(user_id, current_start, current_end)
+        if should_calc_all or chart_type == 'category_breakdown':
+            charts["category_breakdown"] = await DashboardService._get_category_chart(user_id, current_start, current_end)
         
         # Expense distribution (pie chart)
-        expense_dist = await DashboardService._get_expense_distribution(user_id, current_start, current_end)
+        if should_calc_all or chart_type == 'expense_distribution':
+            charts["expense_distribution"] = await DashboardService._get_expense_distribution(user_id, current_start, current_end)
         
         # Payment method distribution
-        payment_methods = await DashboardService._get_payment_methods(user_id, current_start, current_end)
+        if should_calc_all or chart_type == 'payment_methods':
+            charts["payment_methods"] = await DashboardService._get_payment_methods(user_id, current_start, current_end)
         
-        return {
-            "credit_vs_debit": timeline_data,
-            "category_breakdown": category_data,
-            "expense_distribution": expense_dist,
-            "payment_methods": payment_methods
-        }
+        return charts
     
     @staticmethod
     async def _get_timeline_chart(user_id: str, start_date: datetime, end_date: datetime, interval: str) -> List[Dict[str, Any]]:
@@ -292,50 +321,50 @@ class DashboardService:
         ]
     
     @staticmethod
-    async def get_widgets(user_id: str, filter_type: str = "month", start_date: datetime = None, end_date: datetime = None) -> Dict[str, Any]:
-        """Get all widget data"""
+    async def get_widgets(user_id: str, filter_type: str = "month", start_date: datetime = None, end_date: datetime = None, widget_type: str = None) -> Dict[str, Any]:
+        """Get all widget data (optionally filtered)"""
         current_start, current_end = get_date_range(filter_type, start_date, end_date)
+        should_calc_all = widget_type is None
+        widgets = {}
         
         # Recent transactions
-        recent_pipeline = build_recent_transactions_pipeline(user_id, 10)
-        recent = await db.transactions.aggregate(recent_pipeline).to_list(length=10)
-        formatted_recent = []
-        for t in recent:
-            t["id"] = str(t.pop("_id"))
-            t["user_id"] = str(t["user_id"])
-            formatted_recent.append(t)
+        if should_calc_all or widget_type == 'recent_transactions':
+            recent_pipeline = build_recent_transactions_pipeline(user_id, 10)
+            recent = await db.transactions.aggregate(recent_pipeline).to_list(length=10)
+            formatted_recent = []
+            for t in recent:
+                t["id"] = str(t.pop("_id"))
+                t["user_id"] = str(t["user_id"])
+                formatted_recent.append(t)
+            widgets["recent_transactions"] = formatted_recent
         
         # Top categories
-        top_categories_pipeline = build_category_pipeline(user_id, current_start, current_end, type_filter=None)
-        top_categories = await db.transactions.aggregate(top_categories_pipeline).to_list(length=5)
-        
-        # Highest single expense
-        highest_pipeline = build_highest_expense_pipeline(user_id, current_start, current_end)
-        highest = await db.transactions.aggregate(highest_pipeline).to_list(length=1)
-        
-        # Format highest expense
-        formatted_highest = None
-        if highest:
-            formatted_highest = highest[0].copy()
-            formatted_highest["id"] = str(formatted_highest.pop("_id"))
-            formatted_highest["user_id"] = str(formatted_highest["user_id"])
-        
-        # Monthly savings
-        savings_pipeline = build_monthly_savings_pipeline(user_id, current_start, current_end)
-        savings_data = await db.transactions.aggregate(savings_pipeline).to_list(length=None)
-        
-        # Process monthly savings
-        monthly_savings = DashboardService._process_monthly_savings(savings_data)
-        
-        return {
-            "recent_transactions": formatted_recent,
-            "top_categories": [
+        if should_calc_all or widget_type == 'top_categories':
+            top_categories_pipeline = build_category_pipeline(user_id, current_start, current_end, type_filter=None)
+            top_categories = await db.transactions.aggregate(top_categories_pipeline).to_list(length=5)
+            widgets["top_categories"] = [
                 {"category": c["_id"], "amount": round(c["total"], 2), "count": c["count"]}
                 for c in top_categories
-            ],
-            "highest_expense": formatted_highest,
-            "monthly_savings": monthly_savings
-        }
+            ]
+        
+        # Highest single expense
+        if should_calc_all or widget_type == 'highest_expense':
+            highest_pipeline = build_highest_expense_pipeline(user_id, current_start, current_end)
+            highest = await db.transactions.aggregate(highest_pipeline).to_list(length=1)
+            formatted_highest = None
+            if highest:
+                formatted_highest = highest[0].copy()
+                formatted_highest["id"] = str(formatted_highest.pop("_id"))
+                formatted_highest["user_id"] = str(formatted_highest["user_id"])
+            widgets["highest_expense"] = formatted_highest
+        
+        # Monthly savings
+        if should_calc_all or widget_type == 'monthly_savings':
+            savings_pipeline = build_monthly_savings_pipeline(user_id, current_start, current_end)
+            savings_data = await db.transactions.aggregate(savings_pipeline).to_list(length=None)
+            widgets["monthly_savings"] = DashboardService._process_monthly_savings(savings_data)
+        
+        return widgets
     
     @staticmethod
     def _process_monthly_savings(savings_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:

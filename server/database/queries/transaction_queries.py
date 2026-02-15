@@ -56,3 +56,46 @@ async def get_all_transactions_query(query: Dict[str, Any], sort_field: str = "d
     """Get all transactions for export (no pagination)"""
     cursor = db.transactions.find(query).sort(sort_field, sort_order)
     return await cursor.to_list(length=None)
+
+async def get_filtered_totals_query(query: Dict[str, Any]) -> Dict[str, float]:
+    """Calculate total credits and debits for filtered transactions"""
+    pipeline = [
+        {"$match": query},
+        {
+            "$group": {
+                "_id": "$type",
+                "total": {"$sum": "$amount"}
+            }
+        }
+    ]
+    result = await db.transactions.aggregate(pipeline).to_list(length=None)
+    
+    totals = {"credit": 0.0, "debit": 0.0}
+    for item in result:
+        totals[item["_id"]] = item["total"]
+        
+    return totals
+
+async def get_total_balance_query(user_id: str) -> float:
+    """Calculate total available balance (all time)"""
+    pipeline = [
+        {"$match": {"user_id": ObjectId(user_id)}},
+        {
+            "$group": {
+                "_id": "$type",
+                "total": {"$sum": "$amount"}
+            }
+        }
+    ]
+    result = await db.transactions.aggregate(pipeline).to_list(length=None)
+    
+    credits = 0.0
+    debits = 0.0
+    
+    for item in result:
+        if item["_id"] == "credit":
+            credits = item["total"]
+        elif item["_id"] == "debit":
+            debits = item["total"]
+            
+    return round(credits - debits, 2)

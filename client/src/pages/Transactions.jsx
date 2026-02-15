@@ -30,7 +30,10 @@ const Transactions = () => {
         page: 1,
         limit: 20,
         total: 0,
-        totalPages: 0
+        totalPages: 0,
+        totalCredits: 0,
+        totalDebits: 0,
+        availableBalance: 0
     });
 
     useEffect(() => {
@@ -64,7 +67,10 @@ const Transactions = () => {
             setPagination(prev => ({
                 ...prev,
                 total: response.total || 0,
-                totalPages: response.total_pages || 0
+                totalPages: response.total_pages || 0,
+                totalCredits: response.total_credits || 0,
+                totalDebits: response.total_debits || 0,
+                availableBalance: response.available_balance || 0
             }));
         } catch (error) {
             console.error('Failed to fetch transactions:', error);
@@ -157,6 +163,22 @@ const Transactions = () => {
                         <FiPlus size={18} />
                         Add Transaction
                     </button>
+                </div>
+            </div>
+
+            {/* Summary Cards */}
+            <div className="transaction-summary-cards">
+                <div className="summary-card credit">
+                    <div className="summary-label">Total Credits</div>
+                    <div className="summary-value">+₹{pagination.totalCredits?.toLocaleString() || '0'}</div>
+                </div>
+                <div className="summary-card debit">
+                    <div className="summary-label">Total Debits</div>
+                    <div className="summary-value">-₹{pagination.totalDebits?.toLocaleString() || '0'}</div>
+                </div>
+                <div className="summary-card balance">
+                    <div className="summary-label">Available Balance</div>
+                    <div className="summary-value">₹{pagination.availableBalance?.toLocaleString() || '0'}</div>
                 </div>
             </div>
 
