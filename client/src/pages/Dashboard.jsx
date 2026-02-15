@@ -58,7 +58,7 @@ const Dashboard = () => {
 
     const kpiCards = [
         {
-            title: 'Total Income',
+            title: 'Total Credits',
             value: `₹${stats.totalIncome.toLocaleString()}`,
             icon: FiTrendingUp,
             color: '#10b981',

@@ -201,6 +201,9 @@ class TransactionListResponse(BaseModel):
     page: int
     limit: int
     total_pages: int
+    total_credits: float = 0.0
+    total_debits: float = 0.0
+    available_balance: float = 0.0
 
     class Config:
         from_attributes = True

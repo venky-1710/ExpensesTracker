@@ -106,6 +106,14 @@
     color: #6d4aff;
 }
 
+.text-success {
+    color: #10b981;
+}
+
+.text-danger {
+    color: #ef4444;
+}
+
 /* Controls Bar */
 .controls-bar {
     display: flex;
