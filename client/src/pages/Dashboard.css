@@ -54,43 +54,37 @@
 /* KPI Grid */
 .kpi-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 24px;
     margin-bottom: 30px;
 }
 
 .kpi-card {
-    background: #ffffff;
-    border-radius: 16px;
+    background: var(--card-bg, #ffffff);
     padding: 24px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    transition: all 0.3s ease;
-    border: 1px solid #f0f0f0;
-}
-
-.kpi-card.clickable {
+    border-radius: 20px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    border: 1px solid var(--border-color, #f0f0f0);
+    transition: all 0.2s ease;
     cursor: pointer;
-}
-
-.kpi-card.clickable:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-    border-color: var(--accent-color, #6d4aff);
+    position: relative;
+    overflow: visible;
+    /* Allow menu overflow */
 }
 
 .kpi-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    transform: translateY(-4px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
 }
 
-.kpi-header {
+.kpi-header-row {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     margin-bottom: 16px;
 }
 
-.kpi-icon {
+.kpi-icon-wrapper {
     width: 48px;
     height: 48px;
     border-radius: 12px;
@@ -99,30 +93,88 @@
     justify-content: center;
 }
 
-.kpi-trend {
+.kpi-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.action-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary, #6b7280);
+    transition: all 0.2s;
+    position: relative;
+}
+
+.action-icon:hover {
+    background: var(--bg-secondary, #f3f4f6);
+    color: var(--text-primary, #374151);
+}
+
+/* Tooltip & Menu */
+.info-tooltip {
+    position: absolute;
+    bottom: 100%;
+    right: 0;
+    width: 200px;
+    background: var(--text-primary, #1f2937);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 8px;
     font-size: 12px;
-    font-weight: 600;
-    color: #10b981;
-    background: #10b98120;
-    padding: 4px 8px;
-    border-radius: 6px;
+    line-height: 1.4;
+    z-index: 20;
+    margin-bottom: 6px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    pointer-events: none;
+    /* Let clicks pass through if needed, mainly display */
 }
 
-.kpi-content {
-    margin-top: 8px;
+.card-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 140px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border-color, #f0f0f0);
+    z-index: 20;
+    margin-top: 4px;
+    overflow: hidden;
+    animation: fadeIn 0.1s ease-out;
 }
 
-.kpi-title {
-    margin: 0;
+.menu-item {
+    padding: 10px 14px;
     font-size: 13px;
-    color: #6b7280;
     font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    color: var(--text-secondary, #4b5563);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+.menu-item:hover {
+    background: var(--bg-secondary, #f9fafb);
+    color: var(--primary, #6d4aff);
+}
+
+/* KPI Content */
+.kpi-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary, #6b7280);
+    margin: 0 0 4px 0;
 }
 
 .kpi-value {
-    margin: 8px 0 0;
     font-size: 28px;
     font-weight: 700;
     color: #1f2937;
@@ -280,6 +332,26 @@
 [data-theme='dark'] .chart-title,
 [data-theme='dark'] .section-header h3 {
     color: #ffffff;
+}
+
+[data-theme='dark'] .mm-val {
+    color: #e5e7eb;
+}
+
+/* Mini Spinner for KPI Cards */
+.spinner-mini {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(0, 0, 0, 0.1);
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 [data-theme='dark'] .kpi-value {
@@ -499,5 +571,119 @@
 
     .transaction-amount {
         align-self: flex-end;
+    }
+}
+
+/* Maximized View */
+.maximized-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.maximized-card {
+    background: var(--card-bg, #ffffff);
+    width: 90vw;
+    height: 85vh;
+    border-radius: 20px;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+[data-theme='dark'] .maximized-card {
+    background: #1a0d35;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.maximized-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-color, #f0f0f0);
+}
+
+.maximized-header h2 {
+    margin: 0;
+    font-size: 24px;
+    color: var(--text-primary, #1f2937);
+}
+
+[data-theme='dark'] .maximized-header h2 {
+    color: #ffffff;
+}
+
+.close-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    border: none;
+    background: var(--bg-secondary, #f3f4f6);
+    color: var(--text-secondary, #6b7280);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+[data-theme='dark'] .close-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+}
+
+.close-btn:hover {
+    background: var(--primary, #6d4aff);
+    color: white;
+    transform: rotate(90deg);
+}
+
+.maximized-content {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Ensure charts take full height in maximized view */
+.maximized-content .recharts-responsive-container {
+    min-height: 100% !important;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes scaleUp {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
     }
 }

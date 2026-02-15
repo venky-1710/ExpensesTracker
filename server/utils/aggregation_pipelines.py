@@ -22,7 +22,9 @@ def build_kpi_pipeline(user_id: str, start_date: datetime, end_date: datetime) -
             "$group": {
                 "_id": "$type",
                 "total": {"$sum": "$amount"},
-                "count": {"$sum": 1}
+                "count": {"$sum": 1},
+                "min_transaction": {"$min": "$amount"},
+                "max_transaction": {"$max": "$amount"}
             }
         }
     ]

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiTrendingUp, FiTrendingDown, FiDollarSign, FiActivity } from 'react-icons/fi';
+import { FiTrendingUp, FiTrendingDown, FiDollarSign, FiActivity, FiMoreVertical, FiInfo, FiRefreshCw, FiMaximize2, FiMinimize2 } from 'react-icons/fi';
 import { useDashboard } from '../context/DashboardContext';
 import TransactionModal from '../components/TransactionModal/TransactionModal';
 import IncomeExpenseChart from '../components/Charts/IncomeExpenseChart';
@@ -19,16 +19,46 @@ const Dashboard = () => {
         setDateFilter,
         fetchKPIs,
         fetchWidgets,
-        refreshDashboard
+        refreshDashboard,
+        refreshSingleKPI,
+        refreshSingleChart,
+        refreshSingleWidget
     } = useDashboard();
 
     const navigate = useNavigate();
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [activeMenu, setActiveMenu] = useState(null); // 'kpiType', 'chart_credit_vs_debit', etc.
+    const [showMinMax, setShowMinMax] = useState(null); // 'kpiType'
+    const [showInfo, setShowInfo] = useState(null); // 'kpiType', 'chart_...', etc.
+    const [maximizedCard, setMaximizedCard] = useState(null); // 'chart_credit_vs_debit', etc.
 
     // Refresh dashboard when dateFilter changes
     useEffect(() => {
         refreshDashboard();
     }, [dateFilter, refreshDashboard]);
+
+    // Close menus on click outside
+    useEffect(() => {
+        const handleClickOutside = () => {
+            setActiveMenu(null);
+            setShowInfo(null);
+        };
+        document.addEventListener('click', handleClickOutside);
+        return () => document.removeEventListener('click', handleClickOutside);
+    }, []);
+
+    // Disable body scroll when maximized
+    useEffect(() => {
+        if (maximizedCard) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [maximizedCard]);
+
 
     const handleTransactionSuccess = () => {
         // Refresh dashboard data after adding transaction
@@ -48,6 +78,51 @@ const Dashboard = () => {
         navigate(`/dashboard/details/${widgetType}`);
     };
 
+    const handleMenuClick = (e, id) => {
+        e.stopPropagation();
+        setActiveMenu(activeMenu === id ? null : id);
+    };
+
+    const handleInfoClick = (e, id) => {
+        e.stopPropagation();
+        setShowInfo(showInfo === id ? null : id);
+    };
+
+    const handleMaximizeClick = (e, id) => {
+        console.log('Maximize clicked for:', id);
+        e.stopPropagation();
+        setMaximizedCard(id);
+        setActiveMenu(null); // Close menu if open
+    };
+
+    const handleMinimizeClick = () => {
+        setMaximizedCard(null);
+    };
+
+    const handleRefreshKPI = (e, kpiType) => {
+        e.stopPropagation();
+        setActiveMenu(null);
+        refreshSingleKPI(kpiType);
+    };
+
+    const handleRefreshChart = (e, chartType) => {
+        e.stopPropagation();
+        setActiveMenu(null);
+        refreshSingleChart(chartType);
+    };
+
+    const handleRefreshWidget = (e, widgetType) => {
+        e.stopPropagation();
+        setActiveMenu(null);
+        refreshSingleWidget(widgetType);
+    };
+
+    const handleShowMinMax = (e, kpiType) => {
+        e.stopPropagation();
+        setShowMinMax(showMinMax === kpiType ? null : kpiType);
+        setActiveMenu(null);
+    };
+
     // Calculate stats from KPIs (backend returns objects with current/previous/change_percent/trend)
     const stats = {
         totalIncome: kpis?.total_credits?.current || 0,
@@ -62,49 +137,59 @@ const Dashboard = () => {
             value: `₹${stats.totalIncome.toLocaleString()}`,
             icon: FiTrendingUp,
             color: '#10b981',
-            trend: kpis?.total_credits?.change_percent
-                ? `${kpis.total_credits.change_percent > 0 ? '+' : ''}${kpis.total_credits.change_percent}%`
-                : '+0%',
-            isPositive: (kpis?.total_credits?.change_percent || 0) >= 0,
-            kpiType: 'income'
+            description: 'Total income received in the selected period.',
+            kpiType: 'income',
+            stats: kpis?.total_credits
         },
         {
             title: 'Total Expenses',
             value: `₹${stats.totalExpense.toLocaleString()}`,
             icon: FiTrendingDown,
             color: '#ef4444',
-            trend: kpis?.total_debits?.change_percent
-                ? `${kpis.total_debits.change_percent > 0 ? '+' : ''}${kpis.total_debits.change_percent}%`
-                : '+0%',
-            isPositive: (kpis?.total_debits?.change_percent || 0) <= 0,
-            kpiType: 'expense'
+            description: 'Total expenses incurred in the selected period.',
+            kpiType: 'expense',
+            stats: kpis?.total_debits
         },
         {
             title: 'Balance',
             value: `₹${stats.balance.toLocaleString()}`,
             icon: FiDollarSign,
             color: '#6d4aff',
-            trend: kpis?.net_balance?.change_percent
-                ? `${kpis.net_balance.change_percent > 0 ? '+' : ''}${kpis.net_balance.change_percent}%`
-                : '+0%',
-            isPositive: (kpis?.net_balance?.change_percent || 0) >= 0,
-            kpiType: 'balance'
+            description: 'Net balance (Income - Expense) for the selected period.',
+            kpiType: 'balance',
+            stats: kpis?.net_balance
         },
         {
             title: 'Transactions',
             value: stats.transactions,
             icon: FiActivity,
             color: '#f59e0b',
-            trend: kpis?.total_transactions?.change_percent
-                ? `${kpis.total_transactions.change_percent > 0 ? '+' : ''}${kpis.total_transactions.change_percent}%`
-                : '+0%',
-            isPositive: (kpis?.total_transactions?.change_percent || 0) >= 0,
-            kpiType: 'transactions'
+            description: 'Total number of transactions in the selected period.',
+            kpiType: 'transactions',
+            stats: kpis?.total_transactions
         }
     ];
 
     // Get recent transactions from widgets
     const recentTransactions = widgets?.recent_transactions || [];
+
+    const chartConfigs = {
+        credit_vs_debit: {
+            id: 'credit_vs_debit',
+            title: 'Income vs Expenses',
+            description: 'Comparison of total credits and debits over time.',
+        },
+        category_breakdown: {
+            id: 'category_breakdown',
+            title: 'Category Breakdown',
+            description: 'Distribution of expenses across different categories.',
+        },
+        recent_transactions: { // Changed from recent_txn to recent_transactions to match widget key
+            id: 'recent_transactions',
+            title: 'Recent Transactions',
+            description: 'List of your most recent transactions.',
+        }
+    };
 
     if (loading.kpis && !kpis) {
         return (
@@ -119,6 +204,87 @@ const Dashboard = () => {
             </div>
         );
     }
+
+    // Helper to render actions
+    const renderCardActions = (id, onRefresh) => (
+        <div className="kpi-actions">
+            <div className="action-icon maximize-icon" onClick={(e) => handleMaximizeClick(e, id)} title="Maximize">
+                <FiMaximize2 size={16} />
+            </div>
+            <div className="action-icon info-icon" onClick={(e) => handleInfoClick(e, id)} title="Info">
+                <FiInfo size={16} />
+                {showInfo === id && (
+                    <div className="info-tooltip">
+                        {chartConfigs[id]?.description || 'Description not available.'}
+                    </div>
+                )}
+            </div>
+            <div className="action-icon menu-icon" onClick={(e) => handleMenuClick(e, id)}>
+                <FiMoreVertical size={16} />
+                {activeMenu === id && (
+                    <div className="card-menu">
+                        <div className="menu-item" onClick={onRefresh}>
+                            <FiRefreshCw size={14} /> Refresh
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+
+    // Maximized Content Renderer
+    const renderMaximizedContent = () => {
+        if (!maximizedCard) return null;
+
+        let content = null;
+        let title = '';
+
+        if (maximizedCard === 'credit_vs_debit') {
+            title = 'Income vs Expenses';
+            content = <IncomeExpenseChart data={charts?.credit_vs_debit || []} />;
+        } else if (maximizedCard === 'category_breakdown') {
+            title = 'Category Breakdown';
+            content = <CategoryChart data={charts?.category_breakdown || []} />;
+        } else if (maximizedCard === 'recent_transactions') {
+            title = 'Recent Transactions';
+            content = recentTransactions.length > 0 ? (
+                <div className="transactions-list">
+                    {recentTransactions.map((transaction, index) => (
+                        <div key={index} className="transaction-item">
+                            <div className="transaction-info">
+                                <span className="transaction-category">{transaction.category}</span>
+                                <span className="transaction-desc">{transaction.description || 'No description'}</span>
+                                <span className="transaction-date">{new Date(transaction.date).toLocaleDateString()}</span>
+                            </div>
+                            <div className={`transaction-amount ${transaction.type}`}>
+                                {transaction.type === 'credit' ? '+' : '-'}₹{Math.abs(transaction.amount).toLocaleString()}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="table-placeholder">
+                    <p>No transactions yet</p>
+                </div>
+            );
+        }
+
+        return (
+            <div className="maximized-overlay" onClick={handleMinimizeClick}>
+                <div className="maximized-card" onClick={(e) => e.stopPropagation()}>
+                    <div className="maximized-header">
+                        <h2>{title}</h2>
+                        <button className="close-btn" onClick={handleMinimizeClick} title="Minimize">
+                            <FiMinimize2 size={24} />
+                        </button>
+                    </div>
+                    <div className="maximized-content">
+                        {content}
+                    </div>
+                </div>
+            </div>
+        );
+    };
 
     return (
         <div className="dashboard">
@@ -146,21 +312,63 @@ const Dashboard = () => {
                 {kpiCards.map((card, index) => (
                     <div
                         key={index}
-                        className="kpi-card clickable"
+                        className="kpi-card"
                         style={{ '--accent-color': card.color }}
                         onClick={() => handleKPIClick(card.kpiType)}
                     >
-                        <div className="kpi-header">
-                            <div className="kpi-icon" style={{ background: `${card.color}20` }}>
-                                <card.icon size={24} style={{ color: card.color }} />
+                        <div className="kpi-header-row">
+                            <div className="kpi-icon-wrapper" style={{ background: `${card.color}20`, color: card.color }}>
+                                {loading.loadingKPIs?.[card.kpiType] ? (
+                                    <div className="spinner-mini"></div>
+                                ) : (
+                                    <card.icon size={20} />
+                                )}
                             </div>
-                            <span className={`kpi-trend ${card.isPositive ? 'positive' : 'negative'}`}>
-                                {card.trend}
-                            </span>
+
+                            <div className="kpi-actions">
+                                <div className="action-icon info-icon" onClick={(e) => handleInfoClick(e, card.kpiType)}>
+                                    <FiInfo size={16} />
+                                    {showInfo === card.kpiType && (
+                                        <div className="info-tooltip">
+                                            {card.description}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="action-icon menu-icon" onClick={(e) => handleMenuClick(e, card.kpiType)}>
+                                    <FiMoreVertical size={16} />
+                                    {activeMenu === card.kpiType && (
+                                        <div className="card-menu">
+                                            <div className="menu-item" onClick={(e) => handleRefreshKPI(e, card.kpiType)}>
+                                                <FiRefreshCw size={14} /> Refresh
+                                            </div>
+                                            {(card.kpiType === 'income' || card.kpiType === 'expense') && (
+                                                <div className="menu-item" onClick={(e) => handleShowMinMax(e, card.kpiType)}>
+                                                    <FiMaximize2 size={14} /> Min/Max
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
+
                         <div className="kpi-content">
                             <h3 className="kpi-title">{card.title}</h3>
                             <p className="kpi-value">{card.value}</p>
+
+                            {/* Min/Max display area if toggled */}
+                            {showMinMax === card.kpiType && card.stats ? (
+                                <div className="min-max-stats" onClick={(e) => e.stopPropagation()}>
+                                    <div className="mm-row">
+                                        <span className="mm-label"><FiMinimize2 size={10} /> Min:</span>
+                                        <span className="mm-val">₹{card.stats.min?.toLocaleString() || 0}</span>
+                                    </div>
+                                    <div className="mm-row">
+                                        <span className="mm-label"><FiMaximize2 size={10} /> Max:</span>
+                                        <span className="mm-val">₹{card.stats.max?.toLocaleString() || 0}</span>
+                                    </div>
+                                </div>
+                            ) : null}
                         </div>
                     </div>
                 ))}
@@ -183,18 +391,32 @@ const Dashboard = () => {
             {/* Charts Section */}
             <div className="charts-section">
                 <div className="chart-card">
-                    <h3 className="chart-title">Income vs Expenses</h3>
-                    {loading.charts ? (
-                        <SubLoader />
+                    <div className="kpi-header-row" style={{ marginBottom: '12px' }}>
+                        <h3 className="chart-title" style={{ margin: 0 }}>Income vs Expenses</h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {loading.loadingCharts?.credit_vs_debit && <div className="spinner-mini"></div>}
+                            {renderCardActions('credit_vs_debit', (e) => handleRefreshChart(e, 'credit_vs_debit'))}
+                        </div>
+                    </div>
+
+                    {loading.charts && !loading.loadingCharts?.credit_vs_debit ? (
+                        <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><SubLoader /></div>
                     ) : (
                         <IncomeExpenseChart data={charts?.credit_vs_debit || []} />
                     )}
                 </div>
 
                 <div className="chart-card clickable" onClick={() => handleWidgetClick('top_categories')}>
-                    <h3 className="chart-title">Category Breakdown</h3>
-                    {loading.charts ? (
-                        <SubLoader />
+                    <div className="kpi-header-row" style={{ marginBottom: '12px' }}>
+                        <h3 className="chart-title" style={{ margin: 0 }}>Category Breakdown</h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {loading.loadingCharts?.category_breakdown && <div className="spinner-mini"></div>}
+                            {renderCardActions('category_breakdown', (e) => handleRefreshChart(e, 'category_breakdown'))}
+                        </div>
+                    </div>
+
+                    {loading.charts && !loading.loadingCharts?.category_breakdown ? (
+                        <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><SubLoader /></div>
                     ) : (
                         <CategoryChart data={charts?.category_breakdown || []} />
                     )}
@@ -203,12 +425,16 @@ const Dashboard = () => {
 
             {/* Recent Transactions */}
             <div className="recent-transactions clickable-section" onClick={() => handleKPIClick('transactions')}>
-                <div className="section-header">
-                    <h3>Recent Transactions</h3>
-                    <button className="view-all-btn" onClick={(e) => { e.stopPropagation(); handleKPIClick('transactions'); }}>View All</button>
+                <div className="section-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <h3 style={{ margin: 0 }}>Recent Transactions</h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        {loading.loadingWidgets?.recent_transactions && <div className="spinner-mini"></div>}
+                        {renderCardActions('recent_transactions', (e) => handleRefreshWidget(e, 'recent_transactions'))}
+                        <button className="view-all-btn" onClick={(e) => { e.stopPropagation(); handleKPIClick('transactions'); }}>View All</button>
+                    </div>
                 </div>
 
-                {loading.widgets ? (
+                {loading.widgets && !loading.loadingWidgets?.recent_transactions ? (
                     <SubLoader />
                 ) : recentTransactions.length > 0 ? (
                     <div className="transactions-list">
@@ -232,6 +458,9 @@ const Dashboard = () => {
                     </div>
                 )}
             </div>
+
+            {/* Maximized Overlay */}
+            {renderMaximizedContent()}
 
             {/* Transaction Modal */}
             <TransactionModal
