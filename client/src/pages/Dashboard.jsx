@@ -1,12 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiTrendingUp, FiTrendingDown, FiDollarSign, FiActivity, FiMoreVertical, FiInfo, FiRefreshCw, FiMaximize2, FiMinimize2 } from 'react-icons/fi';
+import { FiTrendingUp, FiTrendingDown, FiDollarSign, FiActivity, FiMoreVertical, FiInfo, FiRefreshCw, FiMaximize2, FiMinimize2, FiUpload } from 'react-icons/fi';
 import { useDashboard } from '../context/DashboardContext';
 import TransactionModal from '../components/TransactionModal/TransactionModal';
+import UploadReviewModal from '../components/UploadReviewModal/UploadReviewModal';
 import IncomeExpenseChart from '../components/Charts/IncomeExpenseChart';
 import CategoryChart from '../components/Charts/CategoryChart';
 import DateFilter from '../components/DateFilter/DateFilter';
 import SubLoader from '../components/SubLoader/SubLoader';
+import { toast } from 'react-toastify';
+import axios from 'axios';
 import './Dashboard.css';
 
 const Dashboard = () => {
@@ -27,10 +30,15 @@ const Dashboard = () => {
 
     const navigate = useNavigate();
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [activeMenu, setActiveMenu] = useState(null); // 'kpiType', 'chart_credit_vs_debit', etc.
-    const [showMinMax, setShowMinMax] = useState(null); // 'kpiType'
-    const [showInfo, setShowInfo] = useState(null); // 'kpiType', 'chart_...', etc.
-    const [maximizedCard, setMaximizedCard] = useState(null); // 'chart_credit_vs_debit', etc.
+    const [activeMenu, setActiveMenu] = useState(null);
+    const [showMinMax, setShowMinMax] = useState(null);
+    const [showInfo, setShowInfo] = useState(null);
+    const [maximizedCard, setMaximizedCard] = useState(null);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [isReviewOpen, setIsReviewOpen] = useState(false);
+    const [reviewData, setReviewData] = useState([]);
+    const [isConfirming, setIsConfirming] = useState(false);
+    const fileInputRef = useRef(null);
 
     // Refresh dashboard when dateFilter changes
     useEffect(() => {
@@ -47,9 +55,9 @@ const Dashboard = () => {
         return () => document.removeEventListener('click', handleClickOutside);
     }, []);
 
-    // Disable body scroll when maximized
+    // Disable body scroll when maximized or analyzing or reviewing
     useEffect(() => {
-        if (maximizedCard) {
+        if (maximizedCard || isAnalyzing || isReviewOpen) {
             document.body.style.overflow = 'hidden';
         } else {
             document.body.style.overflow = 'unset';
@@ -57,17 +65,15 @@ const Dashboard = () => {
         return () => {
             document.body.style.overflow = 'unset';
         };
-    }, [maximizedCard]);
+    }, [maximizedCard, isAnalyzing, isReviewOpen]);
 
 
     const handleTransactionSuccess = () => {
-        // Refresh dashboard data after adding transaction
         refreshDashboard();
     };
 
     const handleFilterChange = (newFilter) => {
         setDateFilter(newFilter);
-        // Refresh dashboard will be triggered automatically by the useEffect in context
     };
 
     const handleKPIClick = (kpiType) => {
@@ -92,7 +98,7 @@ const Dashboard = () => {
         console.log('Maximize clicked for:', id);
         e.stopPropagation();
         setMaximizedCard(id);
-        setActiveMenu(null); // Close menu if open
+        setActiveMenu(null);
     };
 
     const handleMinimizeClick = () => {
@@ -123,7 +129,98 @@ const Dashboard = () => {
         setActiveMenu(null);
     };
 
-    // Calculate stats from KPIs (backend returns objects with current/previous/change_percent/trend)
+    const handleUploadClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        // Reset file input
+        event.target.value = '';
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        setIsAnalyzing(true);
+        const toastId = toast.loading("Analyzing statement with AI... This may take a moment.");
+
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.post('http://localhost:8000/api/upload/analyze', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            toast.update(toastId, {
+                render: `Found ${response.data.count} transactions. Please review before importing.`,
+                type: "info",
+                isLoading: false,
+                autoClose: 3000
+            });
+
+            // Open review modal with extracted data
+            setReviewData(response.data.transactions || []);
+            setIsReviewOpen(true);
+
+        } catch (error) {
+            console.error('Upload Error:', error);
+            const errorMsg = error.response?.data?.detail || "Failed to analyze file.";
+            toast.update(toastId, {
+                render: `Error: ${errorMsg}`,
+                type: "error",
+                isLoading: false,
+                autoClose: 5000
+            });
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
+    const handleConfirmImport = async (reviewedTransactions) => {
+        setIsConfirming(true);
+        const toastId = toast.loading("Importing transactions...");
+
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.post('http://localhost:8000/api/upload/confirm', {
+                transactions: reviewedTransactions
+            }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            toast.update(toastId, {
+                render: `Successfully imported ${response.data.count} transactions!`,
+                type: "success",
+                isLoading: false,
+                autoClose: 5000
+            });
+
+            setIsReviewOpen(false);
+            setReviewData([]);
+            refreshDashboard();
+
+        } catch (error) {
+            console.error('Confirm Error:', error);
+            const errorMsg = error.response?.data?.detail || "Failed to import transactions.";
+            toast.update(toastId, {
+                render: `Error: ${errorMsg}`,
+                type: "error",
+                isLoading: false,
+                autoClose: 5000
+            });
+        } finally {
+            setIsConfirming(false);
+        }
+    };
+
+    // Calculate stats
     const stats = {
         totalIncome: kpis?.total_credits?.current || 0,
         totalExpense: kpis?.total_debits?.current || 0,
@@ -170,7 +267,6 @@ const Dashboard = () => {
         }
     ];
 
-    // Get recent transactions from widgets
     const recentTransactions = widgets?.recent_transactions || [];
 
     const chartConfigs = {
@@ -184,7 +280,7 @@ const Dashboard = () => {
             title: 'Category Breakdown',
             description: 'Distribution of expenses across different categories.',
         },
-        recent_transactions: { // Changed from recent_txn to recent_transactions to match widget key
+        recent_transactions: {
             id: 'recent_transactions',
             title: 'Recent Transactions',
             description: 'List of your most recent transactions.',
@@ -205,7 +301,6 @@ const Dashboard = () => {
         );
     }
 
-    // Helper to render actions
     const renderCardActions = (id, onRefresh) => (
         <div className="kpi-actions">
             <div className="action-icon maximize-icon" onClick={(e) => handleMaximizeClick(e, id)} title="Maximize">
@@ -232,9 +327,9 @@ const Dashboard = () => {
         </div>
     );
 
-    // Maximized Content Renderer
     const renderMaximizedContent = () => {
         if (!maximizedCard) return null;
+        // ... (existing content logic is fine, minimizing diff size)
 
         let content = null;
         let title = '';
@@ -288,6 +383,17 @@ const Dashboard = () => {
 
     return (
         <div className="dashboard">
+            {/* Analyzing Overlay */}
+            {isAnalyzing && (
+                <div className="maximized-overlay" style={{ zIndex: 10000 }}>
+                    <div className="loading-container" style={{ background: 'white', padding: '40px', borderRadius: '16px' }}>
+                        <SubLoader />
+                        <p style={{ fontWeight: 'bold', marginTop: '20px' }}>Analyzing Statement with AI...</p>
+                        <small>Extracting transactions from your file.</small>
+                    </div>
+                </div>
+            )}
+
             {/* Header */}
             <div className="dashboard-header">
                 <div>
@@ -301,6 +407,18 @@ const Dashboard = () => {
                 </div>
                 <div className="header-actions">
                     <DateFilter currentFilter={dateFilter} onFilterChange={handleFilterChange} />
+
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        style={{ display: 'none' }}
+                        accept=".pdf,.csv,.xlsx,.xls"
+                        onChange={handleFileChange}
+                    />
+                    <button className="add-transaction-btn" style={{ background: 'white', color: '#6d4aff', border: '1px solid #6d4aff', display: 'flex', alignItems: 'center', gap: '8px' }} onClick={handleUploadClick}>
+                        <FiUpload size={16} /> Upload Statement
+                    </button>
+
                     <button className="add-transaction-btn" onClick={() => setIsModalOpen(true)}>
                         + New Transaction
                     </button>
@@ -467,6 +585,15 @@ const Dashboard = () => {
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 onSuccess={handleTransactionSuccess}
+            />
+
+            {/* Upload Review Modal */}
+            <UploadReviewModal
+                isOpen={isReviewOpen}
+                transactions={reviewData}
+                onConfirm={handleConfirmImport}
+                onClose={() => { setIsReviewOpen(false); setReviewData([]); }}
+                loading={isConfirming}
             />
         </div>
     );

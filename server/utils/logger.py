@@ -46,3 +46,5 @@ logger = logging.getLogger("expense_tracker")
 # Silence some noisy loggers
 logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 logging.getLogger("uvicorn.error").setLevel(logging.WARNING)
+logging.getLogger("pdfminer").setLevel(logging.ERROR)
+logging.getLogger("multipart").setLevel(logging.WARNING)
