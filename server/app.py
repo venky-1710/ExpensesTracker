@@ -10,6 +10,7 @@ from routes.transaction_routes import transaction_router
 from routes.dashboard_routes import dashboard_router
 from routes.chat_routes import router as chat_router
 from routes.cache_routes import router as cache_router
+from routes.upload_routes import upload_router
 from contextlib import asynccontextmanager
 import os
 import time
@@ -144,6 +145,7 @@ app.include_router(transaction_router, prefix="/transactions", tags=["transactio
 app.include_router(dashboard_router, prefix="/dashboard", tags=["dashboard"])
 app.include_router(chat_router, prefix="/api/chat", tags=["AI Chatbot"])
 app.include_router(cache_router, prefix="/api/cache", tags=["Cache Management"])
+app.include_router(upload_router, prefix="/api/upload", tags=["Upload"]) # Added include_router for upload_router
 
 
 @app.get("/", include_in_schema=False)
