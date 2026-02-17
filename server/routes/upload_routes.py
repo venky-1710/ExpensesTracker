@@ -75,7 +75,7 @@ async def confirm_transactions(payload: ConfirmPayload, current_user: dict = Dep
             transaction = {
                 "user_id": ObjectId(user_id),
                 "amount": abs(item.amount),
-                "type": item.type,
+                "type": item.type.lower(),
                 "category": item.category.strip(),
                 "description": item.description.strip(),
                 "payment_method": "Other",
@@ -88,6 +88,10 @@ async def confirm_transactions(payload: ConfirmPayload, current_user: dict = Dep
         logger.info(f"🔍 DEBUG: Sample transaction to insert: {transactions_to_insert[0]}")
         result = await db.transactions.insert_many(transactions_to_insert)
         logger.info(f"✅ Imported {len(result.inserted_ids)} transactions for user {user_id}. IDs: {result.inserted_ids[:3]}")
+        
+        # Invalidate cache
+        from services.cache_service import cache_service
+        cache_service.invalidate_user_cache(user_id)
 
         return {
             "message": "Transactions imported successfully!",

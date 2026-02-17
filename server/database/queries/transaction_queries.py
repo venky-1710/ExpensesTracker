@@ -72,7 +72,9 @@ async def get_filtered_totals_query(query: Dict[str, Any]) -> Dict[str, float]:
     
     totals = {"credit": 0.0, "debit": 0.0}
     for item in result:
-        totals[item["_id"]] = item["total"]
+        key = str(item["_id"]).lower()
+        if key in totals:
+            totals[key] = item["total"]
         
     return totals
 
@@ -93,9 +95,10 @@ async def get_total_balance_query(user_id: str) -> float:
     debits = 0.0
     
     for item in result:
-        if item["_id"] == "credit":
+        key = str(item["_id"]).lower()
+        if key == "credit":
             credits = item["total"]
-        elif item["_id"] == "debit":
+        elif key == "debit":
             debits = item["total"]
             
     return round(credits - debits, 2)

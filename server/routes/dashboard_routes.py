@@ -20,7 +20,7 @@ dashboard_router = APIRouter()
 async def get_kpis(
     request: Request,
     current_user: dict = Depends(get_current_user),
-    filter_type: str = Query("month", pattern="^(6days|week|month|6months|year|custom)$"),
+    filter_type: str = Query("all", pattern="^(all|6days|week|month|6months|year|custom)$"),
     kpi_type: Optional[str] = Query(None, pattern="^(income|expense|balance|transactions)$"),
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None
@@ -58,7 +58,7 @@ async def get_kpis(
 async def get_charts(
     request: Request,
     current_user: dict = Depends(get_current_user),
-    filter_type: str = Query("month", pattern="^(6days|week|month|6months|year|custom)$"),
+    filter_type: str = Query("all", pattern="^(all|6days|week|month|6months|year|custom)$"),
     chart_type: Optional[str] = Query(None, pattern="^(credit_vs_debit|category_breakdown|expense_distribution|payment_methods)$"),
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None
@@ -92,7 +92,7 @@ async def get_charts(
 async def get_widgets(
     request: Request,
     current_user: dict = Depends(get_current_user),
-    filter_type: str = Query("month", pattern="^(6days|week|month|6months|year|custom)$"),
+    filter_type: str = Query("all", pattern="^(all|6days|week|month|6months|year|custom)$"),
     widget_type: Optional[str] = Query(None, pattern="^(recent_transactions|top_categories|highest_expense|monthly_savings)$")
 ):
     """Get all widget data"""

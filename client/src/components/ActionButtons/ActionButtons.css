@@ -1,0 +1,89 @@
+/* ── Action Buttons ── */
+.action-buttons {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+}
+
+.action-btn {
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    background: transparent;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    padding: 0;
+}
+
+/* Ensure SVG icons inherit color */
+.action-btn svg {
+    display: block;
+    color: inherit;
+}
+
+/* ── Edit Button ── */
+.action-btn--edit {
+    color: #6d4aff;
+}
+
+.action-btn--edit:hover {
+    color: #5b3de6;
+    background: rgba(109, 74, 255, 0.12);
+    border-color: rgba(109, 74, 255, 0.25);
+    transform: translateY(-1px);
+}
+
+.action-btn--edit:active {
+    transform: translateY(0);
+    background: rgba(109, 74, 255, 0.18);
+}
+
+/* ── Delete Button ── */
+.action-btn--delete {
+    color: #ef4444;
+}
+
+.action-btn--delete:hover {
+    color: #dc2626;
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.25);
+    transform: translateY(-1px);
+}
+
+.action-btn--delete:active {
+    transform: translateY(0);
+    background: rgba(239, 68, 68, 0.18);
+}
+
+/* ── Dark Theme ── */
+[data-theme='dark'] .action-btn--edit {
+    color: #a78bfa;
+}
+
+[data-theme='dark'] .action-btn--edit:hover {
+    color: #c4b5fd;
+    background: rgba(109, 74, 255, 0.18);
+    border-color: rgba(109, 74, 255, 0.35);
+}
+
+[data-theme='dark'] .action-btn--delete {
+    color: #f87171;
+}
+
+[data-theme='dark'] .action-btn--delete:hover {
+    color: #fca5a5;
+    background: rgba(239, 68, 68, 0.18);
+    border-color: rgba(239, 68, 68, 0.35);
+}
+
+/* ── Focus Visible (accessibility) ── */
+.action-btn:focus-visible {
+    outline: 2px solid #6d4aff;
+    outline-offset: 2px;
+}

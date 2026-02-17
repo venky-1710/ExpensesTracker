@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { FiPlus, FiDownload, FiChevronDown } from 'react-icons/fi';
+import { FiPlus, FiDownload, FiChevronDown, FiTrash2 } from 'react-icons/fi';
 import { transactionService } from '../services/transactionService';
 import TransactionModal from '../components/TransactionModal/TransactionModal';
+import ActionButtons from '../components/ActionButtons/ActionButtons';
 import SubLoader from '../components/SubLoader/SubLoader';
 import DateFilter from '../components/DateFilter/DateFilter';
 import TransactionFilters from '../components/TransactionFilters/TransactionFilters';
@@ -11,11 +12,15 @@ const Transactions = () => {
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingTransaction, setEditingTransaction] = useState(null);
     const [showExportMenu, setShowExportMenu] = useState(false);
+
+    // Delete confirmation state
+    const [deleteModal, setDeleteModal] = useState({ open: false, transaction: null, loading: false });
 
     // Filters State
     const [dateFilter, setDateFilter] = useState({
-        type: 'month',
+        type: 'all',
         startDate: null,
         endDate: null
     });
@@ -116,6 +121,42 @@ const Transactions = () => {
 
     const handleTransactionSuccess = () => {
         fetchTransactions();
+        setEditingTransaction(null);
+    };
+
+    const handleEdit = (transaction) => {
+        setEditingTransaction(transaction);
+        setIsModalOpen(true);
+    };
+
+    const handleDeleteClick = (transaction) => {
+        setDeleteModal({ open: true, transaction, loading: false });
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!deleteModal.transaction) return;
+
+        setDeleteModal(prev => ({ ...prev, loading: true }));
+        try {
+            await transactionService.deleteTransaction(deleteModal.transaction.id);
+            setDeleteModal({ open: false, transaction: null, loading: false });
+            fetchTransactions();
+        } catch (error) {
+            console.error('Failed to delete transaction:', error);
+            alert('Failed to delete transaction. Please try again.');
+            setDeleteModal(prev => ({ ...prev, loading: false }));
+        }
+    };
+
+    const handleDeleteCancel = () => {
+        if (!deleteModal.loading) {
+            setDeleteModal({ open: false, transaction: null, loading: false });
+        }
+    };
+
+    const handleModalClose = () => {
+        setIsModalOpen(false);
+        setEditingTransaction(null);
     };
 
     const formatCurrency = (amount) => {
@@ -159,7 +200,7 @@ const Transactions = () => {
                         )}
                     </div>
 
-                    <button className="primary-btn" onClick={() => setIsModalOpen(true)}>
+                    <button className="primary-btn" onClick={() => { setEditingTransaction(null); setIsModalOpen(true); }}>
                         <FiPlus size={18} />
                         Add Transaction
                     </button>
@@ -201,6 +242,7 @@ const Transactions = () => {
                             <div className="th-description">Description</div>
                             <div className="th-payment">Payment Method</div>
                             <div className="th-amount">Amount</div>
+                            <div className="th-actions">Actions</div>
                         </div>
                         <div className="table-body">
                             {transactions.map((transaction) => (
@@ -218,6 +260,12 @@ const Transactions = () => {
                                     <div className={`td-amount ${transaction.type}`}>
                                         {transaction.type === 'credit' ? '+' : '-'}
                                         {formatCurrency(Math.abs(transaction.amount))}
+                                    </div>
+                                    <div className="td-actions">
+                                        <ActionButtons
+                                            onEdit={() => handleEdit(transaction)}
+                                            onDelete={() => handleDeleteClick(transaction)}
+                                        />
                                     </div>
                                 </div>
                             ))}
@@ -258,14 +306,48 @@ const Transactions = () => {
                 </div>
             )}
 
+            {/* Transaction Modal (Create/Edit) */}
             <TransactionModal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                onClose={handleModalClose}
                 onSuccess={handleTransactionSuccess}
+                transaction={editingTransaction}
             />
+
+            {/* Delete Confirmation Modal */}
+            {deleteModal.open && (
+                <div className="modal-overlay" onClick={handleDeleteCancel}>
+                    <div className="delete-confirm-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="delete-modal-icon">
+                            <FiTrash2 size={28} />
+                        </div>
+                        <h3>Delete Transaction</h3>
+                        <p>
+                            Are you sure you want to delete this <strong>{deleteModal.transaction?.type}</strong> transaction
+                            of <strong>{formatCurrency(deleteModal.transaction?.amount)}</strong>?
+                        </p>
+                        <p className="delete-warning">This action cannot be undone.</p>
+                        <div className="delete-modal-actions">
+                            <button
+                                className="cancel-btn"
+                                onClick={handleDeleteCancel}
+                                disabled={deleteModal.loading}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className="confirm-delete-btn"
+                                onClick={handleDeleteConfirm}
+                                disabled={deleteModal.loading}
+                            >
+                                {deleteModal.loading ? 'Deleting...' : 'Delete'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
 
 export default Transactions;
-

@@ -47,8 +47,10 @@ def cached(ttl_seconds: int = 300):
                 query_params = str(sorted(request.query_params.items()))
                 
                 # Create a minimal context hash
-                context_str = f"{method}:{path}:{query_params}:{user_id}"
-                key = hashlib.md5(context_str.encode()).hexdigest()
+                # We prefix with user_id to allow invalidation by user
+                context_str = f"{method}:{path}:{query_params}"
+                context_hash = hashlib.md5(context_str.encode()).hexdigest()
+                key = f"user:{user_id}:{context_hash}"
                 
                 # Check cache
                 cached_data = cache_service.get(key)

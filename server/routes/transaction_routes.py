@@ -14,6 +14,7 @@ from models.payloads import (
     APIResponse
 )
 from services.transaction_service import TransactionService
+from services.cache_service import cache_service
 from utils.auth import get_current_user
 from utils.logger import logger
 from datetime import datetime
@@ -47,6 +48,9 @@ async def create_transaction(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An unexpected error occurred"
         )
+    finally:
+        # Invalidate cache for this user
+        cache_service.invalidate_user_cache(current_user["id"])
 
 
 @transaction_router.get("", response_model=TransactionListResponse)
@@ -58,7 +62,7 @@ async def list_transactions(
     sort_by: str = Query("date", pattern="^(date|amount|category|type)$"),
     sort_order: str = Query("desc", pattern="^(asc|desc)$"),
     type: Optional[str] = Query(None, pattern="^(credit|debit)$"),
-    filter_type: Optional[str] = Query(None, pattern="^(6days|week|month|6months|year|custom)$"),
+    filter_type: Optional[str] = Query(None, pattern="^(all|6days|week|month|6months|year|custom)$"),
     category: Optional[str] = None,
     payment_method: Optional[str] = None,
     start_date: Optional[datetime] = None,
@@ -192,6 +196,8 @@ async def update_transaction(
         transaction_id,
         update_data
     )
+    # Invalidate cache
+    cache_service.invalidate_user_cache(current_user["id"])
     return TransactionResponse(**transaction)
 
 
@@ -205,4 +211,6 @@ async def delete_transaction(
         current_user["id"],
         transaction_id
     )
+    # Invalidate cache
+    cache_service.invalidate_user_cache(current_user["id"])
     return APIResponse(success=True, data=result)

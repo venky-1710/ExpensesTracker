@@ -23,7 +23,10 @@ def get_date_range(
     """
     now = datetime.now()
     
-    if filter_type == "6days":
+    if filter_type == "all":
+        start = now - timedelta(days=3650)
+        end = now + timedelta(days=3650)
+    elif filter_type == "6days":
         start = now - timedelta(days=6)
         end = now
     elif filter_type == "week":
@@ -74,6 +77,7 @@ def get_previous_period(start_date: datetime, end_date: datetime) -> Tuple[datet
 def get_period_name(filter_type: str) -> str:
     """Get human-readable period name"""
     names = {
+        "all": "All Time",
         "6days": "Last 6 Days",
         "week": "Last Week",
         "month": "Last Month",
@@ -96,7 +100,7 @@ def group_by_interval(filter_type: str) -> str:
         return "day"
     elif filter_type in ["6months"]:
         return "week"
-    elif filter_type in ["year"]:
+    elif filter_type in ["year", "all"]:
         return "month"
     else:
         return "day"  # Default

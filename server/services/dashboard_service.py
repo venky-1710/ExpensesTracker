@@ -95,9 +95,10 @@ class DashboardService:
         debits = 0
         
         for item in result:
-            if item["_id"] == "credit":
+            key = str(item["_id"]).lower()
+            if key == "credit":
                 credits = item["total"]
-            elif item["_id"] == "debit":
+            elif key == "debit":
                 debits = item["total"]
                 
         return round(credits - debits, 2)
@@ -118,11 +119,12 @@ class DashboardService:
         debit_stats = {"min": 0, "max": 0}
         
         for item in pipeline_result:
-            if item["_id"] == "credit":
+            key = str(item["_id"]).lower()
+            if key == "credit":
                 total_credits = item["total"]
                 transaction_count += item["count"]
                 credit_stats = {"min": item.get("min_transaction", 0), "max": item.get("max_transaction", 0)}
-            elif item["_id"] == "debit":
+            elif key == "debit":
                 total_debits = item["total"]
                 transaction_count += item["count"]
                 debit_stats = {"min": item.get("min_transaction", 0), "max": item.get("max_transaction", 0)}
@@ -224,7 +226,8 @@ class DashboardService:
                 timeline_dict[date_key] = {"date": date_key, "credits": 0, "debits": 0}
             
             
-            if item["_id"]["type"] == "credit":
+            type_key = str(item["_id"]["type"]).lower()
+            if type_key == "credit":
                 timeline_dict[date_key]["credits"] = round(item["amount"], 2)
             else:
                 timeline_dict[date_key]["debits"] = round(item["amount"], 2)
@@ -266,9 +269,10 @@ class DashboardService:
         debits = 0
         
         for item in result:
-            if item["_id"] == "credit":
+            key = str(item["_id"]).lower()
+            if key == "credit":
                 credits = item["total"]
-            elif item["_id"] == "debit":
+            elif key == "debit":
                 debits = item["total"]
                 
         return credits - debits
@@ -377,7 +381,8 @@ class DashboardService:
             if month_key not in monthly_dict:
                 monthly_dict[month_key] = {"month": month_key, "credits": 0, "debits": 0}
             
-            if item["_id"]["type"] == "credit":
+            type_key = str(item["_id"]["type"]).lower()
+            if type_key == "credit":
                 monthly_dict[month_key]["credits"] = round(item["amount"], 2)
             else:
                 monthly_dict[month_key]["debits"] = round(item["amount"], 2)

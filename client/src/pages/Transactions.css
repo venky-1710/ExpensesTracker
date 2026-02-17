@@ -164,7 +164,7 @@
 
 .table-header {
     display: grid;
-    grid-template-columns: 120px 150px 1fr 150px 130px;
+    grid-template-columns: 120px 150px 1fr 150px 130px 90px;
     gap: 16px;
     padding: 16px 24px;
     background: var(--table-header-bg, #f9fafb);
@@ -183,7 +183,7 @@
 
 .transaction-row {
     display: grid;
-    grid-template-columns: 120px 150px 1fr 150px 130px;
+    grid-template-columns: 120px 150px 1fr 150px 130px 90px;
     gap: 16px;
     padding: 20px 24px;
     border-bottom: 1px solid var(--border-color, #f0f0f0);
@@ -245,6 +245,127 @@
 
 .td-amount.debit {
     color: #dc2626;
+}
+
+/* Action Buttons Column */
+.td-actions {
+    display: flex;
+    justify-content: center;
+}
+
+.transaction-row .td-actions {
+    opacity: 0.3;
+    transition: opacity 0.2s;
+}
+
+.transaction-row:hover .td-actions {
+    opacity: 1;
+}
+
+/* Delete Confirmation Modal */
+.delete-confirm-modal {
+    background: var(--card-bg, #1a1d29);
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+    border-radius: 16px;
+    width: 90%;
+    max-width: 420px;
+    padding: 32px;
+    text-align: center;
+    animation: slideUp 0.3s ease-out;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.delete-modal-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+}
+
+.delete-confirm-modal h3 {
+    margin: 0 0 12px;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary, #ffffff);
+}
+
+.delete-confirm-modal p {
+    margin: 0 0 8px;
+    font-size: 14px;
+    color: var(--text-secondary, #8b92a7);
+    line-height: 1.5;
+}
+
+.delete-warning {
+    color: #ef4444 !important;
+    font-size: 13px !important;
+    font-weight: 500;
+    margin-bottom: 24px !important;
+}
+
+.delete-modal-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.delete-modal-actions .cancel-btn {
+    flex: 1;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-secondary, #8b92a7);
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+}
+
+.delete-modal-actions .cancel-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary, #ffffff);
+}
+
+.confirm-delete-btn {
+    flex: 1;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: #ffffff;
+}
+
+.confirm-delete-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
+}
+
+.confirm-delete-btn:disabled,
+.delete-modal-actions .cancel-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
 }
 
 /* Pagination */
@@ -395,7 +516,7 @@
 
     .table-header,
     .transaction-row {
-        grid-template-columns: 100px 130px 1fr 120px 110px;
+        grid-template-columns: 100px 130px 1fr 120px 110px 80px;
         gap: 12px;
         padding: 16px 20px;
     }
@@ -425,6 +546,7 @@
         grid-template-columns: 1fr;
         gap: 8px;
         padding: 16px;
+        position: relative;
     }
 
     .td-date,
@@ -463,6 +585,16 @@
         font-size: 18px;
     }
 
+    .td-actions {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+    }
+
+    .transaction-row .td-actions {
+        opacity: 1;
+    }
+
     .pagination {
         flex-direction: column;
         gap: 12px;
@@ -470,5 +602,10 @@
 
     .pagination-btn {
         width: 100%;
+    }
+
+    .delete-confirm-modal {
+        width: 95%;
+        padding: 24px;
     }
 }
