@@ -254,7 +254,7 @@
 }
 
 .transaction-row .td-actions {
-    opacity: 0.3;
+    opacity: 0.6;
     transition: opacity 0.2s;
 }
 

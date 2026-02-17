@@ -2,12 +2,12 @@ import React from 'react';
 import { FiEdit2, FiTrash2 } from 'react-icons/fi';
 import './ActionButtons.css';
 
-const ActionButtons = ({ onEdit, onDelete, size = 16, className = '' }) => {
+const ActionButtons = ({ onEdit, onDelete, size = 18, className = '' }) => {
     return (
-        <div className={`action-buttons ${className}`}>
+        <div className={`ab-container ${className}`}>
             {onEdit && (
                 <button
-                    className="action-btn action-btn--edit"
+                    className="ab-btn ab-btn--edit"
                     onClick={onEdit}
                     title="Edit"
                     type="button"
@@ -17,7 +17,7 @@ const ActionButtons = ({ onEdit, onDelete, size = 16, className = '' }) => {
             )}
             {onDelete && (
                 <button
-                    className="action-btn action-btn--delete"
+                    className="ab-btn ab-btn--delete"
                     onClick={onDelete}
                     title="Delete"
                     type="button"

@@ -1,12 +1,12 @@
 /* ── Action Buttons ── */
-.action-buttons {
+.ab-container {
     display: flex;
     gap: 8px;
     align-items: center;
     justify-content: center;
 }
 
-.action-btn {
+.ab-btn {
     width: 34px;
     height: 34px;
     display: flex;
@@ -22,68 +22,68 @@
 }
 
 /* Ensure SVG icons inherit color */
-.action-btn svg {
+.ab-btn svg {
     display: block;
     color: inherit;
 }
 
 /* ── Edit Button ── */
-.action-btn--edit {
+.ab-btn--edit {
     color: #6d4aff;
 }
 
-.action-btn--edit:hover {
+.ab-btn--edit:hover {
     color: #5b3de6;
     background: rgba(109, 74, 255, 0.12);
     border-color: rgba(109, 74, 255, 0.25);
     transform: translateY(-1px);
 }
 
-.action-btn--edit:active {
+.ab-btn--edit:active {
     transform: translateY(0);
     background: rgba(109, 74, 255, 0.18);
 }
 
 /* ── Delete Button ── */
-.action-btn--delete {
+.ab-btn--delete {
     color: #ef4444;
 }
 
-.action-btn--delete:hover {
+.ab-btn--delete:hover {
     color: #dc2626;
     background: rgba(239, 68, 68, 0.12);
     border-color: rgba(239, 68, 68, 0.25);
     transform: translateY(-1px);
 }
 
-.action-btn--delete:active {
+.ab-btn--delete:active {
     transform: translateY(0);
     background: rgba(239, 68, 68, 0.18);
 }
 
 /* ── Dark Theme ── */
-[data-theme='dark'] .action-btn--edit {
+[data-theme='dark'] .ab-btn--edit {
     color: #a78bfa;
 }
 
-[data-theme='dark'] .action-btn--edit:hover {
+[data-theme='dark'] .ab-btn--edit:hover {
     color: #c4b5fd;
     background: rgba(109, 74, 255, 0.18);
     border-color: rgba(109, 74, 255, 0.35);
 }
 
-[data-theme='dark'] .action-btn--delete {
+[data-theme='dark'] .ab-btn--delete {
     color: #f87171;
 }
 
-[data-theme='dark'] .action-btn--delete:hover {
+[data-theme='dark'] .ab-btn--delete:hover {
     color: #fca5a5;
     background: rgba(239, 68, 68, 0.18);
     border-color: rgba(239, 68, 68, 0.35);
 }
 
 /* ── Focus Visible (accessibility) ── */
-.action-btn:focus-visible {
+.ab-btn:focus-visible {
     outline: 2px solid #6d4aff;
     outline-offset: 2px;
 }

@@ -188,7 +188,6 @@ export const DashboardProvider = ({ children }) => {
         fetchCharts,
         fetchWidgets,
         fetchTransactions,
-        fetchTransactions,
         refreshDashboard,
         refreshSingleKPI,
         refreshSingleChart,
