@@ -14,7 +14,7 @@ export const useDashboard = () => {
 
 export const DashboardProvider = ({ children }) => {
     const [dateFilter, setDateFilter] = useState({
-        type: 'month',
+        type: 'all',
         startDate: null,
         endDate: null,
     });

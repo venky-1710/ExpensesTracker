@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiEdit2, FiSave, FiX, FiUser, FiMail, FiPhone, FiCalendar, FiLock, FiTrash2, FiCamera } from 'react-icons/fi';
+import { FiEdit2, FiSave, FiX, FiUser, FiMail, FiPhone, FiCalendar, FiLock, FiTrash2, FiCamera, FiChevronDown } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import { userService } from '../services/userService';
 import SubLoader from '../components/SubLoader/SubLoader';
@@ -185,7 +185,7 @@ const Profile = () => {
                     <p className="subtitle">Manage your account settings and preferences</p>
                 </div>
                 {!isEditing && (
-                    <button className="edit-btn" onClick={handleEdit}>
+                    <button className="edit-btn" onClick={handleEdit} aria-label="Edit Profile">
                         <FiEdit2 /> Edit Profile
                     </button>
                 )}
@@ -301,7 +301,7 @@ const Profile = () => {
 
                 {isEditing && (
                     <div className="edit-actions">
-                        <button className="btn-cancel" onClick={handleCancel} disabled={loading.update}>
+                        <button className="btn-cancel" onClick={handleCancel} disabled={loading.update} aria-label="Cancel editing">
                             <FiX /> Cancel
                         </button>
                         <button className="btn-save" onClick={handleSave} disabled={loading.update}>
@@ -322,12 +322,14 @@ const Profile = () => {
 
             {/* Change Password Section */}
             <div className="profile-section">
-                <div className="section-header-toggle" onClick={() => setIsChangingPassword(!isChangingPassword)}>
+                <div className="section-header-toggle" onClick={() => setIsChangingPassword(!isChangingPassword)} aria-expanded={isChangingPassword}>
                     <h3 className="section-title">
                         <FiLock className="info-icon" />
                         Change Password
                     </h3>
-                    <span className="toggle-icon">{isChangingPassword ? '−' : '+'}</span>
+                    <span className={`toggle-icon ${isChangingPassword ? 'open' : ''}`}>
+                        <FiChevronDown size={22} />
+                    </span>
                 </div>
 
                 {isChangingPassword && (

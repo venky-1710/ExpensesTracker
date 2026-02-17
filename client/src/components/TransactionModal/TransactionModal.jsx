@@ -1,25 +1,39 @@
-import React, { useState } from 'react';
-import { FiX } from 'react-icons/fi';
+import React, { useState, useEffect } from 'react';
+import { FiX, FiCheck } from 'react-icons/fi';
 import { transactionService } from '../../services/transactionService';
 import './TransactionModal.css';
 
-const TransactionModal = ({ isOpen, onClose, onSuccess }) => {
-    const [formData, setFormData] = useState({
-        amount: '',
-        type: 'debit',
-        category: '',
-        payment_method: '',
-        description: '',
-        date: new Date().toISOString().split('T')[0] // Today's date in YYYY-MM-DD format
+const TransactionModal = ({ isOpen, onClose, onSuccess, transaction = null }) => {
+    const isEditMode = !!transaction;
+
+    const getInitialFormData = () => ({
+        amount: transaction ? String(transaction.amount) : '',
+        type: transaction ? transaction.type : 'debit',
+        category: transaction ? transaction.category : '',
+        payment_method: transaction ? (transaction.payment_method || '') : '',
+        description: transaction ? (transaction.description || '') : '',
+        date: transaction
+            ? new Date(transaction.date).toISOString().split('T')[0]
+            : new Date().toISOString().split('T')[0]
     });
 
+    const [formData, setFormData] = useState(getInitialFormData());
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
     const [submitError, setSubmitError] = useState('');
 
+    // Reset form when transaction prop changes (opening for edit)
+    useEffect(() => {
+        if (isOpen) {
+            setFormData(getInitialFormData());
+            setErrors({});
+            setSubmitError('');
+        }
+    }, [isOpen, transaction]);
+
     // Common categories for quick selection
     const categories = {
-        debit: ['Food', 'Transportation', 'Shopping', 'Bills', 'Entertainment', 'Healthcare', 'Other'],
+        debit: ['Food', 'Transportation', 'Shopping', 'Bills', 'Entertainment', 'Healthcare', 'License', 'Other'],
         credit: ['Salary', 'Freelance', 'Investment', 'Gift', 'Refund', 'Other']
     };
 
@@ -28,7 +42,6 @@ const TransactionModal = ({ isOpen, onClose, onSuccess }) => {
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
-        // Clear error for this field when user starts typing
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: '' }));
         }
@@ -76,7 +89,6 @@ const TransactionModal = ({ isOpen, onClose, onSuccess }) => {
         setLoading(true);
 
         try {
-            // Format data for API
             const transactionData = {
                 amount: parseFloat(formData.amount),
                 type: formData.type,
@@ -86,28 +98,23 @@ const TransactionModal = ({ isOpen, onClose, onSuccess }) => {
                 date: new Date(formData.date).toISOString()
             };
 
-            await transactionService.createTransaction(transactionData);
+            if (isEditMode) {
+                await transactionService.updateTransaction(transaction.id, transactionData);
+            } else {
+                await transactionService.createTransaction(transactionData);
+            }
 
-            // Reset form
-            setFormData({
-                amount: '',
-                type: 'debit',
-                category: '',
-                payment_method: '',
-                description: '',
-                date: new Date().toISOString().split('T')[0]
-            });
-
-            // Call success callback
             if (onSuccess) {
                 onSuccess();
             }
 
-            // Close modal
             onClose();
         } catch (error) {
-            console.error('Failed to create transaction:', error);
-            setSubmitError(error.response?.data?.message || 'Failed to create transaction. Please try again.');
+            console.error(`Failed to ${isEditMode ? 'update' : 'create'} transaction:`, error);
+            setSubmitError(
+                error.response?.data?.message ||
+                `Failed to ${isEditMode ? 'update' : 'create'} transaction. Please try again.`
+            );
         } finally {
             setLoading(false);
         }
@@ -115,14 +122,6 @@ const TransactionModal = ({ isOpen, onClose, onSuccess }) => {
 
     const handleClose = () => {
         if (!loading) {
-            setFormData({
-                amount: '',
-                type: 'debit',
-                category: '',
-                payment_method: '',
-                description: '',
-                date: new Date().toISOString().split('T')[0]
-            });
             setErrors({});
             setSubmitError('');
             onClose();
@@ -135,7 +134,7 @@ const TransactionModal = ({ isOpen, onClose, onSuccess }) => {
         <div className="modal-overlay" onClick={handleClose}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
-                    <h2>Add Transaction</h2>
+                    <h2>{isEditMode ? 'Edit Transaction' : 'Add Transaction'}</h2>
                     <button className="close-btn" onClick={handleClose} disabled={loading}>
                         <FiX size={24} />
                     </button>
@@ -204,6 +203,10 @@ const TransactionModal = ({ isOpen, onClose, onSuccess }) => {
                             {categories[formData.type].map(cat => (
                                 <option key={cat} value={cat}>{cat}</option>
                             ))}
+                            {/* Show current category if not in the list */}
+                            {formData.category && !categories[formData.type].includes(formData.category) && (
+                                <option value={formData.category}>{formData.category}</option>
+                            )}
                         </select>
                         {errors.category && <span className="error-text">{errors.category}</span>}
                     </div>
@@ -223,6 +226,10 @@ const TransactionModal = ({ isOpen, onClose, onSuccess }) => {
                             {paymentMethods.map(method => (
                                 <option key={method} value={method}>{method}</option>
                             ))}
+                            {/* Show current method if not in the list */}
+                            {formData.payment_method && !paymentMethods.includes(formData.payment_method) && (
+                                <option value={formData.payment_method}>{formData.payment_method}</option>
+                            )}
                         </select>
                         {errors.payment_method && <span className="error-text">{errors.payment_method}</span>}
                     </div>
@@ -236,7 +243,6 @@ const TransactionModal = ({ isOpen, onClose, onSuccess }) => {
                             name="date"
                             value={formData.date}
                             onChange={handleChange}
-                            max={new Date().toISOString().split('T')[0]}
                             disabled={loading}
                             className={errors.date ? 'error' : ''}
                         />
@@ -271,6 +277,7 @@ const TransactionModal = ({ isOpen, onClose, onSuccess }) => {
                             onClick={handleClose}
                             disabled={loading}
                         >
+                            <FiX size={18} />
                             Cancel
                         </button>
                         <button
@@ -278,7 +285,11 @@ const TransactionModal = ({ isOpen, onClose, onSuccess }) => {
                             className="submit-btn"
                             disabled={loading}
                         >
-                            {loading ? 'Adding...' : 'Add Transaction'}
+                            <FiCheck size={18} />
+                            {loading
+                                ? (isEditMode ? 'Saving...' : 'Adding...')
+                                : (isEditMode ? 'Save Changes' : 'Add Transaction')
+                            }
                         </button>
                     </div>
                 </form>

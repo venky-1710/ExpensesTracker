@@ -39,6 +39,20 @@ class CacheService:
         logger.info(f"🧹 Cache cleared ({count} items removed)")
         return count
 
+    def invalidate_starting_with(self, prefix: str) -> int:
+        """Invalidate all keys starting with prefix"""
+        keys_to_remove = [k for k in self._cache.keys() if k.startswith(prefix)]
+        for k in keys_to_remove:
+            del self._cache[k]
+        
+        if keys_to_remove:
+            logger.info(f"🧹 Invalidated {len(keys_to_remove)} keys with prefix '{prefix}'")
+        return len(keys_to_remove)
+
+    def invalidate_user_cache(self, user_id: str):
+        """Invalidate all cache for a specific user"""
+        return self.invalidate_starting_with(f"user:{user_id}:")
+
     def get_stats(self):
         """Get cache statistics"""
         return {

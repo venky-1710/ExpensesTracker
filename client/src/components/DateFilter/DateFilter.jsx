@@ -8,6 +8,7 @@ const DateFilter = ({ currentFilter, onFilterChange }) => {
     const [customDates, setCustomDates] = useState({ startDate: '', endDate: '' });
 
     const filterOptions = [
+        { label: 'All Time', value: 'all' },
         { label: 'Last 7 Days', value: '6days' },
         { label: 'Last Week', value: 'week' },
         { label: 'Last Month', value: 'month' },
@@ -43,7 +44,7 @@ const DateFilter = ({ currentFilter, onFilterChange }) => {
             return `${new Date(currentFilter.startDate).toLocaleDateString()} - ${new Date(currentFilter.endDate).toLocaleDateString()}`;
         }
         const option = filterOptions.find(opt => opt.value === currentFilter.type);
-        return option ? option.label : 'Last Month';
+        return option ? option.label : 'All Time';
     };
 
     return (
