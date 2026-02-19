@@ -45,7 +45,7 @@
 
 /* Recharts Custom Styling */
 .recharts-legend-item-text {
-    color: var(--text-primary, #ffffff) !important;
+    /* color: var(--text-primary, #ffffff) !important; */
 }
 
 .recharts-cartesian-axis-tick-value {

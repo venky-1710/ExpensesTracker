@@ -923,16 +923,16 @@
 }
 
 .info-icon {
-  width: 48px;
-  height: 48px;
-  min-width: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, rgba(109, 74, 255, 0.2) 0%, rgba(200, 80, 255, 0.2) 100%);
-  border-radius: 12px;
-  color: #c850ff;
-  font-size: 24px;
+      /* width: 0px; */
+    height: 25px;
+    min-width: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* background: linear-gradient(135deg, rgba(109, 74, 255, 0.2) 0%, rgba(200, 80, 255, 0.2) 100%); */
+    border-radius: 12px;
+    /* color: #c850ff; */
+    /* font-size: 24px; */
 }
 
 .info-item h4 {
