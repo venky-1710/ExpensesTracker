@@ -663,6 +663,7 @@
 
 /* Ensure charts take full height in maximized view */
 .maximized-content .recharts-responsive-container {
+    align-content: center;
     min-height: 100% !important;
 }
 
