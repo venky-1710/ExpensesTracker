@@ -21,6 +21,29 @@ const IncomeExpenseChart = ({ data }) => {
         );
     }
 
+    const CustomTooltip = ({ active, payload, label }) => {
+        if (active && payload && payload.length) {
+            return (
+                <div className="custom-tooltip">
+                    <p className="tooltip-label">{label}</p>
+                    {payload.map((entry, i) => (
+                        <p
+                            key={i}
+                            className="tooltip-value"
+                            style={{
+                                color: entry.color,
+                                marginBottom: i < payload.length - 1 ? '2px' : 0
+                            }}
+                        >
+                            {entry.name}: ₹{entry.value.toLocaleString()}
+                        </p>
+                    ))}
+                </div>
+            );
+        }
+        return null;
+    };
+
     return (
         <ResponsiveContainer width="100%" height={300}>
             <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
@@ -34,17 +57,12 @@ const IncomeExpenseChart = ({ data }) => {
                     tick={{ fill: 'var(--text-secondary, #8b92a7)', fontSize: 12 }}
                     stroke="var(--border-color, rgba(255, 255, 255, 0.1))"
                 />
-                <Tooltip
-                    contentStyle={{
-                        backgroundColor: 'var(--card-bg, #1a1d29)',
-                        border: '1px solid var(--border-color, rgba(255, 255, 255, 0.1))',
-                        borderRadius: '8px',
-                        color: 'var(--text-primary, #ffffff)'
-                    }}
-                    formatter={(value) => `₹${value.toLocaleString()}`}
-                />
+                <Tooltip content={<CustomTooltip />} />
                 <Legend
-                    wrapperStyle={{ color: 'var(--text-primary, #ffffff)' }}
+                    wrapperStyle={{ fontSize: '12px' }}
+                    formatter={(value) => (
+                        <span style={{ color: 'var(--legend-text-color, #1f2937)' }}>{value}</span>
+                    )}
                 />
                 <Line
                     type="monotone"

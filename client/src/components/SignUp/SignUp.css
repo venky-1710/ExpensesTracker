@@ -124,7 +124,7 @@
 .primary-btn {
   width: 100%;
   padding: 12px 0;
-  margin: 4px 0 16px;
+  /* margin: 4px 0 16px; */
   border: none;
   border-radius: 999px;
   cursor: pointer;

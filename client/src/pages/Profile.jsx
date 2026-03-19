@@ -221,103 +221,123 @@ const Profile = () => {
 
             {/* Personal Information */}
             <div className="profile-section">
-                <h3 className="section-title">Personal Information</h3>
-                <div className="info-card">
-                    <div className="info-row">
-                        <label>
-                            <FiUser className="info-icon" />
-                            Full Name
-                        </label>
-                        {isEditing ? (
-                            <div className="input-wrapper">
-                                <input
-                                    type="text"
-                                    value={editForm.full_name}
-                                    onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
-                                    className={errors.full_name ? 'error' : ''}
-                                />
-                                {errors.full_name && <span className="error-text">{errors.full_name}</span>}
+                <div className="profile-content-grid">
+                    <div className="profile-info-column">
+                        <h3 className="section-title">Personal Information</h3>
+                        <div className="info-card">
+                            <div className="info-row">
+                                <label>
+                                    <FiUser className="info-icon" />
+                                    Full Name
+                                </label>
+                                {isEditing ? (
+                                    <div className="input-wrapper">
+                                        <input
+                                            type="text"
+                                            value={editForm.full_name}
+                                            onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                                            className={errors.full_name ? 'error' : ''}
+                                        />
+                                        {errors.full_name && <span className="error-text">{errors.full_name}</span>}
+                                    </div>
+                                ) : (
+                                    <span className="info-value">{user?.full_name}</span>
+                                )}
                             </div>
-                        ) : (
-                            <span className="info-value">{user?.full_name}</span>
-                        )}
-                    </div>
 
-                    <div className="info-row">
-                        <label>
-                            <FiUser className="info-icon" />
-                            Username
-                        </label>
-                        {isEditing ? (
-                            <div className="input-wrapper">
-                                <input
-                                    type="text"
-                                    value={editForm.username}
-                                    onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
-                                    className={errors.username ? 'error' : ''}
-                                />
-                                {errors.username && <span className="error-text">{errors.username}</span>}
+                            <div className="info-row">
+                                <label>
+                                    <FiUser className="info-icon" />
+                                    Username
+                                </label>
+                                {isEditing ? (
+                                    <div className="input-wrapper">
+                                        <input
+                                            type="text"
+                                            value={editForm.username}
+                                            onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
+                                            className={errors.username ? 'error' : ''}
+                                        />
+                                        {errors.username && <span className="error-text">{errors.username}</span>}
+                                    </div>
+                                ) : (
+                                    <span className="info-value">{user?.username || 'Not set'}</span>
+                                )}
                             </div>
-                        ) : (
-                            <span className="info-value">{user?.username || 'Not set'}</span>
+
+                            <div className="info-row">
+                                <label>
+                                    <FiPhone className="info-icon" />
+                                    Phone
+                                </label>
+                                {isEditing ? (
+                                    <input
+                                        type="tel"
+                                        value={editForm.phone}
+                                        onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                                        placeholder="Enter phone number"
+                                    />
+                                ) : (
+                                    <span className="info-value">{user?.phone || 'Not provided'}</span>
+                                )}
+                            </div>
+
+                            <div className="info-row">
+                                <label>
+                                    <FiMail className="info-icon" />
+                                    Email
+                                </label>
+                                <span className="info-value read-only">{user?.email}</span>
+                            </div>
+
+                            <div className="info-row">
+                                <label>
+                                    <FiCalendar className="info-icon" />
+                                    Member Since
+                                </label>
+                                <span className="info-value">
+                                    {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
+                                </span>
+                            </div>
+                        </div>
+
+                        {isEditing && (
+                            <div className="edit-actions">
+                                <button className="btn-cancel" onClick={handleCancel} disabled={loading.update} aria-label="Cancel editing">
+                                    <FiX /> Cancel
+                                </button>
+                                <button className="btn-save" onClick={handleSave} disabled={loading.update}>
+                                    {loading.update ? (
+                                        <>
+                                            <div className="btn-spinner"></div>
+                                            Saving...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <FiSave /> Save Changes
+                                        </>
+                                    )}
+                                </button>
+                            </div>
                         )}
                     </div>
 
-                    <div className="info-row">
-                        <label>
-                            <FiPhone className="info-icon" />
-                            Phone
-                        </label>
-                        {isEditing ? (
-                            <input
-                                type="tel"
-                                value={editForm.phone}
-                                onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                                placeholder="Enter phone number"
-                            />
-                        ) : (
-                            <span className="info-value">{user?.phone || 'Not provided'}</span>
-                        )}
-                    </div>
-
-                    <div className="info-row">
-                        <label>
-                            <FiMail className="info-icon" />
-                            Email
-                        </label>
-                        <span className="info-value read-only">{user?.email}</span>
-                    </div>
-
-                    <div className="info-row">
-                        <label>
-                            <FiCalendar className="info-icon" />
-                            Member Since
-                        </label>
-                        <span className="info-value">
-                            {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
-                        </span>
+                    <div className="profile-illustration-container">
+                        <div className="illustration-wrapper">
+                            <div className="floating-card card-1">
+                                <div className="card-line"></div>
+                                <div className="card-line short"></div>
+                            </div>
+                            <div className="floating-card card-2">
+                                <div className="card-circle"></div>
+                            </div>
+                            <div className="floating-icon">
+                                <FiLock size={24} />
+                            </div>
+                            <div className="illustration-grid-bg"></div>
+                        </div>
                     </div>
                 </div>
-
-                {isEditing && (
-                    <div className="edit-actions">
-                        <button className="btn-cancel" onClick={handleCancel} disabled={loading.update} aria-label="Cancel editing">
-                            <FiX /> Cancel
-                        </button>
-                        <button className="btn-save" onClick={handleSave} disabled={loading.update}>
-                            {loading.update ? (
-                                <>
-                                    <div className="btn-spinner"></div>
-                                    Saving...
-                                </>
-                            ) : (
-                                <>
-                                    <FiSave /> Save Changes
-                                </>
-                            )}
-                        </button>
-                    </div>
-                )}
             </div>
 
             {/* Change Password Section */}

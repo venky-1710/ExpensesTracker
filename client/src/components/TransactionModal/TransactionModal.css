@@ -61,7 +61,7 @@
 .modal-header h2 {
     font-size: 24px;
     font-weight: 600;
-    color: var(--text-primary, #ffffff);
+    color: #ffffff;
     margin: 0;
 }
 
@@ -159,7 +159,7 @@
     background: var(--input-bg, rgba(255, 255, 255, 0.05));
     border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
     border-radius: 8px;
-    color: var(--text-primary, #ffffff);
+    color: #ffffff;
     font-size: 15px;
     font-family: inherit;
     transition: all 0.2s;
