@@ -1,13 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
-import { FiMessageSquare, FiX, FiSend } from 'react-icons/fi';
+import { FiMessageSquare, FiX, FiSend, FiMaximize2, FiMinimize2 } from 'react-icons/fi';
 import { config } from '../../config';
 import './ChatBot.css';
 
 const ChatWidget = () => {
     const [isOpen, setIsOpen] = useState(false);
+    const [isMaximized, setIsMaximized] = useState(false);
     const [messages, setMessages] = useState([
-        { role: 'model', content: 'Hi! I am your AI Financial Assistant. Ask me about your expenses, income, or budget!' }
+        {
+            role: 'model',
+            content: 'Hi! I am your AI Financial Assistant. Ask me about your expenses, income, or budget!',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
     ]);
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -25,7 +30,9 @@ const ChatWidget = () => {
         e.preventDefault();
         if (!inputValue.trim() || isLoading) return;
 
-        const userMessage = { role: 'user', content: inputValue.trim() };
+        const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        const userMessage = { role: 'user', content: inputValue.trim(), timestamp: currentTime };
         setMessages(prev => [...prev, userMessage]);
         setInputValue('');
         setIsLoading(true);
@@ -43,11 +50,19 @@ const ChatWidget = () => {
                 }
             );
 
-            const botMessage = { role: 'model', content: response.data.response };
+            const botMessage = {
+                role: 'model',
+                content: response.data.response,
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            };
             setMessages(prev => [...prev, botMessage]);
         } catch (error) {
             console.error("Chat Error:", error);
-            const errorMessage = { role: 'model', content: "Sorry, I encountered an error. Please check your API key or try again later." };
+            const errorMessage = {
+                role: 'model',
+                content: "Sorry, I encountered an error. Please check your API key or try again later.",
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            };
             setMessages(prev => [...prev, errorMessage]);
         } finally {
             setIsLoading(false);
@@ -57,18 +72,27 @@ const ChatWidget = () => {
     return (
         <div className="chat-widget-container">
             {isOpen && (
-                <div className="chat-window">
+                <div className={`chat-window ${isMaximized ? 'maximized' : ''}`}>
                     <div className="chat-header">
-                        <h3>Financial Assistant</h3>
-                        <button className="close-btn" onClick={() => setIsOpen(false)}>
-                            <FiX />
-                        </button>
+                        <div className="header-title-area">
+                            <img src="/chatbot_logo.png" alt="AI Agent Logo" className="header-logo" />
+                            <h3>Financial Assistant</h3>
+                        </div>
+                        <div className="header-actions">
+                            <button className="chat-header-btn" onClick={() => setIsMaximized(!isMaximized)} title={isMaximized ? "Minimize" : "Maximize"}>
+                                {isMaximized ? <FiMinimize2 /> : <FiMaximize2 />}
+                            </button>
+                            <button className="chat-header-btn close-btn" onClick={() => setIsOpen(false)} title="Close">
+                                <FiX />
+                            </button>
+                        </div>
                     </div>
 
                     <div className="chat-messages">
                         {messages.map((msg, index) => (
                             <div key={index} className={`message ${msg.role}`}>
                                 {msg.content}
+                                {msg.timestamp && <span className="message-timestamp">{msg.timestamp}</span>}
                             </div>
                         ))}
                         {isLoading && (

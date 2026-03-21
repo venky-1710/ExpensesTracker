@@ -132,6 +132,8 @@ export const DashboardProvider = ({ children }) => {
         try {
             const response = await dashboardService.getWidgets({
                 filter_type: dateFilter.type,
+                ...(dateFilter.startDate && { start_date: dateFilter.startDate }),
+                ...(dateFilter.endDate && { end_date: dateFilter.endDate }),
                 ...(widgetType && { widget_type: widgetType })
             });
 

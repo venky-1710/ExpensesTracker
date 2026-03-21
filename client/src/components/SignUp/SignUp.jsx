@@ -77,7 +77,8 @@ const SignUp = ({ onLoginSuccess, initialMode = "signup" }) => {
     }
 
     try {
-      const response = await axios.post(`${serverURL}/auth/signup`, signupData);
+      const payload = { ...signupData, full_name: signupData.username };
+      const response = await axios.post(`${serverURL}/auth/signup`, payload);
       toast.success('Signup successful! Signing you in...');
       // Auto sign in after signup
       const formData = new FormData();
@@ -141,17 +142,7 @@ const SignUp = ({ onLoginSuccess, initialMode = "signup" }) => {
                   Sign up with email address &amp; password
                 </p>
 
-                <div className="input-group">
-                  <input
-                    type="text"
-                    placeholder="Full Name"
-                    className="email-input"
-                    value={signupData.full_name}
-                    onChange={(e) => setSignupData({ ...signupData, full_name: e.target.value })}
-                    required
-                    minLength="2"
-                  />
-                </div>
+                {/* Full Name input successfully removed */}
 
                 <div className="input-group">
                   <input

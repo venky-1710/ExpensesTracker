@@ -93,7 +93,9 @@ async def get_widgets(
     request: Request,
     current_user: dict = Depends(get_current_user),
     filter_type: str = Query("all", pattern="^(all|6days|week|month|6months|year|custom)$"),
-    widget_type: Optional[str] = Query(None, pattern="^(recent_transactions|top_categories|highest_expense|monthly_savings)$")
+    widget_type: Optional[str] = Query(None, pattern="^(recent_transactions|top_categories|highest_expense|monthly_savings)$"),
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None
 ):
     """Get all widget data"""
     try:
@@ -101,6 +103,8 @@ async def get_widgets(
         widgets = await DashboardService.get_widgets(
             current_user["id"],
             filter_type,
+            start_date,
+            end_date,
             widget_type=widget_type
         )
         

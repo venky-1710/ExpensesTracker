@@ -2,31 +2,14 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiTrendingUp, FiShield, FiZap, FiDownload, FiClock, FiSmartphone, FiCheckCircle, FiArrowRight, FiMail, FiGithub, FiTwitter, FiLinkedin } from 'react-icons/fi';
 import NavBar from '../components/NavBar/NavBar';
+import ContactSection from '../components/ContactSection/ContactSection';
 import './Hero.css';
 
 const Hero = () => {
   const navigate = useNavigate();
-  const [contactForm, setContactForm] = useState({
-    name: '',
-    email: '',
-    message: ''
-  });
 
   const handleGetStarted = () => {
     navigate('/login');
-  };
-
-  const handleContactSubmit = (e) => {
-    e.preventDefault();
-    alert('Thank you for your message! We will get back to you soon.');
-    setContactForm({ name: '', email: '', message: '' });
-  };
-
-  const handleContactChange = (e) => {
-    setContactForm({
-      ...contactForm,
-      [e.target.name]: e.target.value
-    });
   };
 
   return (
@@ -117,7 +100,7 @@ const Hero = () => {
 
       {/* Features Section */}
       <section id="features" className="features-section">
-        <div className="section-header">
+        <div className="hero-section-header">
           <h2>Powerful Features for Smart Finance Management</h2>
           <p>Everything you need to track, analyze, and optimize your expenses</p>
         </div>
@@ -169,7 +152,7 @@ const Hero = () => {
 
       {/* How It Works Section */}
       <section id="how-it-works" className="how-section">
-        <div className="section-header">
+        <div className="hero-section-header">
           <h2>How It Works</h2>
           <p>Get started in three simple steps</p>
         </div>
@@ -229,73 +212,7 @@ const Hero = () => {
       </section>
 
       {/* Contact Section */}
-      <section id="contact" className="contact-section">
-        <div className="section-header">
-          <h2>Get in Touch</h2>
-          <p>Have questions? We'd love to hear from you.</p>
-        </div>
-        <div className="contact-content">
-          <form className="contact-form" onSubmit={handleContactSubmit}>
-            <div className="form-group">
-              <input
-                type="text"
-                name="name"
-                placeholder="Your Name"
-                value={contactForm.name}
-                onChange={handleContactChange}
-                required
-                className="form-input"
-              />
-            </div>
-            <div className="form-group">
-              <input
-                type="email"
-                name="email"
-                placeholder="Your Email"
-                value={contactForm.email}
-                onChange={handleContactChange}
-                required
-                className="form-input"
-              />
-            </div>
-            <div className="form-group">
-              <textarea
-                name="message"
-                placeholder="Your Message"
-                value={contactForm.message}
-                onChange={handleContactChange}
-                required
-                rows="5"
-                className="form-textarea"
-              ></textarea>
-            </div>
-            <button type="submit" className="cta-button primary">Send Message</button>
-          </form>
-          <div className="contact-info">
-            <div className="info-item">
-              <FiMail className="info-icon" />
-              <div>
-                <h4>Email</h4>
-                <p>support@expensestracker.com</p>
-              </div>
-            </div>
-            <div className="info-item">
-              <FiGithub className="info-icon" />
-              <div>
-                <h4>GitHub</h4>
-                <p>github.com/expensestracker</p>
-              </div>
-            </div>
-            <div className="info-item">
-              <FiTwitter className="info-icon" />
-              <div>
-                <h4>Twitter</h4>
-                <p>@expensestracker</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <ContactSection />
 
       {/* Footer */}
       <footer className="footer">

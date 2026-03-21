@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiPlus, FiDownload, FiChevronDown, FiTrash2 } from 'react-icons/fi';
+import { FiPlus, FiDownload, FiChevronDown, FiTrash2, FiArrowUp, FiArrowDown } from 'react-icons/fi';
 import { transactionService } from '../services/transactionService';
 import TransactionModal from '../components/TransactionModal/TransactionModal';
 import ActionButtons from '../components/ActionButtons/ActionButtons';
@@ -41,9 +41,11 @@ const Transactions = () => {
         availableBalance: 0
     });
 
+    const [sortOrder, setSortOrder] = useState('desc');
+
     useEffect(() => {
         fetchTransactions();
-    }, [pagination.page, dateFilter, filters]);
+    }, [pagination.page, dateFilter, filters, sortOrder]);
 
     const fetchTransactions = async () => {
         setLoading(true);
@@ -52,7 +54,7 @@ const Transactions = () => {
                 page: pagination.page,
                 limit: pagination.limit,
                 sort_by: 'date',
-                sort_order: 'desc',
+                sort_order: sortOrder,
                 filter_type: dateFilter.type,
                 start_date: dateFilter.startDate,
                 end_date: dateFilter.endDate,
@@ -182,6 +184,7 @@ const Transactions = () => {
                     <p className="subtitle">Manage your income and expenses</p>
                 </div>
                 <div className="header-actions">
+                    <DateFilter currentFilter={dateFilter} onFilterChange={setDateFilter} />
                     <div className="export-wrapper">
                         <button
                             className="secondary-btn"
@@ -201,8 +204,7 @@ const Transactions = () => {
                     </div>
 
                     <button className="primary-btn" onClick={() => { setEditingTransaction(null); setIsModalOpen(true); }}>
-                        <FiPlus size={18} />
-                        Add Transaction
+                        + New Transaction
                     </button>
                 </div>
             </div>
@@ -225,7 +227,6 @@ const Transactions = () => {
 
             {/* Filters Section */}
             <div className="filters-section">
-                <DateFilter currentFilter={dateFilter} onFilterChange={setDateFilter} />
                 <TransactionFilters filters={filters} onFilterChange={setFilters} />
             </div>
 
@@ -237,7 +238,13 @@ const Transactions = () => {
                 <>
                     <div className="transactions-table">
                         <div className="table-header">
-                            <div className="th-date">Date</div>
+                            <div 
+                                className="th-date sortable" 
+                                onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
+                            >
+                                Date
+                                {sortOrder === 'desc' ? <FiArrowDown size={14} /> : <FiArrowUp size={14} />}
+                            </div>
                             <div className="th-category">Category</div>
                             <div className="th-description">Description</div>
                             <div className="th-payment">Payment Method</div>

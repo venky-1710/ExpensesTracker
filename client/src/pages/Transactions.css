@@ -69,7 +69,7 @@
 
 /* Dark Mode Support for Summary Cards */
 [data-theme='dark'] .summary-card {
-    background: #1a1d29;
+    background: #1a0d35;
     border-color: rgba(255, 255, 255, 0.1);
 }
 
@@ -82,42 +82,56 @@
 .header-actions {
     display: flex;
     gap: 12px;
+    align-items: center;
 }
 
 .primary-btn,
 .secondary-btn {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 8px;
+    padding: 12px 24px;
+    border-radius: 10px;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
+    white-space: nowrap;
 }
 
 .primary-btn {
-    background: linear-gradient(135deg, #6d4aff 0%, #8b5cf6 100%);
+    background: linear-gradient(135deg, #c850ff 0%, #6d4aff 100%);
     color: #ffffff;
-    box-shadow: 0 4px 12px rgba(109, 74, 255, 0.3);
+    border: none;
+    box-shadow: 0 4px 12px rgba(200, 80, 255, 0.3);
 }
 
 .primary-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(109, 74, 255, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(200, 80, 255, 0.4);
 }
 
 .secondary-btn {
     background: var(--card-bg, #ffffff);
-    color: var(--text-primary, #1f2937);
-    border: 1px solid var(--border-color, #e5e7eb);
+    color: #6d4aff;
+    border: 1px solid #6d4aff;
 }
 
 .secondary-btn:hover {
     background: var(--hover-bg, #f9fafb);
-    border-color: var(--border-hover, #d1d5db);
+    border-color: #5b3dd7;
+    color: #5b3dd7;
+}
+
+.filters-section {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    position: relative;
+    z-index: 10; /* Ensure dropdown appears over the table */
 }
 
 /* Loading State */
@@ -174,6 +188,19 @@
     color: var(--text-secondary, #6b7280);
     text-transform: uppercase;
     letter-spacing: 0.05em;
+}
+
+.th-date.sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.th-date.sortable:hover {
+    color: #6d4aff;
 }
 
 .table-body {
@@ -264,8 +291,8 @@
 
 /* Delete Confirmation Modal */
 .delete-confirm-modal {
-    background: var(--card-bg, #1a1d29);
-    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+    background: var(--card-bg, #ffffff);
+    border: 1px solid var(--border-color, #f0f0f0);
     border-radius: 16px;
     width: 90%;
     max-width: 420px;
@@ -460,8 +487,9 @@
 
 [data-theme='dark'] .loading-container,
 [data-theme='dark'] .transactions-table,
-[data-theme='dark'] .content-placeholder {
-    background: #1a1d29;
+[data-theme='dark'] .content-placeholder,
+[data-theme='dark'] .delete-confirm-modal {
+    background: #1a0d35;
     border-color: rgba(255, 255, 255, 0.1);
 }
 
