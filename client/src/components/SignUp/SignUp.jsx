@@ -6,6 +6,7 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./SignUp.css";
 import ForgetPassword from "../ForgetPassword/ForgetPassword";
+import { FiEye, FiEyeOff } from "react-icons/fi";
 import { config } from "../../config";
 
 const SignUp = ({ onLoginSuccess, initialMode = "signup" }) => {
@@ -19,6 +20,8 @@ const SignUp = ({ onLoginSuccess, initialMode = "signup" }) => {
   const [signupData, setSignupData] = useState({ full_name: '', username: '', email: '', password: '' });
   const [signinData, setSigninData] = useState({ username: '', password: '' });
   const [loading, setLoading] = useState(false);
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
+  const [showSigninPassword, setShowSigninPassword] = useState(false);
 
   useEffect(() => {
     const loadScript = (src) => {
@@ -169,15 +172,26 @@ const SignUp = ({ onLoginSuccess, initialMode = "signup" }) => {
 
 
                 <div className="input-group">
-                  <input
-                    type="password"
-                    placeholder="Password (min 8 characters)"
-                    className="email-input"
-                    value={signupData.password}
-                    onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
-                    required
-                    minLength="8"
-                  />
+                  <div className="password-input-wrapper">
+                    <input
+                      type={showSignupPassword ? "text" : "password"}
+                      placeholder="Password (min 8 characters)"
+                      className="email-input"
+                      value={signupData.password}
+                      onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
+                      required
+                      minLength="8"
+                    />
+                    <button 
+                      type="button" 
+                      className="password-toggle-btn" 
+                      aria-label="Toggle password visibility"
+                      onClick={() => setShowSignupPassword(!showSignupPassword)}
+                      tabIndex="-1"
+                    >
+                      {showSignupPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+                    </button>
+                  </div>
                 </div>
 
                 <button type="submit" className="primary-btn" disabled={loading}>
@@ -226,14 +240,25 @@ const SignUp = ({ onLoginSuccess, initialMode = "signup" }) => {
                 </div>
 
                 <div className="input-group">
-                  <input
-                    type="password"
-                    placeholder="Password"
-                    className="email-input"
-                    value={signinData.password}
-                    onChange={(e) => setSigninData({ ...signinData, password: e.target.value })}
-                    required
-                  />
+                  <div className="password-input-wrapper">
+                    <input
+                      type={showSigninPassword ? "text" : "password"}
+                      placeholder="Password"
+                      className="email-input"
+                      value={signinData.password}
+                      onChange={(e) => setSigninData({ ...signinData, password: e.target.value })}
+                      required
+                    />
+                    <button 
+                      type="button" 
+                      className="password-toggle-btn" 
+                      aria-label="Toggle password visibility"
+                      onClick={() => setShowSigninPassword(!showSigninPassword)}
+                      tabIndex="-1"
+                    >
+                      {showSigninPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+                    </button>
+                  </div>
                 </div>
 
                 <p className="terms-text">

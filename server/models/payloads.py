@@ -44,6 +44,7 @@ class UserProfileResponse(BaseModel):
     email: str
     phone: Optional[str] = None
     profile_image: Optional[str] = None  # Base64 encoded
+    banner_image: Optional[str] = None
     role: str = "user"
     currency_preference: str = "USD"
     theme_preference: str = "light"
@@ -60,6 +61,7 @@ class UserProfileUpdate(BaseModel):
     username: Optional[str] = Field(None, min_length=3, max_length=50)
     phone: Optional[str] = None
     profile_image: Optional[str] = None
+    banner_image: Optional[str] = None
 
 
 class PasswordChange(BaseModel):
@@ -83,6 +85,7 @@ class UserInDB(BaseModel):
     password_hash: str
     phone: Optional[str] = None
     profile_image: Optional[str] = None
+    banner_image: Optional[str] = None
     role: str = "user"
     currency_preference: str = "USD"
     theme_preference: str = "light"

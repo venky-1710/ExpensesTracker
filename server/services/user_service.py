@@ -44,6 +44,10 @@ class UserService:
         # Validate profile image if provided
         if "profile_image" in update_dict and update_dict["profile_image"]:
             UserService._validate_base64_image(update_dict["profile_image"])
+            
+        # Validate banner image if provided
+        if "banner_image" in update_dict and update_dict["banner_image"]:
+            UserService._validate_base64_image(update_dict["banner_image"])
         
         # Add updated timestamp
         update_dict["updated_at"] = datetime.now()
