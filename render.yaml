@@ -22,7 +22,6 @@ services:
   - type: web
     name: expenses-tracker-client
     env: static
-    region: oregon
     buildCommand: "cd client && npm install && npm run build"
     staticPublishPath: "./client/dist"
     envVars:
