@@ -6,6 +6,7 @@ import TransactionModal from '../components/TransactionModal/TransactionModal';
 import UploadReviewModal from '../components/UploadReviewModal/UploadReviewModal';
 import IncomeExpenseChart from '../components/Charts/IncomeExpenseChart';
 import CategoryChart from '../components/Charts/CategoryChart';
+import SpendingChart from '../components/Charts/SpendingChart';
 import DateFilter from '../components/DateFilter/DateFilter';
 import SubLoader from '../components/SubLoader/SubLoader';
 import { toast } from 'react-toastify';
@@ -220,50 +221,69 @@ const Dashboard = () => {
         }
     };
 
-    // Calculate stats
-    const stats = {
-        totalIncome: kpis?.total_credits?.current || 0,
-        totalExpense: kpis?.total_debits?.current || 0,
-        balance: kpis?.net_balance?.current || 0,
-        transactions: kpis?.total_transactions?.current || 0
+    // Compact number formatter: 1234567 -> 1.23M, 12345 -> 12.35k
+    const formatCompact = (num) => {
+        if (num === null || num === undefined) return '0';
+        const abs = Math.abs(num);
+        if (abs >= 1_000_000) return `${(num / 1_000_000).toFixed(2)}M`;
+        if (abs >= 1_000) return `${(num / 1_000).toFixed(2)}k`;
+        return num.toLocaleString();
     };
+
+    // Compute day count label from current filter
+    const getFilterDays = () => {
+        const type = dateFilter.type;
+        if (type === 'week') return '7 Day';
+        if (type === 'month') return '30 Day';
+        if (type === 'quarter') return '90 Day';
+        if (type === 'year') return '365 Day';
+        if (type === 'all') return 'All time';
+        if (type === 'custom' && dateFilter.startDate && dateFilter.endDate) {
+            const diff = Math.round(
+                (new Date(dateFilter.endDate) - new Date(dateFilter.startDate)) / (1000 * 60 * 60 * 24)
+            );
+            return `${diff} Day`;
+        }
+        return 'This period';
+    };
+    const filterDays = getFilterDays();
 
     const kpiCards = [
         {
             title: 'Total Credits',
-            value: `₹${stats.totalIncome.toLocaleString()}`,
+            value: formatCompact(kpis?.total_credits?.current || 0),
             icon: FiTrendingUp,
             color: '#10b981',
-            description: 'Total income received in the selected period.',
+            bgColor: '#d1fae5',
             kpiType: 'income',
-            stats: kpis?.total_credits
+            stats: kpis?.total_credits,
         },
         {
             title: 'Total Expenses',
-            value: `₹${stats.totalExpense.toLocaleString()}`,
+            value: formatCompact(kpis?.total_debits?.current || 0),
             icon: FiTrendingDown,
             color: '#ef4444',
-            description: 'Total expenses incurred in the selected period.',
+            bgColor: '#fee2e2',
             kpiType: 'expense',
-            stats: kpis?.total_debits
+            stats: kpis?.total_debits,
         },
         {
-            title: 'Balance',
-            value: `₹${stats.balance.toLocaleString()}`,
+            title: 'Net Balance',
+            value: formatCompact(kpis?.net_balance?.current || 0),
             icon: FiDollarSign,
             color: '#6d4aff',
-            description: 'Net balance (Income - Expense) for the selected period.',
+            bgColor: '#ede9fe',
             kpiType: 'balance',
-            stats: kpis?.net_balance
+            stats: kpis?.net_balance,
         },
         {
             title: 'Transactions',
-            value: stats.transactions,
+            value: kpis?.total_transactions?.current || 0,
             icon: FiActivity,
             color: '#f59e0b',
-            description: 'Total number of transactions in the selected period.',
+            bgColor: '#fef3c7',
             kpiType: 'transactions',
-            stats: kpis?.total_transactions
+            stats: kpis?.total_transactions,
         }
     ];
 
@@ -301,7 +321,7 @@ const Dashboard = () => {
         );
     }
 
-    const renderCardActions = (id, onRefresh) => (
+    const renderCardActions = (id, onRefresh, onViewDetails) => (
         <div className="kpi-actions">
             <div className="action-icon maximize-icon" onClick={(e) => handleMaximizeClick(e, id)} title="Maximize">
                 <FiMaximize2 size={16} />
@@ -321,6 +341,11 @@ const Dashboard = () => {
                         <div className="menu-item" onClick={onRefresh}>
                             <FiRefreshCw size={14} /> Refresh
                         </div>
+                        {onViewDetails && (
+                            <div className="menu-item" onClick={(e) => { e.stopPropagation(); setActiveMenu(null); onViewDetails(); }}>
+                                <FiMaximize2 size={14} /> View Details
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
@@ -431,62 +456,47 @@ const Dashboard = () => {
                     <div
                         key={index}
                         className="kpi-card"
-                        style={{ '--accent-color': card.color }}
                         onClick={() => handleKPIClick(card.kpiType)}
                     >
-                        <div className="kpi-header-row">
-                            <div className="kpi-icon-wrapper" style={{ background: `${card.color}20`, color: card.color }}>
-                                {loading.loadingKPIs?.[card.kpiType] ? (
-                                    <div className="spinner-mini"></div>
-                                ) : (
-                                    <card.icon size={20} />
-                                )}
-                            </div>
-
-                            <div className="kpi-actions">
-                                <div className="action-icon info-icon" onClick={(e) => handleInfoClick(e, card.kpiType)}>
-                                    <FiInfo size={16} />
-                                    {showInfo === card.kpiType && (
-                                        <div className="info-tooltip">
-                                            {card.description}
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="action-icon menu-icon" onClick={(e) => handleMenuClick(e, card.kpiType)}>
-                                    <FiMoreVertical size={16} />
-                                    {activeMenu === card.kpiType && (
-                                        <div className="card-menu">
-                                            <div className="menu-item" onClick={(e) => handleRefreshKPI(e, card.kpiType)}>
-                                                <FiRefreshCw size={14} /> Refresh
-                                            </div>
-                                            {(card.kpiType === 'income' || card.kpiType === 'expense') && (
-                                                <div className="menu-item" onClick={(e) => handleShowMinMax(e, card.kpiType)}>
-                                                    <FiMaximize2 size={14} /> Min/Max
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
+                        {/* Icon */}
+                        <div className="kpi-icon-box" style={{ background: card.bgColor, color: card.color }}>
+                            {loading.loadingKPIs?.[card.kpiType]
+                                ? <div className="spinner-mini" style={{ borderTopColor: card.color }} />
+                                : <card.icon size={26} />
+                            }
                         </div>
 
-                        <div className="kpi-content">
-                            <h3 className="kpi-title">{card.title}</h3>
-                            <p className="kpi-value">{card.value}</p>
-
-                            {/* Min/Max display area if toggled */}
-                            {showMinMax === card.kpiType && card.stats ? (
-                                <div className="min-max-stats" onClick={(e) => e.stopPropagation()}>
-                                    <div className="mm-row">
-                                        <span className="mm-label"><FiMinimize2 size={10} /> Min:</span>
-                                        <span className="mm-val">₹{card.stats.min?.toLocaleString() || 0}</span>
-                                    </div>
-                                    <div className="mm-row">
-                                        <span className="mm-label"><FiMaximize2 size={10} /> Max:</span>
-                                        <span className="mm-val">₹{card.stats.max?.toLocaleString() || 0}</span>
+                        {/* Content */}
+                        <div className="kpi-content-block">
+                            <div className="kpi-top-row">
+                                <p className="kpi-subtitle">{card.title}</p>
+                                <div className="kpi-actions" onClick={(e) => e.stopPropagation()}>
+                                    <div className="action-icon menu-icon" onClick={(e) => handleMenuClick(e, card.kpiType)}>
+                                        <FiMoreVertical size={15} />
+                                        {activeMenu === card.kpiType && (
+                                            <div className="card-menu">
+                                                <div className="menu-item" onClick={(e) => handleRefreshKPI(e, card.kpiType)}>
+                                                    <FiRefreshCw size={13} /> Refresh
+                                                </div>
+                                                <div className="menu-item" onClick={(e) => { e.stopPropagation(); handleKPIClick(card.kpiType); }}>
+                                                    <FiMaximize2 size={13} /> View Details
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
-                            ) : null}
+                            </div>
+
+                            <p className="kpi-main-value">{card.value}</p>
+
+                            <p className="kpi-change-row">
+                                <span className={`kpi-change-badge ${
+                                    (card.stats?.change_percent || 0) >= 0 ? 'positive' : 'negative'
+                                }`}>
+                                    {(card.stats?.change_percent || 0) >= 0 ? '+' : ''}{card.stats?.change_percent ?? 0}%
+                                </span>
+                                <span className="kpi-day-label">({filterDays})</span>
+                            </p>
                         </div>
                     </div>
                 ))}
@@ -509,7 +519,7 @@ const Dashboard = () => {
             {/* Charts Section */}
             <div className="charts-section">
                 <div className="chart-card">
-                    <div className="kpi-header-row" style={{ marginBottom: '12px' }}>
+                    <div className="kpi-header-row" style={{ marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <h3 className="chart-title" style={{ margin: 0 }}>Income vs Expenses</h3>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             {loading.loadingCharts?.credit_vs_debit && <div className="spinner-mini"></div>}
@@ -524,12 +534,16 @@ const Dashboard = () => {
                     )}
                 </div>
 
-                <div className="chart-card clickable" onClick={() => handleWidgetClick('top_categories')}>
-                    <div className="kpi-header-row" style={{ marginBottom: '12px' }}>
+                <div className="chart-card">
+                    <div className="kpi-header-row" style={{ marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <h3 className="chart-title" style={{ margin: 0 }}>Category Breakdown</h3>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             {loading.loadingCharts?.category_breakdown && <div className="spinner-mini"></div>}
-                            {renderCardActions('category_breakdown', (e) => handleRefreshChart(e, 'category_breakdown'))}
+                            {renderCardActions(
+                                'category_breakdown',
+                                (e) => handleRefreshChart(e, 'category_breakdown'),
+                                () => handleWidgetClick('top_categories')
+                            )}
                         </div>
                     </div>
 
@@ -541,8 +555,13 @@ const Dashboard = () => {
                 </div>
             </div>
 
+            {/* Spending Trend Widget */}
+            <div style={{ marginBottom: '30px' }}>
+                <SpendingChart />
+            </div>
+
             {/* Recent Transactions */}
-            <div className="recent-transactions clickable-section" onClick={() => handleKPIClick('transactions')}>
+            <div className="recent-transactions">
                 <div className="section-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <h3 style={{ margin: 0 }}>Recent Transactions</h3>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -556,13 +575,11 @@ const Dashboard = () => {
                     <SubLoader />
                 ) : recentTransactions.length > 0 ? (
                     <div className="transactions-list">
-                        {recentTransactions.map((transaction, index) => (
+                        {recentTransactions.slice(0, 5).map((transaction, index) => (
                             <div key={index} className="transaction-item">
-                                <div className="transaction-info">
-                                    <span className="transaction-category">{transaction.category}</span>
-                                    <span className="transaction-desc">{transaction.description || 'No description'}</span>
-                                    <span className="transaction-date">{new Date(transaction.date).toLocaleDateString()}</span>
-                                </div>
+                                <span className="transaction-date">{new Date(transaction.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                <span className="transaction-category">{transaction.category}</span>
+                                <span className="transaction-desc">{transaction.description || '-'}</span>
                                 <div className={`transaction-amount ${transaction.type}`}>
                                     {transaction.type === 'credit' ? '+' : '-'}₹{Math.abs(transaction.amount).toLocaleString()}
                                 </div>

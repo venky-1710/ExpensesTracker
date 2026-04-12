@@ -1,16 +1,14 @@
 """
 Dashboard routes - Analytics and dashboard data endpoints
 """
-from fastapi import APIRouter, Depends, Query, HTTPException, Request
+from fastapi import APIRouter, Depends, Query, Request
 from models.payloads import APIResponse
-from services.dashboard_service import DashboardService
+from apis.dashboard_api import DashboardAPI
 from utils.auth import get_current_user
-from utils.logger import logger
+from utils.helpers import api_handler
+from utils.cache import cached
 from datetime import datetime
 from typing import Optional
-import traceback
-
-from utils.cache import cached
 
 dashboard_router = APIRouter()
 
@@ -25,32 +23,20 @@ async def get_kpis(
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None
 ):
-    """Get all dashboard KPIs with period comparison"""
-    try:
-        logger.info(f"📊 KPIs request: {current_user.get('email')} - filter: {filter_type}")
-        kpis = await DashboardService.get_kpis(
-            current_user["id"],
-            filter_type,
-            start_date,
-            end_date,
-            kpi_type
-        )
-        
-        logger.info(f"✅ KPIs returned successfully")
-        return APIResponse(
-            success=True,
-            data=kpis,
-            meta={
-                "filter_type": filter_type,
-                "start_date": start_date.isoformat() if start_date else None,
-                "end_date": end_date.isoformat() if end_date else None
-            }
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"❌ KPIs error: {str(e)}\n{traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=str(e))
+    """Get all dashboard KPIs with period comparison."""
+    kpis = await DashboardAPI.get_kpis(
+        current_user["id"], filter_type, start_date, end_date, kpi_type
+    )
+
+    return APIResponse(
+        success=True,
+        data=kpis,
+        meta={
+            "filter_type": filter_type,
+            "start_date": start_date.isoformat() if start_date else None,
+            "end_date": end_date.isoformat() if end_date else None
+        }
+    )
 
 
 @dashboard_router.get("/charts")
@@ -63,28 +49,12 @@ async def get_charts(
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None
 ):
-    """Get all chart data"""
-    try:
-        logger.info(f"📈 Charts request: {current_user.get('email')} - filter: {filter_type} - type: {chart_type}")
-        charts = await DashboardService.get_charts(
-            current_user["id"],
-            filter_type,
-            start_date,
-            end_date,
-            chart_type
-        )
-        
-        logger.info(f"✅ Charts returned successfully")
-        return APIResponse(
-            success=True,
-            data=charts,
-            meta={"filter_type": filter_type}
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"❌ Charts error: {str(e)}\n{traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=str(e))
+    """Get all chart data."""
+    charts = await DashboardAPI.get_charts(
+        current_user["id"], filter_type, start_date, end_date, chart_type
+    )
+
+    return APIResponse(success=True, data=charts, meta={"filter_type": filter_type})
 
 
 @dashboard_router.get("/widgets")
@@ -97,26 +67,24 @@ async def get_widgets(
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None
 ):
-    """Get all widget data"""
-    try:
-        logger.info(f"🧩 Widgets request: {current_user.get('email')} - filter: {filter_type} - type: {widget_type}")
-        widgets = await DashboardService.get_widgets(
-            current_user["id"],
-            filter_type,
-            start_date,
-            end_date,
-            widget_type=widget_type
-        )
-        
-        logger.info(f"✅ Widgets returned successfully")
-        return APIResponse(
-            success=True,
-            data=widgets,
-            meta={"filter_type": filter_type}
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"❌ Widgets error: {str(e)}\n{traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=str(e))
+    """Get all widget data."""
+    widgets = await DashboardAPI.get_widgets(
+        current_user["id"], filter_type, start_date, end_date, widget_type=widget_type
+    )
 
+    return APIResponse(success=True, data=widgets, meta={"filter_type": filter_type})
+
+
+@dashboard_router.get("/spending")
+@cached(ttl_seconds=600)
+async def get_spending_trend(
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+    year: int = Query(default=None, description="Year to fetch data for, defaults to current year"),
+    period: str = Query(default="months", pattern="^(months|quarters)$")
+):
+    """Get spending trend (income vs expenses) by month or quarter for a given year."""
+    from datetime import datetime as dt
+    resolved_year = year or dt.now().year
+    data = await DashboardAPI.get_spending_trend(current_user["id"], resolved_year, period)
+    return APIResponse(success=True, data=data, meta={"year": resolved_year, "period": period})

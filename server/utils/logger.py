@@ -4,9 +4,9 @@ Centralized logging configuration
 import logging
 import sys
 from datetime import datetime
+import os
 
 # Create logs directory
-import os
 log_dir = "logs"
 if not os.path.exists(log_dir):
     os.makedirs(log_dir)
@@ -21,7 +21,8 @@ detailed_formatter = logging.Formatter(
 )
 
 console_formatter = logging.Formatter(
-    '%(levelname)s - %(message)s'
+    '%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%H:%M:%S'
 )
 
 # File handler (detailed logs)
@@ -43,8 +44,10 @@ logging.basicConfig(
 # Create named logger
 logger = logging.getLogger("expense_tracker")
 
-# Silence some noisy loggers
+# Silence noisy loggers
 logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 logging.getLogger("uvicorn.error").setLevel(logging.WARNING)
 logging.getLogger("pdfminer").setLevel(logging.ERROR)
 logging.getLogger("multipart").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING)

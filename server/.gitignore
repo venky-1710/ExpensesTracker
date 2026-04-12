@@ -1,8 +1,30 @@
-.venv
-logs/
-trash.txt
+# Virtual Environment
+.venv/
+
+# Environment Variables
 .env
+
+# Python Bytecode
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+
+# Logs
+logs/
+*.log
+
+# Temp/Debug files
+debug_log.txt
+temp_log.txt
+temp_log_new.txt
+latest_error.txt
+trash.txt
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

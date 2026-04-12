@@ -9,6 +9,7 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import DashboardLayout from "./components/Layout/DashboardLayout.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Transactions from "./pages/Transactions.jsx";
+import CalendarView from "./pages/CalendarView.jsx";
 import Profile from "./pages/Profile.jsx";
 import DetailView from "./pages/DetailView.jsx";
 import { DashboardProvider } from "./context/DashboardContext.jsx";
@@ -17,10 +18,15 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
+    // Auth check
     const token = localStorage.getItem('token');
     if (token) {
       setIsLoggedIn(true);
     }
+    
+    // Theme initialization synced globally
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
   }, []);
 
   const handleLoginSuccess = () => {
@@ -55,6 +61,14 @@ function App() {
             <ProtectedRoute>
               <DashboardLayout onLogout={handleLogout}>
                 <Transactions />
+              </DashboardLayout>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/calendar" element={
+            <ProtectedRoute>
+              <DashboardLayout onLogout={handleLogout}>
+                <CalendarView />
               </DashboardLayout>
             </ProtectedRoute>
           } />

@@ -80,7 +80,6 @@
 }
 
 .close-btn:hover:not(:disabled) {
-    background: #f3f4f6;
     color: #111827;
 }
 
@@ -322,7 +321,6 @@
 }
 
 [data-theme='dark'] .close-btn:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.08);
     color: #ffffff;
 }
 

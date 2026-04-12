@@ -141,23 +141,35 @@ class TransactionUpdate(BaseModel):
 # Chat Models
 class ChatRequest(BaseModel):
     message: str = Field(..., description="The user's message to the chatbot")
-    history: Optional[List[dict]] = Field(default=[], description="Chat history for context")
+    thread_id: Optional[str] = Field(default=None, description="The specific chat thread ID")
 
     class Config:
         json_schema_extra = {
             "example": {
                 "message": "How much did I spend on food this month?",
-                "history": [{"role": "user", "content": "Hi"}, {"role": "model", "content": "Hello! How can I help you with your finances?"}]
+                "thread_id": "uuid-v4-string"
             }
         }
 
 class ChatResponse(BaseModel):
     response: str = Field(..., description="The chatbot's response")
+    thread_id: str = Field(..., description="The specific chat thread ID")
 
     class Config:
         json_schema_extra = {
             "example": {
-                "response": "You spent ₹5,000 on food this month."
+                "response": "You spent ₹5,000 on food this month.",
+                "thread_id": "uuid-v4-string"
+            }
+        }
+
+class ThreadTitleUpdate(BaseModel):
+    title: str = Field(..., description="The new title for the chat thread")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "title": "September Budget Tips"
             }
         }
 
@@ -288,6 +300,39 @@ class WidgetMappingResponse(BaseModel):
     is_active: bool
     order: int
     created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# --- Calendar Event Models ---
+
+class CalendarEventRequest(BaseModel):
+    title: str = Field(..., max_length=100)
+    description: Optional[str] = None
+    start_time: str = Field(..., description="ISO 8601 string")
+    end_time: str = Field(..., description="ISO 8601 string")
+    status: str = Field(default="pending")
+    color: str = Field(default="#6d4aff")
+
+class CalendarEventUpdate(BaseModel):
+    title: Optional[str] = Field(None, max_length=100)
+    description: Optional[str] = None
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    status: Optional[str] = None
+    color: Optional[str] = None
+
+class CalendarEventResponse(BaseModel):
+    id: str
+    user_id: str
+    title: str
+    description: Optional[str] = None
+    start_time: str
+    end_time: str
+    status: str
+    color: str
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
         from_attributes = True

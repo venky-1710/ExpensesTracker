@@ -9,7 +9,8 @@ import {
     FiMenu,
     FiX,
     FiSun,
-    FiMoon
+    FiMoon,
+    FiCalendar
 } from 'react-icons/fi';
 import './Sidebar.css';
 
@@ -21,6 +22,7 @@ const Sidebar = ({ onLogout, isCollapsed, toggleSidebar }) => {
     const menuItems = [
         { path: '/dashboard', icon: FiHome, label: 'Dashboard' },
         { path: '/transactions', icon: FiCreditCard, label: 'Transactions' },
+        { path: '/calendar', icon: FiCalendar, label: 'Calendar' },
         { path: '/profile', icon: FiUser, label: 'Profile' },
         { path: '/settings', icon: FiSettings, label: 'Settings' },
     ];

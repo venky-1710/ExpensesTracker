@@ -1,5 +1,10 @@
 import os
+import logging
 from passlib.context import CryptContext
+
+# Suppress passlib warning about bcrypt version
+logging.getLogger("passlib").setLevel(logging.ERROR)
+
 from fastapi import HTTPException, status, Depends, Request
 from fastapi.security import OAuth2PasswordBearer
 from datetime import datetime, timedelta
@@ -88,11 +93,22 @@ async def get_current_user(request: Request = None, token: str = Depends(oauth2_
     except JWTError:
         raise credentials_exception
     
+    # Try fetching from cache to avoid redundant DB queries per request
+    from apis.cache_api import cache_service
+    cache_key = f"auth_user:{user_id}"
+    cached_user = cache_service.get(cache_key)
+    if cached_user:
+        return cached_user
+
     user = await db["auth_users"].find_one({"_id": ObjectId(user_id), "is_deleted": False})
     if not user:
         raise credentials_exception
     
     user["id"] = str(user.pop("_id"))
+    
+    # Save to cache
+    cache_service.set(cache_key, user, ttl_seconds=300)
+    
     return user
 
 
