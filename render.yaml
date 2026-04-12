@@ -2,6 +2,7 @@ services:
   # BACKEND SERVICE
   - type: web
     name: expenses-tracker-api
+    plan: free
     env: python
     region: oregon 
     buildCommand: "cd server && pip install -r requirements.txt"
