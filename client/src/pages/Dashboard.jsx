@@ -149,7 +149,8 @@ const Dashboard = () => {
 
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.post('http://localhost:8000/api/upload/analyze', formData, {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+            const response = await axios.post(`${apiUrl}/api/upload/analyze`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                     'Authorization': `Bearer ${token}`
@@ -187,7 +188,8 @@ const Dashboard = () => {
 
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.post('http://localhost:8000/api/upload/confirm', {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+            const response = await axios.post(`${apiUrl}/api/upload/confirm`, {
                 transactions: reviewedTransactions
             }, {
                 headers: {

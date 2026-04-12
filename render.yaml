@@ -1,0 +1,33 @@
+services:
+  # BACKEND SERVICE
+  - type: web
+    name: expenses-tracker-api
+    env: python
+    region: oregon 
+    buildCommand: "cd server && pip install -r requirements.txt"
+    startCommand: "cd server && bash start.sh"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0 # Ensure modern python version
+      - key: MONGODB_URL
+        sync: false   # User must provide this in the Render dashboard!
+      - key: DATABASE_NAME
+        value: expenses-tracker
+      - key: SECRET_KEY
+        sync: false   # User must provide this in the Render dashboard!
+      - key: GEMINI_API_KEY
+        sync: false   # User must provide this in the Render dashboard!
+
+  # FRONTEND SERVICE (Optional, but great for hosting the React client too!)
+  - type: web
+    name: expenses-tracker-client
+    env: static
+    region: oregon
+    buildCommand: "cd client && npm install && npm run build"
+    staticPublishPath: "./client/dist"
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: expenses-tracker-api
+          envVarKey: RENDER_EXTERNAL_URL
