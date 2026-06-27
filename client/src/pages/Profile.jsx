@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiEdit2, FiSave, FiX, FiUser, FiMail, FiPhone, FiCalendar, FiLock, FiTrash2, FiCamera, FiChevronDown } from 'react-icons/fi';
+import { FiEdit2, FiSave, FiX, FiUser, FiMail, FiPhone, FiCalendar, FiLock, FiTrash2, FiCamera, FiChevronDown, FiImage, FiEye, FiEyeOff } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import { userService } from '../services/userService';
 import SubLoader from '../components/SubLoader/SubLoader';
@@ -15,13 +15,20 @@ const Profile = () => {
         full_name: '',
         username: '',
         phone: '',
-        profile_image: ''
+        profile_image: '',
+        banner_image: ''
     });
 
     const [passwordForm, setPasswordForm] = useState({
         old_password: '',
         new_password: '',
         confirm_password: ''
+    });
+
+    const [showPassword, setShowPassword] = useState({
+        old: false,
+        new: false,
+        confirm: false
     });
 
     const [loading, setLoading] = useState({
@@ -46,7 +53,8 @@ const Profile = () => {
                 full_name: data.full_name || '',
                 username: data.username || '',
                 phone: data.phone || '',
-                profile_image: data.profile_image || ''
+                profile_image: data.profile_image || '',
+                banner_image: data.banner_image || ''
             });
         } catch (error) {
             toast.error('Failed to load profile');
@@ -67,7 +75,8 @@ const Profile = () => {
             full_name: user.full_name || '',
             username: user.username || '',
             phone: user.phone || '',
-            profile_image: user.profile_image || ''
+            profile_image: user.profile_image || '',
+            banner_image: user.banner_image || ''
         });
         setErrors({});
     };
@@ -150,6 +159,22 @@ const Profile = () => {
         }
     };
 
+    const handleBannerUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 2 * 1024 * 1024) {
+                toast.error('Banner size must be less than 2MB');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setEditForm(prev => ({ ...prev, banner_image: reader.result }));
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     const handleDeleteAccount = async () => {
         try {
             setLoading(prev => ({ ...prev, delete: true }));
@@ -185,15 +210,50 @@ const Profile = () => {
                     <p className="subtitle">Manage your account settings and preferences</p>
                 </div>
                 {!isEditing && (
-                    <button className="edit-btn" onClick={handleEdit} aria-label="Edit Profile">
-                        <FiEdit2 /> Edit Profile
-                    </button>
+                    <div className="header-actions" style={{ display: 'flex', gap: '12px' }}>
+                        <button className="btn-cancel" style={{ background: 'transparent' }} onClick={() => setIsChangingPassword(true)} aria-label="Change Password">
+                            <FiLock /> Change Password
+                        </button>
+                        <button className="edit-btn" onClick={handleEdit} aria-label="Edit Profile">
+                            <FiEdit2 /> Edit Profile
+                        </button>
+                    </div>
                 )}
             </div>
 
             {/* Profile Image Section */}
-            <div className="profile-image-section">
-                <div className="profile-avatar">
+            <div 
+                className="profile-image-section"
+                style={
+                    (isEditing ? editForm.banner_image : user?.banner_image) 
+                        ? { 
+                            backgroundImage: `url(${isEditing ? editForm.banner_image : user?.banner_image})`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                            border: 'none'
+                          } 
+                        : {}
+                }
+            >
+                {/* Banner Upload Button */}
+                {isEditing && (
+                    <label className="banner-upload-btn" title="Upload Banner Image">
+                        <FiImage size={16} /> Edit Banner
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleBannerUpload}
+                            style={{ display: 'none' }}
+                        />
+                    </label>
+                )}
+
+                {/* Overlay for readability if banner exists */}
+                {((isEditing ? editForm.banner_image : user?.banner_image)) && (
+                    <div className="banner-overlay"></div>
+                )}
+
+                <div className="profile-avatar" style={{ zIndex: 2 }}>
                     {editForm.profile_image ? (
                         <img src={editForm.profile_image} alt="Profile" />
                     ) : (
@@ -213,7 +273,7 @@ const Profile = () => {
                         </label>
                     )}
                 </div>
-                <div className="profile-name">
+                <div className="profile-name" style={{ zIndex: 2 }}>
                     <h2>{user?.full_name}</h2>
                     <p className="user-role">{user?.role || 'User'}</p>
                 </div>
@@ -340,54 +400,84 @@ const Profile = () => {
                 </div>
             </div>
 
-            {/* Change Password Section */}
-            <div className="profile-section">
-                <div className="section-header-toggle" onClick={() => setIsChangingPassword(!isChangingPassword)} aria-expanded={isChangingPassword}>
-                    <h3 className="section-title">
-                        <FiLock className="info-icon" />
-                        Change Password
-                    </h3>
-                    <span className={`toggle-icon ${isChangingPassword ? 'open' : ''}`}>
-                        <FiChevronDown size={22} />
-                    </span>
-                </div>
-
-                {isChangingPassword && (
-                    <form className="password-form" onSubmit={handlePasswordChange}>
-                        <div className="form-group">
-                            <label>Current Password</label>
-                            <input
-                                type="password"
-                                value={passwordForm.old_password}
-                                onChange={(e) => setPasswordForm({ ...passwordForm, old_password: e.target.value })}
-                                required
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label>New Password</label>
-                            <input
-                                type="password"
-                                value={passwordForm.new_password}
-                                onChange={(e) => setPasswordForm({ ...passwordForm, new_password: e.target.value })}
-                                required
-                                minLength={8}
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label>Confirm New Password</label>
-                            <input
-                                type="password"
-                                value={passwordForm.confirm_password}
-                                onChange={(e) => setPasswordForm({ ...passwordForm, confirm_password: e.target.value })}
-                                required
-                            />
-                        </div>
-                        <button type="submit" className="btn-primary" disabled={loading.password}>
-                            {loading.password ? 'Changing...' : 'Change Password'}
-                        </button>
-                    </form>
-                )}
-            </div>
+            {/* Change Password Modal */}
+            {isChangingPassword && (
+                <>
+                    <div className="modal-overlay" onClick={() => setIsChangingPassword(false)}></div>
+                    <div className="confirmation-modal">
+                        <h3 style={{ marginBottom: '8px' }}>Change Password</h3>
+                        <p style={{ marginBottom: '24px', color: 'var(--text-secondary)' }}>Enter your current password and a new secure password.</p>
+                        <form className="password-form" onSubmit={handlePasswordChange}>
+                            <div className="form-group">
+                                <label>Current Password</label>
+                                <div className="password-input-wrapper">
+                                    <input
+                                        type={showPassword.old ? "text" : "password"}
+                                        value={passwordForm.old_password}
+                                        onChange={(e) => setPasswordForm({ ...passwordForm, old_password: e.target.value })}
+                                        required
+                                    />
+                                    <button 
+                                        type="button" 
+                                        className="password-toggle-btn"
+                                        aria-label="Toggle password visibility"
+                                        onClick={() => setShowPassword(prev => ({ ...prev, old: !prev.old }))}
+                                    >
+                                        {showPassword.old ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="form-group">
+                                <label>New Password</label>
+                                <div className="password-input-wrapper">
+                                    <input
+                                        type={showPassword.new ? "text" : "password"}
+                                        value={passwordForm.new_password}
+                                        onChange={(e) => setPasswordForm({ ...passwordForm, new_password: e.target.value })}
+                                        required
+                                        minLength={8}
+                                    />
+                                    <button 
+                                        type="button" 
+                                        className="password-toggle-btn"
+                                        aria-label="Toggle password visibility"
+                                        onClick={() => setShowPassword(prev => ({ ...prev, new: !prev.new }))}
+                                    >
+                                        {showPassword.new ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="form-group" style={{ marginBottom: '12px' }}>
+                                <label>Confirm New Password</label>
+                                <div className="password-input-wrapper">
+                                    <input
+                                        type={showPassword.confirm ? "text" : "password"}
+                                        value={passwordForm.confirm_password}
+                                        onChange={(e) => setPasswordForm({ ...passwordForm, confirm_password: e.target.value })}
+                                        required
+                                    />
+                                    <button 
+                                        type="button" 
+                                        className="password-toggle-btn"
+                                        aria-label="Toggle password visibility"
+                                        onClick={() => setShowPassword(prev => ({ ...prev, confirm: !prev.confirm }))}
+                                    >
+                                        {showPassword.confirm ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="modal-actions">
+                                <button type="button" className="btn-cancel" onClick={() => setIsChangingPassword(false)}>
+                                    Cancel
+                                </button>
+                                <button type="submit" className="btn-primary" disabled={loading.password}>
+                                    {loading.password ? 'Changing...' : 'Update Password'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </>
+            )}
 
             {/* Danger Zone */}
             <div className="profile-section danger-zone">

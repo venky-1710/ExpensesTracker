@@ -1,6 +1,5 @@
 .profile-page {
-    max-width: 900px;
-    margin: 0 auto;
+    width: 100%;
     padding: 30px;
 }
 
@@ -52,6 +51,8 @@
 
 /* ── Avatar / Profile Image Section ── */
 .profile-image-section {
+    position: relative;
+    overflow: hidden;
     display: flex;
     align-items: center;
     gap: 28px;
@@ -62,6 +63,38 @@
     margin-bottom: 24px;
     border: 1px solid var(--border-color, #f0f0f0);
     transition: box-shadow 0.3s ease;
+}
+
+.banner-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to right, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 60%, rgba(0,0,0,0.1) 100%);
+    z-index: 1;
+}
+
+.banner-upload-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(0, 0, 0, 0.5);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    transition: all 0.2s ease;
+}
+
+.banner-upload-btn:hover {
+    background: rgba(0, 0, 0, 0.8);
+    transform: translateY(-2px);
 }
 
 .profile-image-section:hover {
@@ -581,6 +614,11 @@
 
 [data-theme='dark'] .profile-name h2 {
     color: #ffffff;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+[data-theme='dark'] .banner-overlay {
+    background: linear-gradient(to right, rgba(26,13,53,0.9) 0%, rgba(26,13,53,0.5) 60%, rgba(26,13,53,0.1) 100%);
 }
 
 [data-theme='dark'] .user-role {
@@ -687,7 +725,38 @@
 }
 
 [data-theme='dark'] .confirmation-modal p {
-    color: #9ca3af;
+    color: #94a3b8 !important;
+}
+
+/* ── Password Eyes Toggle ── */
+.password-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.password-input-wrapper input {
+    width: 100%;
+    padding-right: 40px !important;
+}
+
+.password-toggle-btn {
+    position: absolute;
+    right: 12px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary, #6b7280);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    transition: color 0.2s ease;
+}
+
+.password-toggle-btn:hover {
+    color: #c850ff;
 }
 
 /* ── Profile Content Grid (2 Columns) ── */

@@ -1,203 +1,723 @@
-/* ChatBot.css */
+/* ChatBot.css - BeeBot Full Screen Glassmorphic Design */
+
 .chat-widget-container {
     position: fixed;
-    bottom: 2rem;
-    right: 2rem;
-    z-index: 1000;
-    font-family: 'Inter', sans-serif;
+    bottom: 2.5rem;
+    right: 2.5rem;
+    z-index: 9999;
 }
 
-/* Toggle Button */
 .chat-toggle-btn {
-    width: 60px;
-    height: 60px;
+    width: 65px;
+    height: 65px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #6e8efb, #a777e3);
+    background: linear-gradient(135deg, #6d4aff 0%, #c850ff 100%);
     color: white;
     border: none;
     cursor: pointer;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 8px 32px rgba(109, 74, 255, 0.35);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.5rem;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    font-size: 1.8rem;
+    transition: all 0.3s ease;
 }
 
 .chat-toggle-btn:hover {
-    transform: scale(1.1);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    transform: translateY(-4px) scale(1.04);
 }
 
-/* Chat Window */
-.chat-window {
-    position: absolute;
-    bottom: 80px;
-    right: 0;
-    width: 350px;
-    height: 500px;
-    background: white;
-    border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    animation: slideIn 0.3s ease-out forwards;
-    border: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* Header */
-.chat-header {
-    padding: 1rem;
-    background: linear-gradient(135deg, #6e8efb, #a777e3);
-    color: white;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.chat-header h3 {
-    margin: 0;
-    font-size: 1.1rem;
-    font-weight: 600;
-}
-
-.close-btn {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 1.2rem;
-    cursor: pointer;
-    opacity: 0.8;
-    transition: opacity 0.2s;
-}
-
-.close-btn:hover {
-    opacity: 1;
-}
-
-/* Messages Area */
-.chat-messages {
-    flex: 1;
-    padding: 1rem;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    background-color: #f8f9fa;
-}
-
-.message {
-    max-width: 80%;
-    padding: 0.8rem 1rem;
-    border-radius: 12px;
-    font-size: 0.9rem;
-    line-height: 1.4;
-    position: relative;
-}
-
-.message.user {
-    align-self: flex-end;
-    background: #6e8efb;
-    color: white;
-    border-bottom-right-radius: 2px;
-}
-
-.message.model {
-    align-self: flex-start;
-    background: white;
-    color: #333;
-    border: 1px solid #eee;
-    border-bottom-left-radius: 2px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-}
-
-.typing-indicator {
-    align-self: flex-start;
-    background: rgba(0, 0, 0, 0.05);
-    padding: 0.5rem 1rem;
-    border-radius: 12px;
-    font-size: 0.8rem;
-    color: #666;
-    animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-    0% {
-        opacity: 0.5;
-    }
-
-    50% {
-        opacity: 1;
-    }
-
-    100% {
-        opacity: 0.5;
-    }
-}
-
-/* Input Area */
-.chat-input-area {
-    padding: 1rem;
-    background: white;
-    border-top: 1px solid #eee;
-    display: flex;
-    gap: 0.5rem;
-}
-
-.chat-input {
-    flex: 1;
-    padding: 0.8rem;
-    border: 1px solid #e0e0e0;
-    border-radius: 25px;
-    outline: none;
-    font-size: 0.9rem;
-    transition: border-color 0.2s;
-}
-
-.chat-input:focus {
-    border-color: #6e8efb;
-}
-
-.send-btn {
-    width: 40px;
-    height: 40px;
-    background: #6e8efb;
-    color: white;
-    border: none;
-    border-radius: 50%;
-    cursor: pointer;
+/* Full Screen Overlay */
+.beebot-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     display: flex;
     align-items: center;
     justify-content: center;
+    animation: fadeInOverlay 0.3s ease;
+}
+
+@keyframes fadeInOverlay {
+    from { opacity: 0; backdrop-filter: blur(0px); }
+    to { opacity: 1; backdrop-filter: blur(12px); }
+}
+
+.beebot-layout {
+    width: 96vw;
+    height: 94vh;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 20px;
+    box-shadow: 0 20px 80px rgba(0,0,0,0.1), inset 0 0 0 1px rgba(255,255,255,1);
+    display: flex;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid rgba(255,255,255,0.7);
+}
+
+/* Sidebar */
+.beebot-sidebar {
+    width: 280px;
+    background: rgba(248, 249, 250, 0.7);
+    border-right: 1px solid rgba(0,0,0,0.05);
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.brand-logo {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #6d4aff, #a78bfa);
+    border-radius: 8px;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
+
+.sidebar-brand h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.new-chat-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 12px;
+    background: #111827;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.new-chat-btn:hover {
+    background: #1f2937;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.sidebar-nav-links {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 30px;
+}
+
+.sidebar-nav-links button {
+    text-align: left;
+    padding: 10px 16px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: #6b7280;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.sidebar-nav-links button:hover {
+    background: rgba(0,0,0,0.03);
+    color: #111827;
+}
+
+.sidebar-nav-links button.active {
+    background: #ffffff;
+    color: #111827;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    font-weight: 600;
+}
+
+.history-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.history-group h4 {
+    margin: 0 0 12px 12px;
+    font-size: 11px;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+}
+
+.history-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-right: 4px;
+}
+
+/* Scrollbar styling for history */
+.history-list::-webkit-scrollbar { width: 4px; }
+.history-list::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 4px; }
+
+.history-item {
+    padding: 10px 12px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    position: relative;
+    gap: 8px;
+}
+
+.history-item-content {
+    flex: 1;
+    overflow: hidden;
+}
+
+.history-item:hover {
+    background: rgba(0,0,0,0.03);
+}
+
+.history-item.active {
+    background: #ffffff;
+    border-color: rgba(0,0,0,0.05);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+}
+
+.history-actions {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.history-more-btn {
+    background: transparent;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: all 0.2s;
+}
+
+.history-item:hover .history-more-btn {
+    opacity: 1;
+}
+
+.history-more-btn:hover {
+    background: rgba(0,0,0,0.05);
+    color: #1f2937;
+}
+
+.history-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    border: 1px solid rgba(0,0,0,0.05);
+    z-index: 50;
+    min-width: 130px;
+    display: flex;
+    flex-direction: column;
+    padding: 6px;
+    animation: fadeInOverlay 0.15s ease;
+}
+
+.history-dropdown button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: transparent;
+    border: none;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 6px;
+    color: #374151;
     transition: background 0.2s;
 }
 
-.send-btn:hover {
-    background: #5a7add;
+.history-dropdown button:hover {
+    background: #f3f4f6;
 }
 
-.send-btn:disabled {
-    background: #ccc;
+.history-dropdown .del-btn {
+    color: #ef4444;
+}
+
+.history-dropdown .del-btn:hover {
+    background: #fee2e2;
+}
+
+.history-edit-input {
+    width: 100%;
+    background: white;
+    border: 1px solid #6d4aff;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 13px;
+    color: #1f2937;
+    margin-bottom: 2px;
+    outline: none;
+    box-shadow: 0 2px 4px rgba(109,74,255,0.1);
+}
+
+.history-title {
+    font-size: 13px;
+    color: #374151;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 4px;
+}
+
+.history-item.active .history-title {
+    color: #6d4aff;
+    font-weight: 600;
+}
+
+.history-time {
+    font-size: 11px;
+    color: #9ca3af;
+}
+
+.empty-history {
+    font-size: 13px;
+    color: #9ca3af;
+    text-align: center;
+    margin-top: 20px;
+}
+
+/* Main Area */
+.beebot-main {
+    flex: 1;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    border-radius: 0 20px 20px 0;
+    overflow: hidden;
+    background: radial-gradient(circle at 50% -20%, rgba(109, 74, 255, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 100% 50%, rgba(200, 80, 255, 0.05) 0%, transparent 40%);
+}
+
+.beebot-header {
+    display: flex;
+    justify-content: space-between;
+    padding: 24px;
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    z-index: 10;
+}
+
+.bot-selector {
+    background: white;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #4b5563;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.close-beebot-btn {
+    background: white;
+    border: none;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    color: #4b5563;
+    transition: all 0.2s;
+}
+
+.close-beebot-btn:hover {
+    background: #f3f4f6;
+    color: #111827;
+}
+
+/* Explore & Library Views */
+.tab-view-container {
+    padding: 80px 40px 40px 40px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.tab-view-container h2 {
+    font-size: 28px;
+    color: #111827;
+    margin: 0 0 8px 0;
+}
+
+.tab-subtitle {
+    font-size: 15px;
+    color: #6b7280;
+    margin: 0 0 40px 0;
+}
+
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+}
+
+.news-card {
+    background: white;
+    padding: 24px;
+    border-radius: 16px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+    border: 1px solid rgba(0,0,0,0.04);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+}
+
+.news-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0,0,0,0.06);
+}
+
+.badge {
+    align-self: flex-start;
+    padding: 4px 10px;
+    background: #f3f4f6;
+    color: #4b5563;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 20px;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge.hot {
+    background: #fee2e2;
+    color: #ef4444;
+}
+
+.news-card h3 {
+    font-size: 16px;
+    color: #1f2937;
+    margin: 0 0 12px 0;
+    line-height: 1.4;
+}
+
+.news-card p {
+    font-size: 14px;
+    color: #6b7280;
+    margin: 0 0 20px 0;
+    line-height: 1.5;
+    flex: 1;
+}
+
+.card-footer {
+    font-size: 12px;
+    color: #9ca3af;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: auto;
+}
+
+.icon-wrapper {
+    width: 48px;
+    height: 48px;
+    background: #f5f3ff;
+    color: #6d4aff;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+/* Empty State */
+.beebot-empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 20px;
+    text-align: center;
+}
+
+.orb-graphic {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #fff, #a78bfa, #6d4aff);
+    box-shadow: 0 10px 30px rgba(109, 74, 255, 0.4), inset -5px -5px 15px rgba(0,0,0,0.1);
+    margin-bottom: 24px;
+    animation: float 4s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.beebot-empty-state h1 {
+    font-size: 32px;
+    color: #111827;
+    margin: 0 0 8px 0;
+    font-weight: 600;
+}
+
+.beebot-empty-state .subtitle {
+    font-size: 32px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0 0 40px 0;
+}
+
+.beebot-empty-state .highlight {
+    color: #6d4aff;
+}
+
+/* Floating Input */
+.beebot-floating-input {
+    width: 100%;
+    max-width: 640px;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    border-radius: 16px;
+    padding: 8px 8px 8px 24px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.03);
+    margin-bottom: 24px;
+    border: 1px solid rgba(255,255,255,0.8);
+}
+
+.magic-icon {
+    font-size: 20px;
+    margin-right: 12px;
+    opacity: 0.8;
+}
+
+.beebot-floating-input input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 16px;
+    color: #1f2937;
+    outline: none;
+}
+
+.beebot-floating-input input::placeholder {
+    color: #9ca3af;
+}
+
+.beebot-send {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, #a78bfa, #6d4aff);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.beebot-send:hover:not(:disabled) {
+    transform: scale(1.05);
+}
+
+.beebot-send:disabled {
+    background: #e5e7eb;
+    color: #9ca3af;
     cursor: not-allowed;
 }
 
-/* Markdown Styles inside messages */
-.message code {
-    background: rgba(0, 0, 0, 0.1);
-    padding: 0.2em 0.4em;
-    border-radius: 3px;
-    font-family: monospace;
+.beebot-action-pills {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
 }
+
+.beebot-action-pills button {
+    background: white;
+    border: 1px solid rgba(0,0,0,0.05);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #4b5563;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+    transition: all 0.2s;
+}
+
+.beebot-action-pills button:hover {
+    background: #f9fafb;
+    border-color: rgba(0,0,0,0.1);
+}
+
+/* Chat Flow */
+.beebot-chat-flow {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.chat-scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 80px 40px 40px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Chat scrollbar */
+.chat-scroll-area::-webkit-scrollbar { width: 6px; }
+.chat-scroll-area::-webkit-scrollbar-track { background: transparent; }
+.chat-scroll-area::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
+
+.bee-msg {
+    display: flex;
+    width: 100%;
+    margin-bottom: 24px;
+}
+
+.bee-msg.user {
+    justify-content: flex-end;
+}
+
+.bee-msg.model {
+    justify-content: flex-start;
+}
+
+.bee-bubble {
+    max-width: 75%;
+    padding: 14px 18px;
+    border-radius: 20px;
+    font-size: 14.5px;
+    line-height: 1.6;
+    position: relative;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+}
+
+.msg-time {
+    position: absolute;
+    bottom: -20px;
+    font-size: 11px;
+    color: #9ca3af;
+    white-space: nowrap;
+}
+
+.bee-msg.user .bee-bubble {
+    background: linear-gradient(135deg, #6d4aff 0%, #8b5cf6 100%);
+    color: white;
+    border-bottom-right-radius: 4px;
+    box-shadow: 0 4px 12px rgba(109, 74, 255, 0.2);
+}
+
+.bee-msg.user .msg-time {
+    right: 4px;
+}
+
+.bee-msg.model .bee-bubble {
+    background: white;
+    color: #1f2937;
+    border-bottom-left-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.bee-msg.model .msg-time {
+    left: 4px;
+}
+
+.typing {
+    animation: blink 1.5s infinite;
+    color: #9ca3af !important;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+.beebot-bottom-input {
+    padding: 20px 40px;
+    background: linear-gradient(to top, rgba(255,255,255,1), rgba(255,255,255,0));
+}
+
+.active-chat {
+    margin-bottom: 0;
+    max-width: none;
+}
+
+/* Dark Mode Overrides */
+[data-theme='dark'] .beebot-overlay { background: rgba(0,0,0,0.6); }
+[data-theme='dark'] .beebot-layout { background: rgba(17, 24, 39, 0.9); border-color: rgba(255,255,255,0.1); box-shadow: 0 20px 80px rgba(0,0,0,0.4); }
+[data-theme='dark'] .beebot-sidebar { background: rgba(31, 41, 55, 0.6); border-right-color: rgba(255,255,255,0.05); }
+[data-theme='dark'] .sidebar-brand h2, 
+[data-theme='dark'] .beebot-empty-state h1,
+[data-theme='dark'] .beebot-empty-state .subtitle,
+[data-theme='dark'] .news-card h3,
+[data-theme='dark'] .tab-view-container h2 { color: #f9fafb; }
+[data-theme='dark'] .new-chat-btn { background: #374151; }
+[data-theme='dark'] .new-chat-btn:hover { background: #4b5563; }
+[data-theme='dark'] .sidebar-nav-links button { color: #9ca3af; }
+[data-theme='dark'] .sidebar-nav-links button.active { background: #374151; color: #f9fafb; }
+[data-theme='dark'] .history-item:hover { background: rgba(255,255,255,0.05); }
+[data-theme='dark'] .history-item.active { background: #374151; border-color: rgba(255,255,255,0.05); }
+[data-theme='dark'] .history-item.active .history-title { color: #a78bfa; }
+[data-theme='dark'] .history-title { color: #e5e7eb; }
+[data-theme='dark'] .history-more-btn:hover { background: rgba(255,255,255,0.1); color: #f9fafb; }
+[data-theme='dark'] .history-dropdown { background: #1f2937; border-color: rgba(255,255,255,0.1); box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+[data-theme='dark'] .history-dropdown button { color: #e5e7eb; }
+[data-theme='dark'] .history-dropdown button:hover { background: #374151; }
+[data-theme='dark'] .history-dropdown .del-btn { color: #f87171; }
+[data-theme='dark'] .history-dropdown .del-btn:hover { background: rgba(239,68,68,0.2); }
+[data-theme='dark'] .history-edit-input { background: #111827; color: #f9fafb; border-color: #a78bfa; }
+[data-theme='dark'] .beebot-main { background: radial-gradient(circle at 50% -20%, rgba(109, 74, 255, 0.15) 0%, transparent 50%), radial-gradient(circle at 100% 50%, rgba(200, 80, 255, 0.1) 0%, transparent 40%); }
+[data-theme='dark'] .bot-selector, [data-theme='dark'] .close-beebot-btn, [data-theme='dark'] .beebot-action-pills button { background: #1f2937; color: #e5e7eb; border-color: rgba(255,255,255,0.05); }
+[data-theme='dark'] .beebot-floating-input { background: rgba(31, 41, 55, 0.8); border-color: rgba(255,255,255,0.1); }
+[data-theme='dark'] .beebot-floating-input input { color: #f9fafb; }
+[data-theme='dark'] .news-card { background: #1f2937; border-color: rgba(255,255,255,0.05); }
+[data-theme='dark'] .icon-wrapper { background: #374151; }
+[data-theme='dark'] .badge { background: #374151; color: #e5e7eb; }
+[data-theme='dark'] .badge.hot { background: rgba(239,68,68,0.2); }
+[data-theme='dark'] .bee-msg.model .bee-bubble { background: #1f2937; color: #e5e7eb; border-color: rgba(255,255,255,0.05); }
+[data-theme='dark'] .beebot-bottom-input { background: linear-gradient(to top, rgba(17,24,39,1), rgba(17,24,39,0)); }

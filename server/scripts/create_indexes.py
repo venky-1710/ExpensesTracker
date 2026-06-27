@@ -17,16 +17,16 @@ async def create_indexes():
     """Create all MongoDB indexes"""
     client = AsyncIOMotorClient(MONGODB_URI)
     db = client[DB_NAME]
-    
+
     print("Creating indexes...")
-    
+
     # Users collection indexes
     await db["auth_users"].create_index("email", unique=True)
     # TODO: Uncomment after migrating existing users
     # await db["auth_users"].create_index("username", unique=True)
     await db["auth_users"].create_index("is_deleted")
     await db["auth_users"].create_index([("email", 1), ("is_deleted", 1)])
-    print("✅ Users indexes created")
+    print("[OK] Users indexes created")
 
     
     # Transactions collection indexes
@@ -47,7 +47,13 @@ async def create_indexes():
     await db.widget_mappings.create_index("widget_name", unique=True)
     await db.widget_mappings.create_index([("is_active", 1), ("order", 1)])
     
-    print("✅ All indexes created successfully!")
+    # Chat History collection indexes
+    print("  - chat_history indexes...")
+    await db.chat_history.create_index("user_id")
+    # TTL Index: Automatically purge documents 7 days (604800 seconds) after 'created_at'
+    await db.chat_history.create_index("created_at", expireAfterSeconds=604800)
+    
+    print("[OK] All indexes created successfully!")
     
     client.close()
 

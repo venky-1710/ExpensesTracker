@@ -1,0 +1,99 @@
+.spending-card {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    border: 1px solid #f0f0f0;
+    width: 100%;
+}
+
+.spending-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.spending-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.spending-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.spending-select {
+    padding: 5px 28px 5px 10px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+    background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 8px center;
+    appearance: none;
+    cursor: pointer;
+    transition: border-color 0.15s;
+}
+
+.spending-select:focus {
+    outline: none;
+    border-color: #6d4aff;
+}
+
+.spending-loader {
+    height: 280px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.spending-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid #f3f4f6;
+    border-top-color: #6d4aff;
+    border-radius: 50%;
+    animation: spending-spin 0.7s linear infinite;
+}
+
+@keyframes spending-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Dark mode */
+[data-theme='dark'] .spending-card {
+    background: #1a0d35;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] .spending-title {
+    color: #f9fafb;
+}
+
+[data-theme='dark'] .spending-header {
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme='dark'] .spending-select {
+    background-color: #2d1b5e;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #e5e7eb;
+}
+
+[data-theme='dark'] .spending-select:focus {
+    border-color: #6d4aff;
+}
+
+[data-theme='dark'] .spending-spinner {
+    border-color: rgba(255,255,255,0.1);
+    border-top-color: #6d4aff;
+}

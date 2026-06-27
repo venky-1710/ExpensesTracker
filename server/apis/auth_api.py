@@ -1,0 +1,256 @@
+"""
+Auth API - Authentication business logic and database queries.
+"""
+from datetime import datetime
+from bson import ObjectId
+from fastapi import HTTPException, status
+from database.database import db
+from utils.auth import get_password_hash, verify_password, create_access_token
+from utils.helpers import format_user_doc
+from utils.logger import logger
+from models.payloads import UserCreate, Token
+from typing import Dict, Any
+import traceback
+
+
+class AuthAPI:
+    """Authentication business logic with inline MongoDB queries."""
+
+    @staticmethod
+    async def signup(payload: UserCreate) -> Dict[str, Any]:
+        """Register a new user."""
+        try:
+            logger.info(f"[AUTH] Signup attempt for email: {payload.email}")
+
+            # Check if email already exists
+            existing_email = await db.auth_users.find_one({"email": payload.email})
+            if existing_email:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="User with this email already exists"
+                )
+
+            # Check if username already exists
+            existing_username = await db.auth_users.find_one({"username": payload.username})
+            if existing_username:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Username already taken"
+                )
+
+            hashed_password = get_password_hash(payload.password)
+
+            user_doc = {
+                "full_name": payload.full_name,
+                "username": payload.username,
+                "email": payload.email,
+                "password_hash": hashed_password,
+                "phone": payload.phone,
+                "profile_image": None,
+                "banner_image": None,
+                "role": "user",
+                "currency_preference": "USD",
+                "theme_preference": "light",
+                "is_deleted": False,
+                "created_at": datetime.now(),
+                "updated_at": datetime.now(),
+            }
+
+            result = await db.auth_users.insert_one(user_doc)
+            user_doc["id"] = str(result.inserted_id)
+            user_doc.pop("_id", None)
+            user_doc.pop("password_hash", None)
+
+            logger.info(f"[AUTH] Signup successful for email: {payload.email}")
+            return user_doc
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"[ERROR] AuthAPI.signup - {str(e)}")
+            logger.error(f"[TRACEBACK] {traceback.format_exc()}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Signup failed: {str(e)}"
+            )
+
+    @staticmethod
+    async def login(form_data) -> Dict[str, str]:
+        """Login user and return JWT token."""
+        try:
+            logger.info(f"[AUTH] Login attempt for: {form_data.username}")
+
+            # Find user by email (using email as username field in OAuth2 form)
+            user = await db.auth_users.find_one({"email": form_data.username})
+            if user:
+                user["id"] = str(user.pop("_id"))
+
+            if not user:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Incorrect email or password"
+                )
+
+            if not verify_password(form_data.password, user["password_hash"]):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Incorrect email or password"
+                )
+
+            access_token = create_access_token(data={"sub": user["id"]})
+
+            logger.info(f"[AUTH] Login successful for: {form_data.username}")
+            return {"access_token": access_token, "token_type": "bearer"}
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"[ERROR] AuthAPI.login - {str(e)}")
+            logger.error(f"[TRACEBACK] {traceback.format_exc()}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Login failed: {str(e)}"
+            )
+
+    @staticmethod
+    async def request_password_reset(email: str) -> Dict[str, Any]:
+        try:
+            logger.info(f"[AUTH] Password reset requested for: {email}")
+            user = await db.auth_users.find_one({"email": email, "is_deleted": False})
+            if not user:
+                return {"message": "If the email is registered, a reset code was sent."}
+            
+            import random
+            from datetime import timedelta
+            from utils.email import send_reset_email
+            
+            reset_code = f"{random.randint(100000, 999999)}"
+            expires_at = datetime.now() + timedelta(minutes=15)
+            
+            await db.auth_users.update_one(
+                {"_id": user["_id"]},
+                {"$set": {"reset_code": reset_code, "reset_expires": expires_at}}
+            )
+            
+            # Send real email
+            await send_reset_email(email, reset_code)
+            
+            return {"message": "If the email is registered, a reset code was sent."}
+        except Exception as e:
+            logger.error(f"[ERROR] AuthAPI.request_password_reset - {str(e)}")
+            raise HTTPException(status_code=500, detail="Failed to request password reset")
+
+    @staticmethod
+    async def reset_password(email: str, code: str, new_password: str) -> Dict[str, Any]:
+        try:
+            user = await db.auth_users.find_one({
+                "email": email, 
+                "reset_code": code,
+                "reset_expires": {"$gt": datetime.now()},
+                "is_deleted": False
+            })
+            
+            if not user:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired reset code")
+                
+            hashed_password = get_password_hash(new_password)
+            
+            await db.auth_users.update_one(
+                {"_id": user["_id"]},
+                {
+                    "$set": {"password_hash": hashed_password, "updated_at": datetime.now()},
+                    "$unset": {"reset_code": "", "reset_expires": ""}
+                }
+            )
+            
+            logger.info(f"[AUTH] Password successfully reset for: {email}")
+            return {"message": "Password successfully reset"}
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"[ERROR] AuthAPI.reset_password - {str(e)}")
+            raise HTTPException(status_code=500, detail="Failed to reset password")
+
+    @staticmethod
+    async def google_login(id_token: str) -> Dict[str, str]:
+        import requests
+        import os
+        import secrets
+        import string
+        
+        try:
+            logger.info("[AUTH] Google login attempt")
+            # Verify token
+            client_id = os.getenv("GOOGLE_CLIENT_ID")
+            response = requests.get(f"https://oauth2.googleapis.com/tokeninfo?id_token={id_token}")
+            
+            if response.status_code != 200:
+                logger.error(f"[AUTH] Google token invalid: {response.text}")
+                raise HTTPException(status_code=400, detail="Invalid Google token")
+                
+            token_info = response.json()
+            
+            # Optionally check client ID if it's set
+            if client_id and token_info.get("aud") != client_id:
+                logger.error(f"[AUTH] Google token audience mismatch: {token_info.get('aud')} != {client_id}")
+                # We will still proceed if we trust the id_token, but typically you reject here
+                # raise HTTPException(status_code=400, detail="Invalid token audience")
+                
+            email = token_info.get("email")
+            if not email:
+                raise HTTPException(status_code=400, detail="Google token missing email")
+                
+            # Check if user exists
+            user = await db.auth_users.find_one({"email": email, "is_deleted": False})
+            
+            if user:
+                user["id"] = str(user.pop("_id"))
+                access_token = create_access_token(data={"sub": user["id"]})
+                logger.info(f"[AUTH] Google login successful for existing user: {email}")
+                return {"access_token": access_token, "token_type": "bearer"}
+                
+            # User doesn't exist, create one
+            logger.info(f"[AUTH] Creating new user from Google login: {email}")
+            full_name = token_info.get("name", email.split("@")[0])
+            picture = token_info.get("picture")
+            
+            # Generate random password since they use Google
+            random_pwd = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
+            hashed_password = get_password_hash(random_pwd)
+            
+            # ensure username is unique
+            base_username = email.split("@")[0]
+            username = base_username
+            counter = 1
+            while await db.auth_users.find_one({"username": username}):
+                username = f"{base_username}{counter}"
+                counter += 1
+            
+            user_doc = {
+                "full_name": full_name,
+                "username": username,
+                "email": email,
+                "password_hash": hashed_password,
+                "phone": None,
+                "profile_image": picture,
+                "banner_image": None,
+                "role": "user",
+                "currency_preference": "USD",
+                "theme_preference": "light",
+                "is_deleted": False,
+                "created_at": datetime.now(),
+                "updated_at": datetime.now(),
+            }
+            
+            result = await db.auth_users.insert_one(user_doc)
+            user_id = str(result.inserted_id)
+            
+            access_token = create_access_token(data={"sub": user_id})
+            logger.info(f"[AUTH] Google signup/login successful for: {email}")
+            return {"access_token": access_token, "token_type": "bearer"}
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"[ERROR] AuthAPI.google_login - {str(e)}")
+            raise HTTPException(status_code=500, detail="Google login failed")

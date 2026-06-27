@@ -5,7 +5,7 @@ import { transactionService } from '../services/transactionService';
 import { useDashboard } from '../context/DashboardContext';
 import SubLoader from '../components/SubLoader/SubLoader';
 import TransactionFilters from '../components/TransactionFilters/TransactionFilters';
-import './DetailView.css';
+import '../pages/Transactions.css';
 
 const DetailView = () => {
     const { type } = useParams();
@@ -207,195 +207,163 @@ const DetailView = () => {
     const totalPages = Math.ceil(processedData.length / itemsPerPage);
 
     return (
-        <div className="detail-view-page">
+        <div className="transactions-page">
             {/* Header */}
-            <div className="detail-header">
-                <button className="back-btn" onClick={() => navigate('/dashboard')}>
-                    <FiArrowLeft size={20} />
-                    <span>Back to Dashboard</span>
-                </button>
+            <div className="page-header">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <button className="secondary-btn" onClick={() => navigate('/dashboard')} style={{ padding: '8px 12px' }}>
+                            <FiArrowLeft size={18} />
+                        </button>
+                        <div className="header-icon" style={{ background: `${config.color}20`, color: config.color, padding: '8px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <config.icon size={24} />
+                        </div>
+                        <h1 style={{ margin: 0 }}>{config.title}</h1>
+                    </div>
+                    <p className="subtitle" style={{ marginLeft: '62px' }}>{config.description}</p>
+                </div>
 
-                <div className="header-content">
-                    <div className="header-icon" style={{ background: `${config.color}20`, color: config.color }}>
-                        <config.icon size={32} />
+                <div className="header-actions">
+                    <div className="search-box" style={{ position: 'relative' }}>
+                        <FiSearch style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#6b7280' }} />
+                        <input
+                            type="text"
+                            placeholder="Search..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{ 
+                                padding: '12px 16px 12px 36px', 
+                                borderRadius: '10px', 
+                                border: '1px solid var(--border-color, #e5e7eb)', 
+                                background: 'var(--card-bg, #ffffff)',
+                                color: 'var(--text-primary, #1f2937)',
+                                outline: 'none', 
+                                width: '200px',
+                                fontSize: '14px'
+                            }}
+                        />
                     </div>
-                    <div>
-                        <h1>{config.title}</h1>
-                        <p>{config.description}</p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Summary Stats */}
-            <div className="summary-stats-grid">
-                <div className="stat-card">
-                    <div className="stat-label">Total Credits</div>
-                    <div className="stat-value text-success">
-                        +₹{stats.totalCredits?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '0.00'}
-                    </div>
-                </div>
-                <div className="stat-card">
-                    <div className="stat-label">Total Debits</div>
-                    <div className="stat-value text-danger">
-                        -₹{stats.totalDebits?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '0.00'}
-                    </div>
-                </div>
-                <div className="stat-card">
-                    <div className="stat-label">Available Wallet Balance</div>
-                    <div className="stat-value text-primary">
-                        ₹{stats.availableBalance?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '0.00'}
-                    </div>
-                </div>
-            </div>
-
-            {/* Controls Bar */}
-            <div className="controls-bar">
-                <div className="search-box">
-                    <FiSearch className="search-icon" />
-                    <input
-                        type="text"
-                        placeholder="Search transactions..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-                <div className="actions">
-                    <button
-                        className={`action-btn ${showFilters ? 'active' : ''}`}
-                        onClick={() => setShowFilters(!showFilters)}
-                    >
-                        <FiFilter /> Filters
-                    </button>
-
-                    <div className="export-wrapper">
+                    <div className="export-wrapper" style={{ position: 'relative' }}>
                         <button
-                            className="action-btn"
+                            className="secondary-btn"
                             onClick={() => setShowExportMenu(!showExportMenu)}
                         >
-                            <FiDownload /> Export
+                            <FiDownload size={18} /> Export
                         </button>
                         {showExportMenu && (
-                            <div className="export-menu">
-                                <button onClick={() => handleExport('csv')}>Export as CSV</button>
-                                <button onClick={() => handleExport('xlsx')}>Export as Excel</button>
-                                <button onClick={() => handleExport('pdf')}>Export as PDF</button>
+                            <div className="export-menu" style={{ position: 'absolute', top: '100%', right: '0', background: 'var(--card-bg, #ffffff)', border: '1px solid var(--border-color, #e5e7eb)', borderRadius: '10px', zIndex: 100, overflow: 'hidden', minWidth: '160px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', marginTop: '8px' }}>
+                                <button style={{ width: '100%', padding: '12px 16px', border: 'none', background: 'transparent', color: 'var(--text-primary)', textAlign: 'left', cursor: 'pointer', fontSize: '14px' }} onClick={() => handleExport('csv')}>Export as CSV</button>
+                                <button style={{ width: '100%', padding: '12px 16px', border: 'none', background: 'transparent', color: 'var(--text-primary)', textAlign: 'left', cursor: 'pointer', fontSize: '14px' }} onClick={() => handleExport('xlsx')}>Export as Excel</button>
+                                <button style={{ width: '100%', padding: '12px 16px', border: 'none', background: 'transparent', color: 'var(--text-primary)', textAlign: 'left', cursor: 'pointer', fontSize: '14px' }} onClick={() => handleExport('pdf')}>Export as PDF</button>
                             </div>
                         )}
                     </div>
                 </div>
             </div>
 
-            {/* Expandable Filters */}
-            {showFilters && (
-                <div className="filters-container">
-                    <TransactionFilters
-                        filters={filters}
-                        onFilterChange={setFilters}
-                    />
+            {/* Summary Cards */}
+            <div className="transaction-summary-cards">
+                <div className="summary-card credit">
+                    <span className="summary-label">Total Credits</span>
+                    <span className="summary-value">+₹{stats.totalCredits?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '0.00'}</span>
+                </div>
+                <div className="summary-card debit">
+                    <span className="summary-label">Total Debits</span>
+                    <span className="summary-value">-₹{stats.totalDebits?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '0.00'}</span>
+                </div>
+                <div className="summary-card balance">
+                    <span className="summary-label">Current Balance</span>
+                    <span className="summary-value">₹{stats.availableBalance?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '0.00'}</span>
+                </div>
+            </div>
+
+            {/* Filters Section */}
+            <div className="filters-section">
+                <TransactionFilters
+                    filters={filters}
+                    onFilterChange={setFilters}
+                />
+            </div>
+
+            {/* Data Table */}
+            {loading ? (
+                <div className="loading-container">
+                    <div className="spinner"></div>
+                    <p>Loading transactions...</p>
+                </div>
+            ) : processedData.length > 0 ? (
+                <>
+                    <div className="transactions-table">
+                        <div className="table-header">
+                            <div className="th-date sortable" onClick={() => handleSort('date')}>
+                                Date {sortConfig.key === 'date' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                            </div>
+                            <div className="th-category sortable" onClick={() => handleSort('category')}>
+                                Category {sortConfig.key === 'category' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                            </div>
+                            <div className="th-description">Description</div>
+                            <div className="th-payment">Payment Method</div>
+                            <div className="th-amount sortable" onClick={() => handleSort('amount')} style={{ textAlign: 'right' }}>
+                                Amount {sortConfig.key === 'amount' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                            </div>
+                            <div className="th-actions" style={{ textAlign: 'center' }}>Status</div>
+                        </div>
+                        <div className="table-body">
+                            {currentItems.map((item, index) => (
+                                <div key={item.id || index} className="transaction-row">
+                                    <div className="td-date">
+                                        {new Date(item.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                    </div>
+                                    <div className="td-category">
+                                        <span className={`category-badge ${item.type}`}>
+                                            {item.category}
+                                        </span>
+                                    </div>
+                                    <div className="td-description">
+                                        <div style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{item.description || 'No description'}</div>
+                                    </div>
+                                    <div className="td-payment">{item.payment_method}</div>
+                                    <div className={`td-amount ${item.type}`}>
+                                        {item.type === 'credit' ? '+' : '-'}₹{Math.abs(item.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                    </div>
+                                    <div className="td-actions">
+                                        <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#10b981', background: 'rgba(16, 185, 129, 0.1)', padding: '4px 8px', borderRadius: '4px' }}>Completed</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                        <div className="pagination">
+                            <button
+                                className="pagination-btn"
+                                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                disabled={currentPage === 1}
+                            >
+                                Previous
+                            </button>
+                            <span className="pagination-info">
+                                Page {currentPage} of {totalPages}
+                            </span>
+                            <button
+                                className="pagination-btn"
+                                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                disabled={currentPage >= totalPages}
+                            >
+                                Next
+                            </button>
+                        </div>
+                    )}
+                </>
+            ) : (
+                <div className="content-placeholder">
+                    <div className="placeholder-icon">📂</div>
+                    <h3>No records found</h3>
+                    <p>Try adjusting your search or filters to find what you're looking for.</p>
                 </div>
             )}
-
-            {/* Data Table Card */}
-            <div className="data-card">
-                {loading ? (
-                    <div className="loading-state">
-                        <SubLoader />
-                    </div>
-                ) : processedData.length > 0 ? (
-                    <>
-                        <div className="table-wrapper">
-                            <table className="enhanced-table">
-                                <thead>
-                                    <tr>
-                                        <th onClick={() => handleSort('date')} className="sortable">
-                                            Date {sortConfig.key === 'date' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                                        </th>
-                                        <th>Description</th>
-                                        <th onClick={() => handleSort('category')} className="sortable">
-                                            Category {sortConfig.key === 'category' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                                        </th>
-                                        <th>Type</th>
-                                        <th onClick={() => handleSort('amount')} className="sortable text-right">
-                                            Amount {sortConfig.key === 'amount' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
-                                        </th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {currentItems.map((item, index) => (
-                                        <tr key={item.id || index}>
-                                            <td className="date-cell">
-                                                <div className="date-day">{new Date(item.date).getDate()}</div>
-                                                <div className="date-month">
-                                                    {new Date(item.date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                                                </div>
-                                            </td>
-                                            <td className="desc-cell">
-                                                <div className="fw-bold">{item.description || 'No description'}</div>
-                                                <div className="text-muted">{item.payment_method}</div>
-                                            </td>
-                                            <td>
-                                                <span className="category-pill">{item.category}</span>
-                                            </td>
-                                            <td>
-                                                <span className={`type-dot ${item.type}`}></span>
-                                                {item.type === 'credit' ? 'Income' : 'Expense'}
-                                            </td>
-                                            <td className={`amount-cell text-right ${item.type}`}>
-                                                {item.type === 'credit' ? '+' : '-'}
-                                                ₹{Math.abs(item.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                            </td>
-                                            <td>
-                                                <span className="status-badge success">Completed</span>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        {/* Pagination Footer */}
-                        <div className="table-footer">
-                            <div className="items-per-page">
-                                <span>Rows per page:</span>
-                                <select
-                                    value={itemsPerPage}
-                                    onChange={(e) => {
-                                        setItemsPerPage(Number(e.target.value));
-                                        setCurrentPage(1);
-                                    }}
-                                >
-                                    <option value={10}>10</option>
-                                    <option value={20}>20</option>
-                                    <option value={50}>50</option>
-                                </select>
-                            </div>
-
-                            <div className="pagination-controls">
-                                <span>
-                                    {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, processedData.length)} of {processedData.length}
-                                </span>
-                                <div className="page-buttons">
-                                    <button
-                                        disabled={currentPage === 1}
-                                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                    >Previous</button>
-                                    <button
-                                        disabled={currentPage === totalPages}
-                                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                                    >Next</button>
-                                </div>
-                            </div>
-                        </div>
-                    </>
-                ) : (
-                    <div className="empty-state">
-                        <div className="empty-icon">📂</div>
-                        <h3>No records found</h3>
-                        <p>Try adjusting your search or date filters.</p>
-                    </div>
-                )}
-            </div>
         </div>
     );
 };

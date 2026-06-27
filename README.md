@@ -1,60 +1,66 @@
-# AI-Powered Expense Tracker
+# AI-Powered Expenses Tracker
 
-A comprehensive, full-stack expense tracking application that leverages the power of **Google Gemini AI** to provide intelligent financial insights. Built with a modern tech stack featuring **FastAPI** (Python) for the backend and **React** (Vite) for the frontend.
+A comprehensive, full-stack personal finance and expense tracking application powered by AI. This system consists of a unified API backend, a beautiful React web client, and a cross-platform React Native mobile application.
 
-![Project Status](https://img.shields.io/badge/status-active-success.svg)
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
+## 🌟 Features
 
-## 🌟 Key Features
+- **AI-Powered Categorization**: Automatically categorize your transactions using Artificial Intelligence.
+- **Comprehensive Dashboard**: Beautiful charts, key performance indicators (KPIs), and financial summaries.
+- **Cross-Platform**: Accessible via Web (React) and Mobile (React Native / Expo).
+- **Secure Authentication**: JWT-based secure authentication with session management.
+- **Premium Dark UI**: A modern, vibrant, deep-purple dark mode design across all platforms.
+- **Data Export**: Export your transaction data to CSV, PDF, or Excel.
 
-- **Smart Dashboard**: Visual analytics of your income, expenses, and net balance.
-- **AI Financial Assistant**: Chat with an AI (powered by Gemini) to analyze your spending habits and get advice.
-- **Transaction Management**: Easily add, edit, and categorize your financial records.
-- **Secure Authentication**: Robust user management with JWT and secure cookies.
-- **Responsive Design**: a beautiful UI that works on desktop and mobile.
+## 🏗️ Architecture & Tech Stack
 
-## 📂 Project Structure
+This project is structured as a monorepo containing three main components:
 
-The project is divided into two main components:
+1. **`/server`** - FastAPI backend connecting to MongoDB.
+2. **`/client`** - React/Vite web application.
+3. **`/mobile`** - React Native / Expo mobile application.
 
-- **[`/server`](./server)**: The backend REST API. Handles database interactions, authentication, and AI logic.
-- **[`/client`](./client)**: The frontend user interface. A Single Page Application (SPA) built with React.
+### Tech Stack
 
-> For detailed documentation on each part, please refer to their respective README files:
-> - [Backend Documentation (Server)](./server/README.md)
-> - [Frontend Documentation (Client)](./client/README.md)
+- **Backend**: Python, FastAPI, MongoDB (Motor), JWT, Pydantic
+- **Web Frontend**: React 19, Vite, Recharts, React Router
+- **Mobile App**: React Native, Expo SDK 55, Expo Router, AsyncStorage
 
-## 🚀 Quick Start Guide
+## 🚀 Getting Started
 
-To run the full application locally, you will need to set up both the server and the client.
+To get the entire stack running locally on your machine, follow these steps.
 
-### 1. Start the Backend (Server)
+### Prerequisites
+- Node.js (v18+)
+- Python (3.10+)
+- MongoDB instance (Local or Atlas)
 
+### 1. Start the Backend Server
+Navigate to the `server` directory, configure your environment, and start the FastAPI server.
 ```bash
 cd server
-python -m venv .venv
-# Activate virtual environment (Windows: .venv\Scripts\activate, Unix: source .venv/bin/activate)
 pip install -r requirements.txt
-# Create .env file with your credentials (see server/README.md)
-uvicorn app:app --reload
+# Configure your .env file here
+uvicorn app:app --reload --host 0.0.0.0
 ```
+> See `server/README.md` for detailed backend configuration.
 
-### 2. Start the Frontend (Client)
-
-Open a new terminal:
-
+### 2. Start the Web Client
+Navigate to the `client` directory and start the Vite development server.
 ```bash
 cd client
 npm install
 npm run dev
 ```
+> See `client/README.md` for detailed frontend configuration.
 
-The application will be accessible at `http://localhost:5173`.
+### 3. Start the Mobile App
+Navigate to the `mobile` directory and start the Expo Go server.
+```bash
+cd mobile
+npm install
+npx expo start --clear
+```
+> See `mobile/README.md` for detailed mobile configuration and device testing.
 
-## 🔒 Security
-
-We take security seriously. Please review our [Security Policy](SECURITY.md) for supported versions and vulnerability reporting.
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+---
+*Built with ❤️ using React, FastAPI, and AI.*
