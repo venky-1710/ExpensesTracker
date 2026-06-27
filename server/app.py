@@ -135,11 +135,13 @@ if "http://localhost:5173" not in allowed_origins:
     allowed_origins.append("http://localhost:5173")
 if "http://localhost:3000" not in allowed_origins:
     allowed_origins.append("http://localhost:3000")
+if "http://localhost:8081" not in allowed_origins:
+    allowed_origins.append("http://localhost:8081")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_origin_regex=r"https://.*\.onrender\.com",
+    allow_origin_regex=r"https://.*\.onrender\.com|http://localhost:\d+|http://127\.0\.0\.1:\d+|http://10\.0\.2\.2:\d+|http://192\.168\..*:\d+",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

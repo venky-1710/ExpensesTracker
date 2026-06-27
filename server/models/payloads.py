@@ -35,6 +35,10 @@ class UserLogin(BaseModel):
     email: str
     password: str
 
+class GoogleLoginRequest(BaseModel):
+    """Google login payload"""
+    id_token: str
+
 
 class UserProfileResponse(BaseModel):
     """Complete user profile response"""
@@ -66,7 +70,17 @@ class UserProfileUpdate(BaseModel):
 
 class PasswordChange(BaseModel):
     """Change password payload"""
-    old_password: str
+    old_password: Optional[str] = None
+    new_password: str = Field(..., min_length=8, max_length=72)
+
+class PasswordResetRequest(BaseModel):
+    """Request a password reset code"""
+    email: EmailStr
+
+class PasswordResetConfirm(BaseModel):
+    """Confirm a password reset with code"""
+    email: EmailStr
+    code: str = Field(..., min_length=6, max_length=6)
     new_password: str = Field(..., min_length=8, max_length=72)
 
 

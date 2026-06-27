@@ -1,105 +1,61 @@
-# Expense Tracker API (Server)
+# Expenses Tracker - Backend API
 
-A robust, production-ready REST API for the Expense Tracker application, built with **FastAPI** and **MongoDB**. This backend handles user authentication, transaction management, data analytics, and features an AI-powered financial assistant using **Google Gemini**.
+The backend REST API for the Expenses Tracker, built with Python and FastAPI. It serves both the Web Client and Mobile App, handling authentication, database operations, and AI intelligence.
 
-## 🚀 Features
+## 🛠️ Technology Stack
+- **Framework**: FastAPI
+- **Database**: MongoDB (async via Motor)
+- **Authentication**: JWT (JSON Web Tokens) with OAuth2 Password Bearer
+- **Data Validation**: Pydantic
+- **AI Integration**: AI-powered categorization logic
 
-- **Authentication**: Secure Signup/Login with JWT (JSON Web Tokens) and HttpOnly cookies.
-- **Transaction Management**: CRUD operations for income and expenses.
-- **Dashboard & Analytics**: Aggregated financial data, charts, and key performance indicators.
-- **AI Chatbot**: Integrated **Google Gemini** for intelligent financial advice and natural language queries.
-- **Caching**: Optimized performance with caching strategies.
-- **Security**: Bcrypt password hashing, input validation (Pydantic), and CORS protection.
+## 📂 Project Structure
+- `apis/` - Core business logic and database interactions
+- `models/` - Pydantic schemas (payloads) and MongoDB models
+- `routes/` - FastAPI endpoint definitions (Auth, Transactions, Dashboard, Calendar)
+- `utils/` - Helpers, JWT validation, caching, and custom decorators
+- `app.py` - Main FastAPI application and CORS configuration
 
-## 🛠️ Tech Stack
+## 🚀 Setup & Execution
 
-- **Framework**: [FastAPI](https://fastapi.tiangolo.com/) (Python)
-- **Database**: [MongoDB](https://www.mongodb.com/) (Async interaction via `motor`)
-- **AI Integration**: [Google Gemini](https://deepmind.google/technologies/gemini/) (via `google-generativeai`)
-- **Authentication**: `python-jose` (JWT) & `passlib` (Bcrypt)
-- **Validation**: `pydantic`
-
-## 📋 Prerequisites
-
-- **Python** 3.10+
-- **MongoDB** (Local instance or Atlas URI)
-- **Google Gemini API Key** (for AI features)
-
-## ⚡ Installation & Setup
-
-1.  **Navigate to the server directory**:
-    ```bash
-    cd server
-    ```
-
-2.  **Create a virtual environment**:
-    ```bash
-    python -m venv .venv
-    ```
-
-3.  **Activate the virtual environment**:
-    - Windows:
-        ```bash
-        .venv\Scripts\activate
-        ```
-    - Mac/Linux:
-        ```bash
-        source .venv/bin/activate
-        ```
-
-4.  **Install dependencies**:
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-## ⚙️ Configuration
-
-Create a `.env` file in the `server` directory with the following variables:
-
-```env
-# Server
-PORT=8000
-DEBUG=true
-
-# Database
-MONGODB_URI=mongodb://localhost:27017/expense_tracker_db
-
-# Security
-SECRET_KEY=your_super_secret_key_here
-GEMINI_API_KEY=your_gemini_api_key_here
-
-# Client (for CORS)
-CLIENT_URL=http://localhost:5173
-```
-
-## 🏃‍♂️ Running the Server
-
-Start the output development server with hot-reload:
-
+### 1. Create a Virtual Environment (Optional but recommended)
 ```bash
-uvicorn app:app --reload
+python -m venv venv
+venv\Scripts\activate  # On Windows
 ```
 
+### 2. Install Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Configure Environment
+Create a `.env` file in the `server` directory:
+```env
+# MongoDB Connection String
+MONGO_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/
+MONGO_DB_NAME=expenses_tracker
+
+# JWT Secrets
+SECRET_KEY=your_super_secret_jwt_key
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=1440
+```
+
+### 4. Run the Server
+```bash
+uvicorn app:app --reload --host 0.0.0.0
+```
 The API will be available at `http://localhost:8000`.
 
-## 📚 API Documentation
-
-FastAPI automatically generates interactive API documentation:
-
+### 5. API Documentation
+FastAPI automatically generates interactive documentation. Once the server is running, visit:
 - **Swagger UI**: `http://localhost:8000/docs`
 - **ReDoc**: `http://localhost:8000/redoc`
 
-## 📁 Project Structure
-
-```
-server/
-├── config/             # Configuration files
-├── database/           # MongoDB connection and queries
-├── models/             # Pydantic data models
-├── routes/             # API route handlers
-├── services/           # Business logic
-├── utils/              # Helper functions (logger, auth)
-├── scripts/            # Utility scripts (e.g., indexes)
-├── app.py              # Application entry point
-└── requirements.txt    # Python dependencies
-```
+## 🔒 Security & CORS
+The backend utilizes a strict CORS policy. Currently allowed origins include:
+- `http://localhost:*`
+- `http://127.0.0.1:*`
+- `http://10.0.2.2:*` (Android Emulator)
+- `http://192.168.*.*:*` (Physical devices on local network)

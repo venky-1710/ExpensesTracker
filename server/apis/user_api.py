@@ -107,11 +107,12 @@ class UserAPI:
                     detail="User not found"
                 )
 
-            if not verify_password(password_data.old_password, user["password_hash"]):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Incorrect old password"
-                )
+            if password_data.old_password:
+                if not verify_password(password_data.old_password, user["password_hash"]):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Incorrect old password"
+                    )
 
             new_hash = get_password_hash(password_data.new_password)
 

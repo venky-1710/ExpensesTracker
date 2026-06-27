@@ -1,83 +1,46 @@
-# Expense Tracker App (Client)
+# Expenses Tracker - Web Client
 
-A modern, responsive frontend for the Expense Tracker application, built with **React** and **Vite**. This interface provides a seamless user experience for managing finances, visualizing data with charts, and interacting with an AI financial assistant.
+The web frontend for the Expenses Tracker, built with React and Vite. It features a stunning, premium dark-mode UI with beautiful micro-animations and data visualizations.
 
-## 🚀 Features
+## 🛠️ Technology Stack
+- **Framework**: React 19 + Vite
+- **Styling**: Vanilla CSS (Premium deep-purple dark mode design system)
+- **Charts**: Recharts (for Dashboard KPIs, Line Charts, and Pie Charts)
+- **Routing**: React Router
+- **Networking**: Axios with JWT interceptors
+- **Icons**: Lucide React
 
-- **Dashboard**: Real-time overview of income, expenses, and balance with interactive charts (Recharts).
-- **Transaction Management**: Easy interface to add, edit, and delete transactions.
-- **AI Chatbot**: Integrated interface to chat with the Gemini-powered financial assistant.
-- **Visuals**: Dynamic 3D backgrounds using **Vanta.js** and **Three.js**.
-- **Responsive Design**: Optimized for desktop and mobile devices.
-- **Export**: Ability to export financial reports to PDF.
+## 📂 Project Structure
+- `src/app/` - Core application pages and components (Dashboard, Transactions, Login, Profile)
+- `src/components/` - Reusable UI elements (Navigation, Layout)
+- `src/context/` - Global state management (AuthContext, DashboardContext, ThemeContext)
+- `src/services/` - Axios API integrations mapping to backend endpoints
+- `src/index.css` - Global CSS containing the central design tokens
 
-## 🛠️ Tech Stack
+## 🚀 Setup & Execution
 
-- **Framework**: [React](https://react.dev/)
-- **Build Tool**: [Vite](https://vitejs.dev/)
-- **Styling**: CSS Modules / Vanilla CSS with modern aesthetics
-- **Routing**: [React Router](https://reactrouter.com/)
-- **Charts**: [Recharts](https://recharts.org/)
-- **Icons**: [React Icons](https://react-icons.github.io/react-icons/)
-- **HTTP Client**: [Axios](https://axios-http.com/)
-- **Visual Effects**: [Vanta.js](https://www.vantajs.com/) & Three.js
+### 1. Install Dependencies
+```bash
+npm install
+```
 
-## 📋 Prerequisites
-
-- **Node.js** (v16+)
-- **NPM** or **Yarn**
-
-## ⚡ Installation & Setup
-
-1.  **Navigate to the client directory**:
-    ```bash
-    cd client
-    ```
-
-2.  **Install dependencies**:
-    ```bash
-    npm install
-    ```
-
-3.  **Run the development server**:
-    ```bash
-    npm run dev
-    ```
-    The application will be available at `http://localhost:5173`.
-
-## ⚙️ Configuration
-
-Create a `.env` file in the `client` directory with the following variables:
-
+### 2. Configure Environment
+Create a `.env` file in the root of the `client` directory:
 ```env
-# API URL (Backend)
 VITE_API_URL=http://localhost:8000
 ```
 
-## 📦 Build for Production
-
-To create a production build:
-
+### 3. Run Development Server
 ```bash
-npm run build
+npm run dev
 ```
+The application will start on `http://localhost:5173` (or equivalent).
 
-The build artifacts will be stored in the `dist/` directory.
+## 🎨 Design System
+The client adheres to a strict dark aesthetic:
+- **Background**: `#0a0118` (Deep space purple)
+- **Cards/Surfaces**: `#1a0d35` (Slightly lighter purple for elevation)
+- **Primary Accent**: `#6d4aff` (Vibrant purple)
+- **Secondary Accent**: `#c850ff` (Pinkish-purple for gradients)
 
-## 📁 Project Structure
-
-```
-client/
-├── src/
-│   ├── assets/         # Static assets (images, icons)
-│   ├── components/     # Reusable UI components
-│   ├── context/        # React Context (Auth, Global State)
-│   ├── pages/          # Application pages (Dashboard, Login, etc.)
-│   ├── services/       # API service calls (Axios)
-│   ├── styles/         # Global styles
-│   ├── App.jsx         # Main application component
-│   └── main.jsx        # Entry point
-├── public/             # Public assets
-├── .env                # Environment variables
-└── vite.config.js      # Vite configuration
-```
+All UI elements are implemented directly via Vanilla CSS classes to maintain maximum control over styling and animations.
