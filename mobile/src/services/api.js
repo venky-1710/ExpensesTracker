@@ -31,7 +31,7 @@ const getBaseUrl = () => {
         }
         return 'http://localhost:8000';
     }
-    return 'https://expenses-tracker-api.onrender.com';
+    return 'https://expenses-tracker-api-mbpc.onrender.com';
 };
 
 const API_BASE_URL = getBaseUrl();
