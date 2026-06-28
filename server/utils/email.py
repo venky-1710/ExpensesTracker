@@ -1,47 +1,14 @@
 import os
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-import asyncio
+import resend
 from utils.logger import logger
 
-def _send_email_sync(to_email: str, subject: str, html_content: str):
-    smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
-    smtp_port = int(os.getenv("SMTP_PORT", 587))
-    smtp_username = os.getenv("SMTP_USERNAME", "").strip().strip('"\'')
-    smtp_password = os.getenv("SMTP_PASSWORD", "").strip().strip('"\'')
-    smtp_username = smtp_username or None
-    smtp_password = smtp_password or None
-
-    if not smtp_username or not smtp_password:
-        logger.error("[EMAIL] SMTP credentials not configured in environment variables.")
-        raise ValueError("SMTP credentials missing")
-
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = subject
-    msg["From"] = smtp_username
-    msg["To"] = to_email
-
-    part = MIMEText(html_content, "html")
-    msg.attach(part)
-
-    try:
-        logger.info(f"[EMAIL] Connecting to {smtp_server}:{smtp_port}...")
-        server = smtplib.SMTP(smtp_server, smtp_port)
-        server.starttls()
-        server.login(smtp_username, smtp_password)
-        server.sendmail(smtp_username, to_email, msg.as_string())
-        server.quit()
-        logger.info(f"[EMAIL] Email successfully sent to {to_email}")
-    except Exception as e:
-        logger.error(f"[EMAIL ERROR] Failed to send email to {to_email}: {str(e)}")
-        raise e
+resend.api_key = os.getenv("RESEND_API_KEY", "")
 
 async def send_reset_email(to_email: str, otp: str):
-    """
-    Sends a beautifully formatted HTML email containing the OTP code asynchronously.
-    """
-    subject = "Your Password Reset Code"
+    """Send OTP password reset email via Resend API (works on all hosting platforms)."""
+    app_name = os.getenv("DATABASE_NAME", "ExpenseTrack")
+    from_address = os.getenv("EMAIL_FROM", "onboarding@resend.dev")
+
     html_content = f"""
     <html>
       <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
@@ -58,12 +25,23 @@ async def send_reset_email(to_email: str, otp: str):
           </p>
           <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
           <p style="color: #999; font-size: 12px; text-align: center;">
-            &copy; {os.getenv("DATABASE_NAME", "ExpensesTracker")} Team
+            &copy; {app_name} Team
           </p>
         </div>
       </body>
     </html>
     """
-    
-    # Run the blocking SMTP operation in a separate thread so we don't block the FastAPI event loop
-    await asyncio.to_thread(_send_email_sync, to_email, subject, html_content)
+
+    try:
+        logger.info(f"[EMAIL] Sending OTP email to {to_email} via Resend...")
+        params = {
+            "from": from_address,
+            "to": [to_email],
+            "subject": "Your Password Reset Code",
+            "html": html_content,
+        }
+        response = resend.Emails.send(params)
+        logger.info(f"[EMAIL] Email sent successfully. ID: {response.get('id')}")
+    except Exception as e:
+        logger.error(f"[EMAIL ERROR] Failed to send email to {to_email}: {str(e)}")
+        raise e
