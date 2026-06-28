@@ -8,8 +8,10 @@ from utils.logger import logger
 def _send_email_sync(to_email: str, subject: str, html_content: str):
     smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
     smtp_port = int(os.getenv("SMTP_PORT", 587))
-    smtp_username = os.getenv("SMTP_USERNAME")
-    smtp_password = os.getenv("SMTP_PASSWORD")
+    smtp_username = os.getenv("SMTP_USERNAME", "").strip().strip('"\'')
+    smtp_password = os.getenv("SMTP_PASSWORD", "").strip().strip('"\'')
+    smtp_username = smtp_username or None
+    smtp_password = smtp_password or None
 
     if not smtp_username or not smtp_password:
         logger.error("[EMAIL] SMTP credentials not configured in environment variables.")
