@@ -1,11 +1,13 @@
 """
 Expense Tracker API - Main Application Entry Point
 """
+from dotenv import load_dotenv
+load_dotenv()  # Must run before any module that reads os.getenv at import time
+
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.exceptions import RequestValidationError
-from dotenv import load_dotenv
 from database.database import client, MONGODB_URI
 from routes.auth_routes import auth_router
 from routes.user_routes import user_router
@@ -19,8 +21,6 @@ from contextlib import asynccontextmanager
 import os
 import time
 import traceback
-
-load_dotenv()
 
 # Import logger AFTER load_dotenv
 from utils.logger import logger

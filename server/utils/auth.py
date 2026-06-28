@@ -100,7 +100,7 @@ async def get_current_user(request: Request = None, token: str = Depends(oauth2_
     if cached_user:
         return cached_user
 
-    user = await db["auth_users"].find_one({"_id": ObjectId(user_id), "is_deleted": False})
+    user = await db["auth_users"].find_one({"_id": ObjectId(user_id), "is_deleted": {"$ne": True}})
     if not user:
         raise credentials_exception
     

@@ -73,6 +73,11 @@ class PasswordChange(BaseModel):
     old_password: Optional[str] = None
     new_password: str = Field(..., min_length=8, max_length=72)
 
+
+class DeleteAccountRequest(BaseModel):
+    """Confirm account deletion with password"""
+    password: str
+
 class PasswordResetRequest(BaseModel):
     """Request a password reset code"""
     email: EmailStr

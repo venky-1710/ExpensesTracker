@@ -21,7 +21,7 @@ class UserAPI:
     async def get_user_by_id(user_id: str, include_password: bool = False) -> Optional[Dict[str, Any]]:
         """Get user by ID from database."""
         try:
-            user = await db.auth_users.find_one({"_id": ObjectId(user_id), "is_deleted": False})
+            user = await db.auth_users.find_one({"_id": ObjectId(user_id), "is_deleted": {"$ne": True}})
             if user:
                 return format_user_doc(user, strip_password=not include_password)
             return None
@@ -172,32 +172,51 @@ class UserAPI:
             raise HTTPException(status_code=500, detail=str(e))
 
     @staticmethod
-    async def soft_delete(user_id: str) -> Dict[str, str]:
-        """Soft delete user account."""
+    async def hard_delete(user_id: str, password: str) -> Dict[str, str]:
+        """Permanently delete user account and all associated data after password verification."""
         try:
-            logger.info(f"[USER] Soft delete request for user_id: {user_id}")
+            logger.info(f"[USER] Hard delete request for user_id: {user_id}")
 
-            result = await db.auth_users.update_one(
-                {"_id": ObjectId(user_id)},
-                {"$set": {
-                    "is_deleted": True,
-                    "updated_at": datetime.now()
-                }}
-            )
-
-            if result.matched_count == 0:
+            # Verify password before deleting
+            user = await UserAPI.get_user_by_id(user_id, include_password=True)
+            if not user:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="User not found"
                 )
 
-            logger.info(f"[USER] Account soft deleted for user_id: {user_id}")
-            return {"message": "Account deleted successfully"}
+            if not verify_password(password, user["password_hash"]):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Incorrect password"
+                )
+
+            user_oid = ObjectId(user_id)
+
+            # Delete all transactions
+            tx_result = await db.transactions.delete_many({"user_id": user_oid})
+            logger.info(f"[USER] Deleted {tx_result.deleted_count} transactions for user_id: {user_id}")
+
+            # Delete all calendar events
+            cal_result = await db.calendar_events.delete_many({"user_id": user_oid})
+            logger.info(f"[USER] Deleted {cal_result.deleted_count} calendar events for user_id: {user_id}")
+
+            # Hard delete the user document
+            result = await db.auth_users.delete_one({"_id": user_oid})
+
+            if result.deleted_count == 0:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="User not found"
+                )
+
+            logger.info(f"[USER] Account permanently deleted for user_id: {user_id}")
+            return {"message": "Account and all data permanently deleted"}
 
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"[ERROR] UserAPI.soft_delete - {str(e)}")
+            logger.error(f"[ERROR] UserAPI.hard_delete - {str(e)}")
             logger.error(f"[TRACEBACK] {traceback.format_exc()}")
             raise HTTPException(status_code=500, detail=str(e))
 

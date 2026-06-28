@@ -22,16 +22,16 @@ class AuthAPI:
         try:
             logger.info(f"[AUTH] Signup attempt for email: {payload.email}")
 
-            # Check if email already exists
-            existing_email = await db.auth_users.find_one({"email": payload.email})
+            # Check if email already exists (ignore soft-deleted accounts)
+            existing_email = await db.auth_users.find_one({"email": payload.email, "is_deleted": {"$ne": True}})
             if existing_email:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="User with this email already exists"
                 )
 
-            # Check if username already exists
-            existing_username = await db.auth_users.find_one({"username": payload.username})
+            # Check if username already exists (ignore soft-deleted accounts)
+            existing_username = await db.auth_users.find_one({"username": payload.username, "is_deleted": {"$ne": True}})
             if existing_username:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -80,8 +80,8 @@ class AuthAPI:
         try:
             logger.info(f"[AUTH] Login attempt for: {form_data.username}")
 
-            # Find user by email (using email as username field in OAuth2 form)
-            user = await db.auth_users.find_one({"email": form_data.username})
+            # Find user by email, skip soft-deleted accounts
+            user = await db.auth_users.find_one({"email": form_data.username, "is_deleted": {"$ne": True}})
             if user:
                 user["id"] = str(user.pop("_id"))
 

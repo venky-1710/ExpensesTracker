@@ -31,7 +31,7 @@ const getBaseUrl = () => {
         }
         return 'http://localhost:8000';
     }
-    return 'https://your-production-url.com';
+    return 'https://expensestracker.onrender.com'; // TODO: replace with your actual Render service URL
 };
 
 const API_BASE_URL = getBaseUrl();

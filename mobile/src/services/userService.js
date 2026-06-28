@@ -19,8 +19,8 @@ export const userService = {
     return response.data;
   },
 
-  async deleteAccount() {
-    const response = await api.delete('/users/me');
+  async deleteAccount(password) {
+    const response = await api.delete('/users/me', { data: { password } });
     return response.data;
   },
 };

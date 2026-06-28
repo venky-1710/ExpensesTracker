@@ -7,6 +7,7 @@ from models.payloads import (
     UserProfileUpdate,
     PasswordChange,
     UserPreferences,
+    DeleteAccountRequest,
     APIResponse
 )
 from apis.user_api import UserAPI
@@ -58,7 +59,10 @@ async def update_preferences(
 
 @user_router.delete("/me", status_code=status.HTTP_200_OK)
 @api_handler
-async def delete_my_account(current_user: dict = Depends(get_current_user)):
-    """Soft delete user account."""
-    result = await UserAPI.soft_delete(current_user["id"])
+async def delete_my_account(
+    body: DeleteAccountRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Permanently delete user account and all associated data."""
+    result = await UserAPI.hard_delete(current_user["id"], body.password)
     return APIResponse(success=True, data=result)

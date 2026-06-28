@@ -9,8 +9,6 @@ import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useAppTheme, ThemeColors } from '../../context/ThemeContext';
 
-// Theme is loaded dynamically from ThemeContext
-
 export default function LoginScreen() {
   const { C } = useAppTheme();
   const s = getStyles(C);
@@ -18,41 +16,62 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const { login, signup, googleLogin } = useAuth();
 
-  // Google Auth is disabled for Expo Go compatibility
-  // React.useEffect(() => {
-  //   GoogleSignin.configure({ ... });
-  // }, []);
+  // Password strength: 0-4
+  const getPasswordStrength = (pw: string) => {
+    let score = 0;
+    if (pw.length >= 8)  score++;
+    if (/[A-Z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+    return score;
+  };
+  const pwStrength = getPasswordStrength(password);
+  const pwStrengthLabel = ['', 'Weak', 'Fair', 'Good', 'Strong'][pwStrength] ?? '';
+  const pwStrengthColor = ['', '#ef4444', '#f59e0b', '#3b82f6', '#10b981'][pwStrength] ?? '';
 
   const handleGoogleLogin = async () => {
-    // setGoogleLoading(true);
-    // try {
-    //   await GoogleSignin.hasPlayServices();
-    //   const userInfo = await GoogleSignin.signIn();
-    //   ...
-    // } catch (error) {
-    //   console.error(error);
-    // } finally {
-    //   setGoogleLoading(false);
-    // }
     console.warn("Google Login is disabled in Expo Go");
   };
 
   const handleSubmit = async () => {
+    setFieldErrors({});
     if (!email || !password) return;
-    if (!isLogin && !name) return;
+    if (!isLogin) {
+      if (!name || !username) return;
+      if (pwStrength < 2) {
+        setFieldErrors({ password: 'Password is too weak. Use 8+ chars with uppercase, numbers, or symbols.' });
+        return;
+      }
+    }
     setSubmitting(true);
     try {
       if (isLogin) {
         const ok = await login(email, password);
         if (ok) router.replace('/(main)/dashboard');
       } else {
-        const ok = await signup({ email, password, full_name: name });
-        if (ok) setIsLogin(true);
+        const ok = await signup({ email, password, full_name: name, username });
+        if (ok) {
+          setIsLogin(true);
+          setPassword('');
+          setName('');
+          setUsername('');
+        }
+      }
+    } catch (e: any) {
+      const detail = e.response?.data?.detail || '';
+      if (typeof detail === 'string') {
+        if (detail.toLowerCase().includes('username')) {
+          setFieldErrors({ username: detail });
+        } else if (detail.toLowerCase().includes('email')) {
+          setFieldErrors({ email: detail });
+        }
       }
     } finally {
       setSubmitting(false);
@@ -61,88 +80,200 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={s.root}>
+      {/* Background glow orbs */}
+      <View style={s.glowTopLeft} />
+      <View style={s.glowBottomRight} />
+
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
-          
-          <Text style={s.title}>{isLogin ? 'SIGN IN' : 'SIGN UP'}</Text>
-          <Text style={s.subtitle}>
-            {isLogin ? 'Sign in with email address & password' : 'Sign up with email address & password'}
-          </Text>
+        <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
-          <View style={s.form}>
-            {!isLogin && (
-              <View style={s.inputContainer}>
-                <TextInput
-                  style={s.input}
-                  placeholder="Username"
-                  placeholderTextColor={C.textMuted}
-                  value={name}
-                  onChangeText={setName}
-                  autoCapitalize="words"
-                />
+          {/* Brand Section */}
+          <View style={s.brandSection}>
+            <View style={s.logoBox}>
+              <Feather name="credit-card" size={30} color={C.primary} />
+            </View>
+            <Text style={s.brandName}>ExpenseTrack</Text>
+            <Text style={s.brandTagline}>Smart money, smarter you</Text>
+          </View>
+
+          {/* Form Card */}
+          <View style={s.card}>
+            <Text style={s.title}>{isLogin ? 'Welcome Back' : 'Create Account'}</Text>
+            <Text style={s.subtitle}>
+              {isLogin ? 'Sign in to your account' : 'Sign up with email & password'}
+            </Text>
+
+            <View style={s.form}>
+              {!isLogin && (
+                <>
+                  <View style={s.fieldGroup}>
+                    <Text style={s.fieldLabel}>Full Name</Text>
+                    <View style={s.inputContainer}>
+                      <View style={s.inputIconLeft}>
+                        <Feather name="user" size={16} color={C.textMuted} />
+                      </View>
+                      <TextInput
+                        style={[s.input, s.inputWithIcon]}
+                        placeholder="John Doe"
+                        placeholderTextColor={C.textMuted}
+                        value={name}
+                        onChangeText={setName}
+                        autoCapitalize="words"
+                      />
+                    </View>
+                  </View>
+
+                  <View style={s.fieldGroup}>
+                    <Text style={s.fieldLabel}>Username</Text>
+                    <View style={s.inputContainer}>
+                      <View style={s.inputIconLeft}>
+                        <Feather name="at-sign" size={16} color={fieldErrors.username ? C.red : C.textMuted} />
+                      </View>
+                      <TextInput
+                        style={[s.input, s.inputWithIcon, fieldErrors.username && { borderColor: C.red }]}
+                        placeholder="johndoe"
+                        placeholderTextColor={C.textMuted}
+                        value={username}
+                        onChangeText={v => { setUsername(v); setFieldErrors(f => ({ ...f, username: '' })); }}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                      />
+                    </View>
+                    {!!fieldErrors.username && (
+                      <View style={s.fieldErrorRow}>
+                        <Feather name="alert-circle" size={12} color={C.red} />
+                        <Text style={[s.fieldErrorText, { color: C.red }]}>{fieldErrors.username}</Text>
+                      </View>
+                    )}
+                  </View>
+                </>
+              )}
+
+              <View style={s.fieldGroup}>
+                <Text style={s.fieldLabel}>Email Address</Text>
+                <View style={s.inputContainer}>
+                  <View style={s.inputIconLeft}>
+                    <Feather name="mail" size={16} color={fieldErrors.email ? C.red : C.textMuted} />
+                  </View>
+                  <TextInput
+                    style={[s.input, s.inputWithIcon, fieldErrors.email && { borderColor: C.red }]}
+                    placeholder="you@example.com"
+                    placeholderTextColor={C.textMuted}
+                    value={email}
+                    onChangeText={v => { setEmail(v); setFieldErrors(f => ({ ...f, email: '' })); }}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                </View>
+                {!!fieldErrors.email && (
+                  <View style={s.fieldErrorRow}>
+                    <Feather name="alert-circle" size={12} color={C.red} />
+                    <Text style={[s.fieldErrorText, { color: C.red }]}>{fieldErrors.email}</Text>
+                  </View>
+                )}
               </View>
-            )}
-            
-            <View style={s.inputContainer}>
-              <TextInput
-                style={s.input}
-                placeholder="Yourname@gmail.com"
-                placeholderTextColor={C.textMuted}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
+
+              <View style={s.fieldGroup}>
+                <Text style={s.fieldLabel}>Password</Text>
+                <View style={s.inputContainer}>
+                  <View style={s.inputIconLeft}>
+                    <Feather name="lock" size={16} color={fieldErrors.password ? C.red : C.textMuted} />
+                  </View>
+                  <TextInput
+                    style={[s.input, s.inputWithIcon, { paddingRight: 48 }, fieldErrors.password && { borderColor: C.red }]}
+                    placeholder={isLogin ? 'Your password' : 'Min. 8 characters'}
+                    placeholderTextColor={C.textMuted}
+                    value={password}
+                    onChangeText={v => { setPassword(v); setFieldErrors(f => ({ ...f, password: '' })); }}
+                    secureTextEntry={!showPassword}
+                  />
+                  <TouchableOpacity style={s.eyeIcon} onPress={() => setShowPassword(!showPassword)}>
+                    <Feather name={showPassword ? 'eye' : 'eye-off'} size={18} color={C.textMuted} />
+                  </TouchableOpacity>
+                </View>
+                {!!fieldErrors.password && (
+                  <View style={s.fieldErrorRow}>
+                    <Feather name="alert-circle" size={12} color={C.red} />
+                    <Text style={[s.fieldErrorText, { color: C.red }]}>{fieldErrors.password}</Text>
+                  </View>
+                )}
+                {!isLogin && password.length > 0 && (
+                  <View style={s.strengthWrap}>
+                    <View style={s.strengthBars}>
+                      {[1, 2, 3, 4].map(i => (
+                        <View
+                          key={i}
+                          style={[
+                            s.strengthSegment,
+                            { backgroundColor: i <= pwStrength ? pwStrengthColor : C.border },
+                          ]}
+                        />
+                      ))}
+                    </View>
+                    <Text style={[s.strengthLabel, { color: pwStrengthColor }]}>{pwStrengthLabel}</Text>
+                  </View>
+                )}
+              </View>
+
+              {isLogin && (
+                <TouchableOpacity style={s.forgotBtn} onPress={() => router.push('/forgot-password')}>
+                  <Text style={s.forgotText}>Forgot password?</Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity
+                style={[s.btn, submitting && { opacity: 0.6 }, !isLogin && { marginTop: 8 }]}
+                onPress={handleSubmit}
+                disabled={submitting}
+              >
+                {submitting
+                  ? <ActivityIndicator color="#fff" size="small" />
+                  : (
+                    <View style={s.btnInner}>
+                      <Text style={s.btnText}>{isLogin ? 'Sign In' : 'Create Account'}</Text>
+                      <Feather name="arrow-right" size={18} color="#fff" />
+                    </View>
+                  )
+                }
+              </TouchableOpacity>
+
+              {/* Divider */}
+              <View style={s.orRow}>
+                <View style={s.orLine} />
+                <Text style={s.orText}>or continue with</Text>
+                <View style={s.orLine} />
+              </View>
+
+              {/* Social Buttons */}
+              <View style={s.socialRow}>
+                <TouchableOpacity style={s.socialBtn} onPress={handleGoogleLogin} disabled={googleLoading}>
+                  <View style={s.socialBtnInner}>
+                    <Text style={s.socialIcon}>G</Text>
+                    {googleLoading
+                      ? <ActivityIndicator color={C.textPrimary} size="small" />
+                      : <Text style={s.socialBtnText}>Google</Text>
+                    }
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity style={s.socialBtn}>
+                  <View style={s.socialBtnInner}>
+                    <Text style={s.socialIcon}>f</Text>
+                    <Text style={s.socialBtnText}>Facebook</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+              {/* Switch Mode */}
+              <View style={s.switchRow}>
+                <Text style={s.switchText}>
+                  {isLogin ? "Don't have an account? " : 'Already have an account? '}
+                </Text>
+                <TouchableOpacity onPress={() => setIsLogin(!isLogin)}>
+                  <Text style={s.switchLink}>{isLogin ? 'Sign up' : 'Sign in'}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-            
-            <View style={s.inputContainer}>
-              <TextInput
-                style={[s.input, { paddingRight: 45 }]}
-                placeholder={isLogin ? "Password" : "Password (min 8 characters)"}
-                placeholderTextColor={C.textMuted}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-              />
-              <TouchableOpacity style={s.eyeIcon} onPress={() => setShowPassword(!showPassword)}>
-                <Feather name={showPassword ? "eye" : "eye-off"} size={20} color={C.textSecondary} />
-              </TouchableOpacity>
-            </View>
-
-            {isLogin && (
-              <TouchableOpacity style={s.forgotBtn} onPress={() => router.push('/forgot-password')}>
-                <Text style={s.forgotText}>Forget password?</Text>
-              </TouchableOpacity>
-            )}
-
-            <TouchableOpacity style={[s.btn, submitting && { opacity: 0.6 }, !isLogin && { marginTop: 12 }]} onPress={handleSubmit} disabled={submitting}>
-              {submitting
-                ? <ActivityIndicator color="#fff" size="small" />
-                : <Text style={s.btnText}>{isLogin ? 'Sign in' : 'Sign up'}</Text>
-              }
-            </TouchableOpacity>
-
-            <Text style={s.orText}>Or continue with</Text>
-
-            <View style={s.socialRow}>
-              <TouchableOpacity style={s.socialBtn} onPress={handleGoogleLogin} disabled={googleLoading}>
-                {googleLoading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.socialBtnText}>Google</Text>}
-              </TouchableOpacity>
-              <TouchableOpacity style={s.socialBtn}>
-                <Text style={s.socialBtnText}>Facebook</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={s.switchRow}>
-              <Text style={s.switchText}>
-                {isLogin ? 'New here? ' : 'Already have an account? '}
-              </Text>
-              <TouchableOpacity onPress={() => setIsLogin(!isLogin)}>
-                <Text style={s.switchLink}>{isLogin ? 'Sign up' : 'Sign in'}</Text>
-              </TouchableOpacity>
-            </View>
-
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -151,105 +282,163 @@ export default function LoginScreen() {
 }
 
 const getStyles = (C: ThemeColors) => StyleSheet.create({
-  root: { flex: 1, backgroundColor: C.bg },
-  scroll: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 60 },
-  
-  title: { 
-    fontSize: 32, 
-    fontWeight: '700', 
-    color: '#fff', 
-    letterSpacing: 4,
-    marginBottom: 20,
-    textShadowColor: 'rgba(155, 81, 224, 0.4)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10,
+  root: { flex: 1, backgroundColor: C.bg, overflow: 'hidden' },
+  scroll: { flexGrow: 1, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40 },
+
+  glowTopLeft: {
+    position: 'absolute', top: -80, left: -80,
+    width: 260, height: 260, borderRadius: 130,
+    backgroundColor: 'rgba(109,74,255,0.12)',
   },
-  subtitle: { 
-    fontSize: 14, 
-    color: C.textSecondary, 
-    marginBottom: 32 
+  glowBottomRight: {
+    position: 'absolute', bottom: -60, right: -60,
+    width: 200, height: 200, borderRadius: 100,
+    backgroundColor: 'rgba(200,80,255,0.08)',
   },
-  
-  form: { flex: 1 },
-  
+
+  brandSection: {
+    alignItems: 'center',
+    paddingVertical: 28,
+  },
+  logoBox: {
+    width: 68, height: 68, borderRadius: 22,
+    backgroundColor: C.primary + '18',
+    borderWidth: 1.5, borderColor: C.primary + '35',
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 14,
+    shadowColor: C.primary, shadowOpacity: 0.25, shadowRadius: 16, elevation: 6,
+  },
+  brandName: {
+    fontSize: 22, fontWeight: '800', color: C.textPrimary,
+    letterSpacing: 0.5, marginBottom: 4,
+  },
+  brandTagline: {
+    fontSize: 13, color: C.textMuted, fontWeight: '500',
+  },
+
+  card: {
+    backgroundColor: C.card,
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1, borderColor: C.border,
+    shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 20, elevation: 6,
+  },
+
+  title: {
+    fontSize: 26, fontWeight: '800', color: C.textPrimary,
+    letterSpacing: 0.2, marginBottom: 6,
+  },
+  subtitle: {
+    fontSize: 14, color: C.textSecondary, marginBottom: 24,
+  },
+
+  form: {},
+
+  fieldGroup: { marginBottom: 16 },
+  fieldLabel: {
+    fontSize: 12, fontWeight: '700', color: C.textSecondary,
+    marginBottom: 8, letterSpacing: 0.5, textTransform: 'uppercase',
+  },
+
   inputContainer: {
-    marginBottom: 20,
     position: 'relative',
     justifyContent: 'center',
+  },
+  inputIconLeft: {
+    position: 'absolute', left: 16, zIndex: 1,
   },
   input: {
     backgroundColor: C.inputBg,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: C.inputBorder,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     color: C.textPrimary,
     fontSize: 15,
   },
-  eyeIcon: {
-    position: 'absolute',
-    right: 16,
+  inputWithIcon: {
+    paddingLeft: 46,
   },
-  
+  eyeIcon: {
+    position: 'absolute', right: 16,
+  },
+
   forgotBtn: {
-    alignSelf: 'flex-start',
-    marginBottom: 16,
+    alignSelf: 'flex-end',
+    marginBottom: 20, marginTop: -8,
   },
   forgotText: {
-    color: C.primary,
-    fontSize: 13,
-    fontWeight: '500',
+    color: C.primary, fontSize: 13, fontWeight: '600',
   },
-  
+
   btn: {
-    backgroundColor: '#8b5cf6', // A vibrant purple/indigo color that matches the screenshot
-    borderRadius: 12,
+    backgroundColor: C.primary,
+    borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',
     marginBottom: 24,
+    shadowColor: C.primary, shadowOpacity: 0.35, shadowRadius: 12, elevation: 6,
+  },
+  btnInner: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
   },
   btnText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
+    color: '#fff', fontSize: 16, fontWeight: '700',
   },
-  
+
+  orRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20,
+  },
+  orLine: {
+    flex: 1, height: 1, backgroundColor: C.border,
+  },
   orText: {
-    color: C.textSecondary,
-    fontSize: 14,
-    marginBottom: 20,
+    color: C.textMuted, fontSize: 12, fontWeight: '500',
   },
-  
+
   socialRow: {
-    flexDirection: 'row',
-    gap: 16,
-    marginBottom: 32,
+    flexDirection: 'row', gap: 12, marginBottom: 28,
   },
   socialBtn: {
-    flex: 1,
-    backgroundColor: C.socialBg,
-    paddingVertical: 14,
-    borderRadius: 12,
+    flex: 1, backgroundColor: C.socialBg,
+    paddingVertical: 13, borderRadius: 12,
+    borderWidth: 1, borderColor: C.border,
     alignItems: 'center',
+  },
+  socialBtnInner: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+  },
+  socialIcon: {
+    fontSize: 15, fontWeight: '800', color: C.textPrimary,
   },
   socialBtnText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '600',
+    color: C.textSecondary, fontSize: 14, fontWeight: '600',
   },
-  
+
   switchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
   },
-  switchText: {
-    color: C.textMuted,
-    fontSize: 14,
+  switchText: { color: C.textMuted, fontSize: 14 },
+  switchLink: { color: C.primary, fontSize: 14, fontWeight: '700' },
+
+  fieldErrorRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 5,
   },
-  switchLink: {
-    color: C.primary,
-    fontSize: 14,
-    fontWeight: '500',
+  fieldErrorText: {
+    fontSize: 12, fontWeight: '500',
+  },
+
+  strengthWrap: {
+    flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8,
+  },
+  strengthBars: {
+    flex: 1, flexDirection: 'row', gap: 4,
+  },
+  strengthSegment: {
+    flex: 1, height: 4, borderRadius: 2,
+  },
+  strengthLabel: {
+    fontSize: 11, fontWeight: '700', minWidth: 36, textAlign: 'right',
   },
 });
