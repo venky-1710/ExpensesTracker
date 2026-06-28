@@ -105,6 +105,5 @@ export const authService = {
     console.log('Logging out...');
     await AsyncStorage.removeItem('token');
     await AsyncStorage.removeItem('user');
-    router.replace('/');
   },
 };

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authService } from '../services/authService';
 import Toast from 'react-native-toast-message';
+import { router } from 'expo-router';
 
 const AuthContext = createContext(null);
 
@@ -128,6 +129,7 @@ export const AuthProvider = ({ children }) => {
             text1: 'Logged Out',
             text2: 'Logged out successfully',
         });
+        router.replace('/(auth)/login');
     };
 
     const updateUser = (updatedData) => {
