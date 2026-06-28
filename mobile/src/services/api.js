@@ -31,7 +31,7 @@ const getBaseUrl = () => {
         }
         return 'http://localhost:8000';
     }
-    return 'https://expensestracker.onrender.com'; // TODO: replace with your actual Render service URL
+    return 'https://expenses-tracker-api.onrender.com';
 };
 
 const API_BASE_URL = getBaseUrl();
@@ -40,6 +40,7 @@ console.log('🔧 API Base URL:', API_BASE_URL);
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -71,19 +72,30 @@ api.interceptors.response.use(
   },
   async (error) => {
     const isAuthError = error.response?.status === 401;
+    const isTimeout = error.code === 'ECONNABORTED' || error.message?.includes('timeout');
+    const isNetworkError = !error.response && !isTimeout;
     const logMethod = isAuthError ? console.warn : console.error;
-    
+
     logMethod('API Error:', {
       url: error.config?.url,
       status: error.response?.status,
       data: error.response?.data,
       message: error.message
     });
-    
-    if (isAuthError) {
 
+    if (isTimeout || isNetworkError) {
+      const Toast = require('react-native-toast-message').default;
+      Toast.show({
+        type: 'error',
+        text1: isTimeout ? 'Server is waking up' : 'No connection',
+        text2: isTimeout
+          ? 'The server is starting up. Please try again in 30 seconds.'
+          : 'Check your internet connection and try again.',
+      });
+    }
+
+    if (isAuthError) {
       console.warn('⚠️ Unauthorized - clearing auth and redirecting to login');
-      // Unauthorized - clear token and redirect to login
       await AsyncStorage.removeItem('token');
       await AsyncStorage.removeItem('user');
       router.replace('/');
