@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FiCalendar, FiChevronDown, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { FiCalendar, FiChevronDown, FiChevronLeft, FiChevronRight, FiBarChart2 } from 'react-icons/fi';
 import {
   format, addMonths, subMonths, startOfMonth, endOfMonth,
   startOfWeek, endOfWeek, isSameMonth, isSameDay, addDays,
   subDays, subMonths as subM, startOfDay, endOfDay,
   isBefore, isAfter, isWithinInterval, startOfYear,
-  subQuarters, startOfQuarter, endOfQuarter, subWeeks
+  subQuarters, startOfQuarter, endOfQuarter, subWeeks, differenceInDays
 } from 'date-fns';
 import './DateFilter.css';
 import type { DateFilterState } from '../../types';
@@ -22,6 +22,7 @@ const DateFilter = ({ currentFilter, onFilterChange }: Props) => {
   const [selectionEnd, setSelectionEnd] = useState<Date | null>(null);
   const [hoverDate, setHoverDate] = useState<Date | null>(null);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
+  const [granularity, setGranularity] = useState<string>('auto');
   const filterRef = useRef<HTMLDivElement>(null);
 
   const filterOptions = [
@@ -59,13 +60,75 @@ const DateFilter = ({ currentFilter, onFilterChange }: Props) => {
       setCurrentMonthView(new Date());
       setSelectedPreset(currentFilter ? currentFilter.type : null);
     }
+    if (currentFilter?.granularity) {
+      setGranularity(currentFilter.granularity);
+    } else {
+      const type = currentFilter ? currentFilter.type : null;
+      const days = getDaysDuration(null, null, type);
+      setGranularity(days > 31 ? 'monthly' : 'daily');
+    }
   }, [currentFilter, isOpen]);
+
+  const getDaysDuration = (start: Date | null, end: Date | null, type: string | null) => {
+    if (type === 'custom' && start && end) {
+      return Math.abs(differenceInDays(end, start));
+    }
+    switch (type) {
+      case '6days': return 6;
+      case 'lastWeek': return 7;
+      case '30days':
+      case 'month':
+      case 'mtd': return 30;
+      case 'lastQuadrant': return 90;
+      case '6months': return 180;
+      case 'year':
+      case 'ytd': return 365;
+      case 'all': return 3650;
+      default: return 30;
+    }
+  };
+
+  const getGranularityOptions = () => {
+    const type = selectedPreset || currentFilter?.type;
+    const days = getDaysDuration(selectionStart, selectionEnd, type);
+    
+    if (days <= 31) {
+      return [
+        { label: 'Daily', value: 'daily' },
+        { label: 'Weekly', value: 'weekly' },
+        { label: 'Monthly', value: 'monthly' }
+      ];
+    } else if (days <= 366) {
+      return [
+        { label: 'Daily', value: 'daily' },
+        { label: 'Weekly', value: 'weekly' },
+        { label: 'Monthly', value: 'monthly' },
+        { label: 'Quarterly', value: 'quarterly' }
+      ];
+    } else {
+      return [
+        { label: 'Monthly', value: 'monthly' },
+        { label: 'Quarterly', value: 'quarterly' },
+        { label: 'Yearly', value: 'yearly' }
+      ];
+    }
+  };
 
   const handleFilterSelect = (value: string) => {
     if (value === 'custom') { setSelectedPreset('custom'); return; }
+    
+    const days = getDaysDuration(null, null, value);
+    const defaultGran = days > 31 ? 'monthly' : 'daily';
+    setGranularity(defaultGran);
+
     if (value === 'all') {
-      setSelectedPreset('all');
-      onFilterChange({ type: 'all', startDate: null, endDate: null });
+      setSelectedPreset(value);
+      onFilterChange({
+        type: value,
+        startDate: null,
+        endDate: null,
+        granularity: defaultGran
+      });
       setIsOpen(false);
       return;
     }
@@ -148,7 +211,15 @@ const DateFilter = ({ currentFilter, onFilterChange }: Props) => {
       onFilterChange({
         type: typeToEmit,
         startDate: selectionStart.toISOString(),
-        endDate: selectionEnd.toISOString()
+        endDate: selectionEnd.toISOString(),
+        granularity: granularity
+      });
+      setIsOpen(false);
+    } else if (selectedPreset || currentFilter) {
+      onFilterChange({
+        ...(currentFilter || { type: selectedPreset || 'all', startDate: null, endDate: null }),
+        type: selectedPreset || currentFilter?.type || 'all',
+        granularity: granularity
       });
       setIsOpen(false);
     }
@@ -276,18 +347,37 @@ const DateFilter = ({ currentFilter, onFilterChange }: Props) => {
               {renderHeader()}
               {renderDays()}
               {renderCells()}
-              <div className="picker-footer">
-                <div className="selected-range-text">
-                  {selectionStart ? format(selectionStart, 'MMM d, yyyy') : 'Start Date'}
-                  {' - '}
-                  {selectionEnd ? format(selectionEnd, 'MMM d, yyyy') : 'End Date'}
+              <div className="picker-footer flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="selected-range-text">
+                    {selectionStart ? format(selectionStart, 'MMM d, yyyy') : 'Start Date'}
+                    {' - '}
+                    {selectionEnd ? format(selectionEnd, 'MMM d, yyyy') : 'End Date'}
+                  </div>
+                  
+                  <div className="flex items-center gap-2 border-l border-gray-200 dark:border-gray-700 pl-3 ml-1 flex-wrap">
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Granularity:</span>
+                    <div className="flex gap-1 flex-wrap">
+                      {getGranularityOptions().map(opt => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          className={`px-2 py-1 text-xs rounded-md border transition-colors ${granularity === opt.value ? 'bg-[#6d4aff] text-white border-[#6d4aff]' : 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                          onClick={() => setGranularity(opt.value)}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
+
                 <div className="picker-actions">
                   <button className="btn-cancel" onClick={() => setIsOpen(false)}>Cancel</button>
                   <button
                     className="btn-apply"
                     onClick={handleApplyCustom}
-                    disabled={!selectionStart || !selectionEnd}
+                    disabled={(!selectionStart || !selectionEnd) && !selectedPreset && !currentFilter}
                   >
                     Apply
                   </button>

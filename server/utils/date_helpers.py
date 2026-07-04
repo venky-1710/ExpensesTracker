@@ -23,7 +23,10 @@ def get_date_range(
     """
     now = datetime.now()
     
-    if filter_type == "all":
+    if start_date and end_date:
+        start = start_date
+        end = end_date
+    elif filter_type == "all":
         start = now - timedelta(days=3650)
         end = now + timedelta(days=3650)
     elif filter_type == "6days":
@@ -42,10 +45,7 @@ def get_date_range(
         start = now - timedelta(days=365)
         end = now
     elif filter_type == "custom":
-        if not start_date or not end_date:
-            raise ValueError("start_date and end_date required for custom filter")
-        start = start_date
-        end = end_date
+        raise ValueError("start_date and end_date required for custom filter")
     else:
         raise ValueError(f"Invalid filter_type: {filter_type}")
     

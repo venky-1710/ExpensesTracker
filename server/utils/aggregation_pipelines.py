@@ -75,6 +75,13 @@ def build_timeline_pipeline(user_id: str, start_date: datetime, end_date: dateti
         "month": {
             "year": {"$year": "$date"},
             "month": {"$month": "$date"}
+        },
+        "quarter": {
+            "year": {"$year": "$date"},
+            "quarter": {"$ceil": {"$divide": [{"$month": "$date"}, 3]}}
+        },
+        "year": {
+            "year": {"$year": "$date"}
         }
     }
     

@@ -27,6 +27,7 @@ export interface DateFilterState {
   type: string;
   startDate: string | null;
   endDate: string | null;
+  granularity?: string;
 }
 
 export interface KPIData {

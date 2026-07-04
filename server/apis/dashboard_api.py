@@ -270,14 +270,27 @@ class DashboardAPI:
         filter_type: str,
         start_date: datetime = None,
         end_date: datetime = None,
-        chart_type: str = None
+        chart_type: str = None,
+        granularity: str = None
     ) -> Dict[str, Any]:
         """Get all chart data."""
         try:
             logger.info(f"[DASHBOARD] Charts request - user_id={user_id}, filter={filter_type}, type={chart_type}")
 
             current_start, current_end = get_date_range(filter_type, start_date, end_date)
-            interval = group_by_interval(filter_type)
+            
+            # Map granularity to interval string
+            granularity_map = {
+                "daily": "day",
+                "weekly": "week",
+                "monthly": "month",
+                "quarterly": "quarter",
+                "yearly": "year"
+            }
+            if granularity and granularity in granularity_map:
+                interval = granularity_map[granularity]
+            else:
+                interval = group_by_interval(filter_type)
 
             should_calc_all = chart_type is None
             charts = {}
@@ -315,7 +328,12 @@ class DashboardAPI:
                     date_key = f"{item['_id']['date']['year']}-{item['_id']['date']['month']:02d}-{item['_id']['date']['day']:02d}"
                 elif interval == "week":
                     date_key = f"{item['_id']['date']['year']}-W{item['_id']['date']['week']:02d}"
+                elif interval == "quarter":
+                    date_key = f"{item['_id']['date']['year']}-Q{int(item['_id']['date']['quarter'])}"
+                elif interval == "year":
+                    date_key = f"{item['_id']['date']['year']}"
                 else:
+                    # month
                     date_key = f"{item['_id']['date']['year']}-{item['_id']['date']['month']:02d}"
 
                 if date_key not in timeline_dict:

@@ -46,12 +46,13 @@ async def get_charts(
     current_user: dict = Depends(get_current_user),
     filter_type: str = Query("all", pattern="^(all|6days|week|month|6months|year|custom)$"),
     chart_type: Optional[str] = Query(None, pattern="^(credit_vs_debit|category_breakdown|expense_distribution|payment_methods)$"),
+    granularity: Optional[str] = Query(None, pattern="^(daily|weekly|monthly|quarterly|yearly)$"),
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None
 ):
     """Get all chart data."""
     charts = await DashboardAPI.get_charts(
-        current_user["id"], filter_type, start_date, end_date, chart_type
+        current_user["id"], filter_type, start_date, end_date, chart_type, granularity
     )
 
     return APIResponse(success=True, data=charts, meta={"filter_type": filter_type})

@@ -125,7 +125,8 @@ export const DashboardProvider = ({ children }: { children: React.ReactNode }) =
         filter_type: dateFilter.type,
         ...(dateFilter.startDate && { start_date: dateFilter.startDate }),
         ...(dateFilter.endDate && { end_date: dateFilter.endDate }),
-        ...(chartType && { chart_type: chartType })
+        ...(chartType && { chart_type: chartType }),
+        ...(dateFilter.granularity && { granularity: dateFilter.granularity })
       };
       const response = await dashboardService.getCharts(params);
 

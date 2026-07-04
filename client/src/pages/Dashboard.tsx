@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { differenceInDays } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { FiTrendingUp, FiTrendingDown, FiDollarSign, FiActivity, FiMoreVertical, FiInfo, FiRefreshCw, FiMaximize2, FiMinimize2, FiUpload } from 'react-icons/fi';
 import { useDashboard } from '../context/DashboardContext';
@@ -61,6 +62,7 @@ const Dashboard = () => {
 
   const handleTransactionSuccess = () => refreshDashboard();
   const handleFilterChange = (newFilter: DateFilterState) => setDateFilter(newFilter);
+
   const handleKPIClick = (kpiType: string) => navigate(`/dashboard/details/${kpiType}`);
   const handleWidgetClick = (widgetType: string) => navigate(`/dashboard/details/${widgetType}`);
 
@@ -253,8 +255,8 @@ const Dashboard = () => {
     }
 
     return (
-      <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-5 backdrop-blur-sm" onClick={handleMinimizeClick}>
-        <div className="bg-white dark:bg-gray-900 w-full max-w-[90vw] h-[90vh] rounded-2xl shadow-2xl flex flex-col relative overflow-hidden" onClick={(e) => e.stopPropagation()}>
+      <div className="fixed inset-0 bg-black/60 z-[1050] flex items-center justify-center p-5 backdrop-blur-sm" onClick={handleMinimizeClick}>
+          <div className="bg-white dark:bg-gray-900 w-full max-w-7xl h-[85vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-zoom-in relative border border-gray-200 dark:border-gray-800" onClick={e => e.stopPropagation()}>
           <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-gray-800">
             <h2 className="m-0 text-2xl text-gray-900 dark:text-gray-100 font-bold">{title}</h2>
             <button className="bg-gray-100 dark:bg-gray-800 border-none w-10 h-10 rounded-full flex items-center justify-center text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer transition-colors" onClick={handleMinimizeClick} title="Minimize"><FiMinimize2 size={24} /></button>
@@ -290,6 +292,7 @@ const Dashboard = () => {
         <div className="flex items-center gap-3 flex-wrap">
           <NotificationCenter />
           <DateFilter currentFilter={dateFilter} onFilterChange={handleFilterChange} />
+          
           <input type="file" ref={fileInputRef} className="hidden" accept=".pdf,.csv,.xlsx,.xls" onChange={handleFileChange} />
           <button className="px-6 py-3 bg-white dark:bg-gray-800 text-[#6d4aff] dark:text-[#c850ff] border border-[#6d4aff] dark:border-[#c850ff] rounded-lg text-sm font-semibold cursor-pointer transition-all flex items-center gap-2 hover:-translate-y-0.5 hover:shadow-lg" onClick={handleUploadClick}>
             <FiUpload size={16} /> Upload Statement

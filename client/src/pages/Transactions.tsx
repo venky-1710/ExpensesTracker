@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FiPlus, FiDownload, FiChevronDown, FiTrash2, FiArrowUp, FiArrowDown } from 'react-icons/fi';
 import { transactionService } from '../services/transactionService';
+import { useDashboard } from '../context/DashboardContext';
 import TransactionModal from '../components/TransactionModal/TransactionModal';
 import ActionButtons from '../components/ActionButtons/ActionButtons';
 import SubLoader from '../components/SubLoader/SubLoader';
@@ -32,7 +33,7 @@ const Transactions = () => {
   const [showExportMenu, setShowExportMenu] = useState<boolean>(false);
   const [deleteModal, setDeleteModal] = useState<DeleteModalState>({ open: false, transaction: null, loading: false });
 
-  const [dateFilter, setDateFilter] = useState<DateFilterState>({ type: 'all', startDate: null, endDate: null });
+  const { dateFilter, setDateFilter } = useDashboard();
   const [filters, setFilters] = useState<TransactionFiltersState>({ type: '', category: '', payment_method: '' });
   const [pagination, setPagination] = useState<PaginationState>({
     page: 1, limit: 20, total: 0, totalPages: 0, totalCredits: 0, totalDebits: 0, availableBalance: 0
