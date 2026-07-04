@@ -175,17 +175,17 @@ const Profile = () => {
 
   return (
     <div className="w-full p-8 max-w-5xl mx-auto">
-      <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
+      <div className="flex justify-between items-center mb-[30px] flex-wrap gap-4">
         <div>
-          <h1 className="m-0 text-3xl font-extrabold tracking-tight bg-gradient-to-br from-[#1a0d35] to-indigo-600 dark:from-white dark:to-indigo-400 bg-clip-text text-transparent">Profile</h1>
-          <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400">Manage your account settings and preferences</p>
+          <h1 className="text-[32px] font-bold bg-gradient-to-br from-[#1a0d35] to-[#6d4aff] dark:from-[#c850ff] dark:to-[#6d4aff] bg-clip-text text-transparent m-0 leading-tight">Profile</h1>
+          <p className="mt-[5px] text-gray-500 text-sm m-0">Manage your account settings and preferences</p>
         </div>
         {!isEditing && (
           <div className="flex gap-3">
-            <button className="flex items-center gap-2 px-4 py-2 bg-transparent border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer" onClick={() => setIsChangingPassword(true)}>
+            <button className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 hover:-translate-y-0.5 hover:shadow-md transition-all cursor-pointer" onClick={() => setIsChangingPassword(true)}>
               <FiLock /> Change Password
             </button>
-            <button className="flex items-center gap-2 px-5 py-2 bg-gradient-to-br from-purple-500 to-indigo-600 text-white border-none rounded-lg text-sm font-semibold hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/30 transition-all cursor-pointer" onClick={handleEdit}>
+            <button className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-br from-[#c850ff] to-[#6d4aff] text-white border-none rounded-xl text-sm font-semibold hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(200,80,255,0.4)] transition-all cursor-pointer shadow-[0_4px_12px_rgba(200,80,255,0.3)]" onClick={handleEdit}>
               <FiEdit2 /> Edit Profile
             </button>
           </div>
@@ -193,108 +193,121 @@ const Profile = () => {
       </div>
 
       <div
-        className={`relative overflow-hidden flex items-center gap-7 p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6 transition-shadow hover:shadow-md ${bannerImg ? 'bg-cover bg-center border-none' : ''}`}
-        style={bannerImg ? { backgroundImage: `url(${bannerImg})` } : {}}
+        className={`relative overflow-hidden flex flex-col sm:flex-row items-center sm:items-end gap-6 p-8 bg-white dark:bg-gray-800 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-none border border-gray-100 dark:border-gray-700 mb-8 transition-shadow hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] ${bannerImg ? 'bg-cover bg-center border-none' : ''}`}
+        style={bannerImg ? { backgroundImage: `url(${bannerImg})`, minHeight: '220px' } : { minHeight: '160px' }}
       >
         {isEditing && (
-          <label className="absolute top-4 right-4 z-10 flex items-center gap-2 px-3 py-2 bg-black/50 text-white border border-white/20 rounded-lg text-sm font-medium cursor-pointer backdrop-blur-sm hover:bg-black/80 hover:-translate-y-0.5 transition-all" title="Upload Banner Image">
+          <label className="absolute top-4 right-4 z-10 flex items-center gap-2 px-4 py-2.5 bg-black/40 text-white border border-white/20 rounded-xl text-sm font-semibold cursor-pointer backdrop-blur-md hover:bg-black/60 hover:-translate-y-0.5 transition-all shadow-lg" title="Upload Banner Image">
             <FiImage size={16} /> Edit Banner
             <input type="file" accept="image/*" onChange={handleBannerUpload} className="hidden" />
           </label>
         )}
-        {bannerImg && <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-black/10 z-[1]" />}
-        <div className="relative w-28 h-28 rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-indigo-600 shadow-lg shrink-0 z-[2]">
+        {bannerImg && <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent z-[1]" />}
+        <div className="relative w-32 h-32 rounded-full overflow-hidden bg-gradient-to-br from-[#c850ff] to-[#6d4aff] shadow-[0_8px_25px_rgba(109,74,255,0.5)] shrink-0 z-[2] border-4 border-white dark:border-gray-800">
           {editForm.profile_image ? (
             <img src={editForm.profile_image} alt="Profile" className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-white"><FiUser size={48} /></div>
+            <div className="w-full h-full flex items-center justify-center text-white"><FiUser size={54} /></div>
           )}
           {isEditing && (
-            <label className="absolute bottom-1 right-1 w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center cursor-pointer text-white shadow-md hover:bg-indigo-700 hover:scale-110 transition-transform">
-              <FiCamera size={18} />
+            <label className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center cursor-pointer text-white opacity-0 hover:opacity-100 transition-opacity backdrop-blur-sm">
+              <FiCamera size={24} className="mb-1" />
+              <span className="text-xs font-semibold">Change</span>
               <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
             </label>
           )}
         </div>
-        <div className="flex-1 z-[2]">
-          <h2 className={`m-0 text-3xl font-bold tracking-tight ${bannerImg ? 'text-white' : 'text-gray-900 dark:text-white'}`}>{user?.full_name}</h2>
-          <p className="inline-block mt-2 px-3.5 py-1 text-sm font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 rounded-full capitalize">{user?.role || 'User'}</p>
+        <div className="flex-1 z-[2] text-center sm:text-left pb-2">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <h2 className={`m-0 text-[32px] font-bold tracking-tight leading-none ${bannerImg ? 'text-white' : 'text-gray-900 dark:text-white'}`}>{user?.full_name}</h2>
+            <span className={`inline-flex px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full shadow-sm ${bannerImg ? 'bg-white/20 text-white backdrop-blur-md border border-white/30' : 'text-[#6d4aff] dark:text-[#c850ff] bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-900/50'}`}>
+              {user?.role || 'User'}
+            </span>
+          </div>
+          <p className={`mt-2 m-0 text-sm font-medium ${bannerImg ? 'text-gray-200' : 'text-gray-500 dark:text-gray-400'}`}>@{user?.username || 'user'}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-7 shadow-sm border border-gray-100 dark:border-gray-700">
-          <h3 className="m-0 mb-6 text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2 pb-3 border-b border-gray-100 dark:border-gray-700">Personal Information</h3>
-          <div className="flex flex-col gap-5">
-            <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
-              <label className="w-36 flex items-center gap-2 text-sm font-semibold text-gray-600 dark:text-gray-400"><FiUser className="text-gray-400" />Full Name</label>
+        <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:shadow-none border border-gray-100 dark:border-gray-700">
+          <h3 className="m-0 mb-6 text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2 pb-4 border-b border-gray-100 dark:border-gray-700/60"><FiUser className="text-[#6d4aff] dark:text-[#c850ff]" /> Personal Information</h3>
+          <div className="flex flex-col gap-6">
+            <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6">
+              <label className="w-40 flex items-center gap-2 text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-xs"><FiUser className="text-gray-400" /> Full Name</label>
               {isEditing ? (
                 <div className="flex-1 relative">
-                  <input type="text" value={editForm.full_name} onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })} className={`w-full p-2.5 bg-gray-50 dark:bg-gray-700/50 border rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 ${errors.full_name ? 'border-red-500' : 'border-gray-200 dark:border-gray-600 focus:border-indigo-500'}`} />
-                  {errors.full_name && <span className="absolute -bottom-5 left-0 text-xs text-red-500">{errors.full_name}</span>}
+                  <input type="text" value={editForm.full_name} onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })} className={`w-full p-3 bg-gray-50 dark:bg-gray-900/50 border rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6d4aff]/30 focus:border-[#6d4aff] dark:focus:border-[#c850ff] transition-all shadow-inner ${errors.full_name ? 'border-red-500' : 'border-gray-200 dark:border-gray-700'}`} />
+                  {errors.full_name && <span className="absolute -bottom-5 left-0 text-xs text-red-500 font-medium">{errors.full_name}</span>}
                 </div>
-              ) : <span className="flex-1 text-sm font-medium text-gray-900 dark:text-gray-100">{user?.full_name}</span>}
+              ) : <span className="flex-1 text-[15px] font-semibold text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-900/30 px-4 py-2.5 rounded-xl border border-transparent dark:border-gray-800">{user?.full_name}</span>}
             </div>
-            <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
-              <label className="w-36 flex items-center gap-2 text-sm font-semibold text-gray-600 dark:text-gray-400"><FiUser className="text-gray-400" />Username</label>
+            
+            <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6">
+              <label className="w-40 flex items-center gap-2 text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-xs"><FiUser className="text-gray-400" /> Username</label>
               {isEditing ? (
                 <div className="flex-1 relative">
-                  <input type="text" value={editForm.username} onChange={(e) => setEditForm({ ...editForm, username: e.target.value })} className={`w-full p-2.5 bg-gray-50 dark:bg-gray-700/50 border rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 ${errors.username ? 'border-red-500' : 'border-gray-200 dark:border-gray-600 focus:border-indigo-500'}`} />
-                  {errors.username && <span className="absolute -bottom-5 left-0 text-xs text-red-500">{errors.username}</span>}
+                  <input type="text" value={editForm.username} onChange={(e) => setEditForm({ ...editForm, username: e.target.value })} className={`w-full p-3 bg-gray-50 dark:bg-gray-900/50 border rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6d4aff]/30 focus:border-[#6d4aff] dark:focus:border-[#c850ff] transition-all shadow-inner ${errors.username ? 'border-red-500' : 'border-gray-200 dark:border-gray-700'}`} />
+                  {errors.username && <span className="absolute -bottom-5 left-0 text-xs text-red-500 font-medium">{errors.username}</span>}
                 </div>
-              ) : <span className="flex-1 text-sm font-medium text-gray-900 dark:text-gray-100">{user?.username || 'Not set'}</span>}
+              ) : <span className="flex-1 text-[15px] font-semibold text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-900/30 px-4 py-2.5 rounded-xl border border-transparent dark:border-gray-800">{user?.username || 'Not set'}</span>}
             </div>
-            <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
-              <label className="w-36 flex items-center gap-2 text-sm font-semibold text-gray-600 dark:text-gray-400"><FiPhone className="text-gray-400" />Phone</label>
+            
+            <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6">
+              <label className="w-40 flex items-center gap-2 text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-xs"><FiPhone className="text-gray-400" /> Phone</label>
               {isEditing ? (
-                <input type="tel" value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} placeholder="Enter phone number" className="flex-1 p-2.5 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" />
-              ) : <span className="flex-1 text-sm font-medium text-gray-900 dark:text-gray-100">{user?.phone || 'Not provided'}</span>}
+                <input type="tel" value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} placeholder="Enter phone number" className="flex-1 p-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#6d4aff]/30 focus:border-[#6d4aff] dark:focus:border-[#c850ff] transition-all shadow-inner" />
+              ) : <span className="flex-1 text-[15px] font-semibold text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-900/30 px-4 py-2.5 rounded-xl border border-transparent dark:border-gray-800">{user?.phone || 'Not provided'}</span>}
             </div>
-            <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
-              <label className="w-36 flex items-center gap-2 text-sm font-semibold text-gray-600 dark:text-gray-400"><FiMail className="text-gray-400" />Email</label>
-              <span className="flex-1 text-sm font-medium text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/30 p-2.5 rounded-lg border border-gray-100 dark:border-gray-700/50">{user?.email}</span>
+            
+            <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6">
+              <label className="w-40 flex items-center gap-2 text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-xs"><FiMail className="text-gray-400" /> Email</label>
+              <span className="flex-1 text-[15px] font-semibold text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/30 px-4 py-2.5 rounded-xl border border-gray-100 dark:border-gray-800/50">{user?.email}</span>
             </div>
-            <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
-              <label className="w-36 flex items-center gap-2 text-sm font-semibold text-gray-600 dark:text-gray-400"><FiCalendar className="text-gray-400" />Member Since</label>
-              <span className="flex-1 text-sm font-medium text-gray-900 dark:text-gray-100">{user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}</span>
+            
+            <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6">
+              <label className="w-40 flex items-center gap-2 text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-xs"><FiCalendar className="text-gray-400" /> Member Since</label>
+              <span className="flex-1 text-[15px] font-semibold text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-900/30 px-4 py-2.5 rounded-xl border border-transparent dark:border-gray-800">{user?.created_at ? new Date(user.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'}</span>
             </div>
           </div>
 
           {isEditing && (
-            <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-100 dark:border-gray-700">
-              <button className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors cursor-pointer" onClick={handleCancel} disabled={loading.update}><FiX /> Cancel</button>
-              <button className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white border-none rounded-lg text-sm font-semibold hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-500/20 transition-all cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed" onClick={handleSave} disabled={loading.update}>
+            <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-100 dark:border-gray-700/60">
+              <button className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer" onClick={handleCancel} disabled={loading.update}><FiX /> Cancel</button>
+              <button className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-[#c850ff] to-[#6d4aff] text-white border-none rounded-xl text-sm font-semibold hover:shadow-[0_6px_20px_rgba(109,74,255,0.4)] hover:-translate-y-0.5 transition-all cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed" onClick={handleSave} disabled={loading.update}>
                 {loading.update ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</> : <><FiSave /> Save Changes</>}
               </button>
             </div>
           )}
         </div>
 
-        <div className="hidden lg:flex items-center justify-center p-8 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/10 dark:to-purple-900/10 rounded-2xl border border-indigo-100/50 dark:border-indigo-500/10 min-h-[300px] relative overflow-hidden">
-          <div className="relative w-[240px] h-[240px] z-10 flex items-center justify-center">
-            <div className="absolute w-[180px] h-[120px] bg-white dark:bg-gray-800 rounded-xl shadow-xl p-4 top-10 left-10 -rotate-6 animate-float">
-              <div className="w-3/4 h-3 bg-gray-200 dark:bg-gray-700 rounded-full mb-3" />
-              <div className="w-1/2 h-3 bg-gray-200 dark:bg-gray-700 rounded-full" />
+        <div className="hidden lg:flex items-center justify-center p-8 bg-gradient-to-br from-indigo-50/50 to-purple-50/50 dark:from-indigo-900/10 dark:to-purple-900/10 rounded-3xl border border-indigo-100/50 dark:border-indigo-500/10 min-h-[350px] relative overflow-hidden shadow-[inset_0_2px_20px_rgba(0,0,0,0.02)]">
+          <div className="relative w-[280px] h-[280px] z-10 flex items-center justify-center">
+            <div className="absolute inset-0 bg-gradient-to-tr from-[#6d4aff]/20 to-[#c850ff]/20 rounded-full blur-3xl animate-pulse" />
+            <div className="absolute w-[180px] h-[120px] bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.1)] p-5 top-10 left-6 -rotate-6 animate-float border border-white/50 dark:border-gray-700/50">
+              <div className="w-3/4 h-3 bg-gray-100 dark:bg-gray-700 rounded-full mb-4" />
+              <div className="w-1/2 h-3 bg-gray-100 dark:bg-gray-700 rounded-full mb-4" />
+              <div className="w-full h-2 bg-gradient-to-r from-[#6d4aff] to-[#c850ff] rounded-full opacity-20" />
             </div>
-            <div className="absolute w-[140px] h-[140px] bg-white dark:bg-gray-800 rounded-full shadow-xl flex items-center justify-center bottom-4 right-4 rotate-12 animate-float" style={{ animationDelay: '1s' }}>
-              <div className="w-24 h-24 border-8 border-indigo-100 dark:border-indigo-900/30 rounded-full border-t-indigo-500 dark:border-t-indigo-400 rotate-45" />
+            <div className="absolute w-[150px] h-[150px] bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.1)] flex items-center justify-center bottom-4 right-4 rotate-12 animate-float border border-white/50 dark:border-gray-700/50" style={{ animationDelay: '1.5s' }}>
+              <div className="w-24 h-24 border-[6px] border-indigo-50 dark:border-indigo-900/30 rounded-full border-t-[#c850ff] dark:border-t-[#c850ff] border-r-[#6d4aff] rotate-45" />
             </div>
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl shadow-xl flex items-center justify-center text-white z-10">
-              <FiLock size={28} />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 bg-gradient-to-br from-[#c850ff] to-[#6d4aff] rounded-[24px] shadow-[0_10px_30px_rgba(109,74,255,0.4)] flex items-center justify-center text-white z-10 border border-white/20">
+              <FiLock size={32} />
             </div>
           </div>
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.05)_1px,transparent_1px)] dark:bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.1)_1px,transparent_1px)] bg-[size:24px_24px]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(109,74,255,0.06)_1px,transparent_1px)] dark:bg-[radial-gradient(circle_at_center,rgba(200,80,255,0.15)_1px,transparent_1px)] bg-[size:32px_32px] opacity-70" />
         </div>
       </div>
 
-      <div className="bg-red-50 dark:bg-red-900/10 rounded-2xl p-7 shadow-sm border border-red-100 dark:border-red-900/30 mt-6">
-        <h3 className="m-0 mb-4 text-lg font-bold text-red-600 dark:text-red-400 flex items-center gap-2"><FiTrash2 />Danger Zone</h3>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-white dark:bg-gray-800 rounded-xl border border-red-100 dark:border-red-900/50">
+      <div className="bg-red-50/50 dark:bg-red-900/10 rounded-3xl p-8 shadow-[0_4px_20px_rgba(0,0,0,0.02)] border border-red-100 dark:border-red-900/30 mt-8 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/5 dark:bg-red-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+        <h3 className="m-0 mb-5 text-xl font-bold text-red-600 dark:text-red-400 flex items-center gap-2 relative z-10"><FiTrash2 /> Danger Zone</h3>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 p-6 bg-white dark:bg-gray-800/80 rounded-2xl border border-red-100 dark:border-red-900/50 relative z-10 shadow-sm">
           <div>
-            <h4 className="m-0 mb-1 text-base font-semibold text-gray-900 dark:text-white">Delete Account</h4>
+            <h4 className="m-0 mb-1.5 text-base font-bold text-gray-900 dark:text-white">Delete Account</h4>
             <p className="m-0 text-sm text-gray-500 dark:text-gray-400">Once you delete your account, there is no going back. Please be certain.</p>
           </div>
-          <button className="px-5 py-2.5 bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg text-sm font-semibold hover:bg-red-500 hover:text-white dark:hover:bg-red-600 hover:border-transparent transition-all cursor-pointer whitespace-nowrap" onClick={() => setShowDeleteConfirm(true)}>Delete Account</button>
+          <button className="px-6 py-3 bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-xl text-sm font-bold hover:bg-red-500 hover:text-white dark:hover:bg-red-600 hover:border-transparent hover:shadow-[0_4px_15px_rgba(239,68,68,0.3)] transition-all cursor-pointer whitespace-nowrap" onClick={() => setShowDeleteConfirm(true)}>Delete Account</button>
         </div>
       </div>
 

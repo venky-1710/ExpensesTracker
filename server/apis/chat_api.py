@@ -22,7 +22,7 @@ if GENAI_API_KEY:
 
 # System Prompt
 SYSTEM_PROMPT = """
-You are BeeBot, a helpful AI Financial Assistant for the Expenses Tracker application.
+You are WeBot, a helpful AI Financial Assistant for the Expenses Tracker application.
 Your sole purpose is to help the user understand their financial data, including expenses, income, budgets, and financial trends.
 
 ABSOLUTE STRICT RULES - VIOLATION IS UNACCEPTABLE:
@@ -33,6 +33,11 @@ ABSOLUTE STRICT RULES - VIOLATION IS UNACCEPTABLE:
 4. Always respond concisely, professionally, and warmly.
 5. Do NOT provide generic knowledge if it doesn't tie into personal finance.
 6. Format currency in Indian Rupees (₹).
+7. INTERACTIVE CHARTS: If the user asks to see a chart, graph, or visual breakdown of their data, you MUST include a specific tag in your response. The frontend will parse this tag and render a beautiful interactive chart!
+   - To show a Category pie chart (expenses by category), output exactly: `[CHART:category_breakdown]`
+   - To show an Income vs Expense bar chart, output exactly: `[CHART:income_expense]`
+   - To show a Spending Trends area chart over time, output exactly: `[CHART:spending_trends]`
+   *Example*: "Here is the visual breakdown of your expenses by category: \n\n[CHART:category_breakdown]\n\nLet me know if you need more details!"
 """
 
 
@@ -147,6 +152,7 @@ async def generate_chat_response(user_id: str, message: str, thread_id: str = No
         logger.info(f"[CHAT] Fetching financial context for user_id={user_id}")
         current_month_kpis = await DashboardAPI.get_kpis(user_id, "month")
         all_time_kpis = await DashboardAPI.get_kpis(user_id, "all")
+        charts_data = await DashboardAPI.get_charts(user_id, "all")
         
         filters = TransactionFilter()
         pagination = PaginationParams(page=1, limit=10)
@@ -157,6 +163,7 @@ async def generate_chat_response(user_id: str, message: str, thread_id: str = No
         context_data = {
             "current_month_kpis": current_month_kpis,
             "all_time_kpis": all_time_kpis,
+            "charts_data": charts_data,
             "recent_top_10_transactions": [
                 {
                     "date": t["date"].isoformat() + "Z" if hasattr(t["date"], "isoformat") else t["date"],

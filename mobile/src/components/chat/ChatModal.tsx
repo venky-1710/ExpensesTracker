@@ -190,7 +190,7 @@ export default function ChatModal({ onClose }: { onClose: () => void }) {
             <Text style={s.iconText}>✕</Text>
           </TouchableOpacity>
           <View style={s.headerCenter}>
-            <Text style={s.headerTitle}>🐝 BeeBot Pro</Text>
+            <Text style={s.headerTitle}>☘️ WeBot Pro</Text>
           </View>
           <TouchableOpacity style={s.iconBtn} onPress={() => setHistoryOpen(true)}>
             <Text style={s.iconText}>📜</Text>
@@ -238,7 +238,7 @@ export default function ChatModal({ onClose }: { onClose: () => void }) {
           <View style={s.inputWrapper}>
             <TextInput
               style={s.input}
-              placeholder="Message BeeBot..."
+              placeholder="Message WeBot..."
               placeholderTextColor={C.textMuted}
               value={input}
               onChangeText={setInput}

@@ -1,6 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FiMessageSquare, FiX, FiSend, FiPlus, FiMoreVertical, FiEdit2, FiTrash2, FiPieChart, FiTrendingUp, FiPenTool } from 'react-icons/fi';
+import { FiX, FiSend, FiPlus, FiMoreVertical, FiEdit2, FiTrash2, FiPieChart, FiTrendingUp, FiPenTool, FiLoader } from 'react-icons/fi';
+import webotLogo from '../../assets/webot_logo.png';
+import webotLogoCircle from '../../assets/webot_logo_circle.png';
 import api from '../../services/api';
+import axios from 'axios';
+import { toast } from 'react-toastify';
+import UploadReviewModal from '../UploadReviewModal/UploadReviewModal';
+import CategoryChart from '../Charts/CategoryChart';
+import IncomeExpenseChart from '../Charts/IncomeExpenseChart';
+import SpendingChart from '../Charts/SpendingChart';
+import { useDashboard } from '../../context/DashboardContext';
+import { useAuth } from '../../context/AuthContext';
+import ChatBotLoader from './ChatBotLoader';
 import './ChatBot.css';
 
 interface ChatMessage {
@@ -31,6 +42,81 @@ const timeAgo = (dateString: string): string => {
   return `${days} days ago`;
 };
 
+const getGreeting = (): string => {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) return 'Good Morning';
+  if (hour >= 12 && hour < 17) return 'Good Afternoon';
+  if (hour >= 17 && hour < 21) return 'Good Evening';
+  return 'Good Night';
+};
+
+const renderMarkdown = (text: string): React.ReactNode => {
+  const clean = text
+    .replace('[CHART:category_breakdown]', '')
+    .replace('[CHART:income_expense]', '')
+    .replace('[CHART:spending_trends]', '')
+    .trim();
+
+  const lines = clean.split('\n');
+  const elements: React.ReactNode[] = [];
+  let listItems: string[] = [];
+
+  const flushList = (key: string) => {
+    if (listItems.length > 0) {
+      elements.push(
+        <ul key={`ul-${key}`} className="chat-md-list">
+          {listItems.map((item, idx) => (
+            <li key={idx} dangerouslySetInnerHTML={{ __html: parseLine(item) }} />
+          ))}
+        </ul>
+      );
+      listItems = [];
+    }
+  };
+
+  const parseLine = (line: string): string => {
+    return line
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/(?<![*])\*(?![*])([^*\n]+)\*(?![*])/g, '<em>$1</em>');
+  };
+
+  lines.forEach((line, idx) => {
+    const trimmed = line.trim();
+
+    // Headings: ### ## #
+    const h3 = trimmed.match(/^###\s+(.+)/);
+    const h2 = trimmed.match(/^##\s+(.+)/);
+    const h1 = trimmed.match(/^#\s+(.+)/);
+    const bulletMatch = trimmed.match(/^[*\-]\s+(.+)/);
+    const numberedMatch = trimmed.match(/^\d+\.\s+(.+)/);
+
+    if (h3) {
+      flushList(`${idx}`);
+      elements.push(<h4 key={`h3-${idx}`} className="chat-md-h3" dangerouslySetInnerHTML={{ __html: parseLine(h3[1]) }} />);
+    } else if (h2) {
+      flushList(`${idx}`);
+      elements.push(<h3 key={`h2-${idx}`} className="chat-md-h2" dangerouslySetInnerHTML={{ __html: parseLine(h2[1]) }} />);
+    } else if (h1) {
+      flushList(`${idx}`);
+      elements.push(<h2 key={`h1-${idx}`} className="chat-md-h1" dangerouslySetInnerHTML={{ __html: parseLine(h1[1]) }} />);
+    } else if (bulletMatch) {
+      listItems.push(bulletMatch[1]);
+    } else if (numberedMatch) {
+      listItems.push(numberedMatch[1]);
+    } else {
+      flushList(`${idx}`);
+      if (trimmed !== '') {
+        elements.push(
+          <p key={`p-${idx}`} className="chat-md-p"
+            dangerouslySetInnerHTML={{ __html: parseLine(trimmed) }} />
+        );
+      }
+    }
+  });
+  flushList('end');
+  return <>{elements}</>;
+};
+
 const ChatWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [threads, setThreads] = useState<ChatThread[]>([]);
@@ -41,6 +127,15 @@ const ChatWidget = () => {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const { charts, refreshDashboard } = useDashboard();
+  const { user } = useAuth();
+  const firstName = user?.full_name?.split(' ')[0] || user?.username || 'There';
+  
+  const [isUploading, setIsUploading] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [parsedTransactions, setParsedTransactions] = useState<any[]>([]);
 
   const activeMessages = currentThreadId
     ? (threads.find(t => t.thread_id === currentThreadId)?.messages || [])
@@ -56,6 +151,8 @@ const ChatWidget = () => {
   };
 
   useEffect(() => { if (isOpen) fetchHistory(); }, [isOpen]);
+
+  const [preparingUpload, setPreparingUpload] = useState(false);
 
   const handleSendMessage = async (e: React.FormEvent | null, textOverride: string | null = null) => {
     if (e) e.preventDefault();
@@ -105,7 +202,65 @@ const ChatWidget = () => {
         }
         return temp;
       });
-    } finally { setIsLoading(false); }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleUploadClick = () => {
+    setPreparingUpload(true);
+    // Add a slight delay to let the UI update and show the spinner before the browser blocks the thread
+    setTimeout(() => {
+      fileInputRef.current?.click();
+      setPreparingUpload(false);
+    }, 400);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setIsUploading(true);
+    const toastId = toast.loading('Analyzing statement with AI...');
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const token = localStorage.getItem('token');
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const response = await axios.post(`${apiUrl}/api/upload/analyze`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data', 'Authorization': `Bearer ${token}` }
+      });
+      
+      toast.update(toastId, { render: `Found ${response.data.count} transactions!`, type: 'info', isLoading: false, autoClose: 3000 });
+      setParsedTransactions(response.data.transactions || []);
+      setShowUploadModal(true);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    } catch (error: any) {
+      console.error('Chat Upload Error:', error);
+      const errorMsg = error.response?.data?.detail || 'Failed to analyze file.';
+      toast.update(toastId, { render: `Error: ${errorMsg}`, type: 'error', isLoading: false, autoClose: 5000 });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleConfirmImport = async (reviewedTransactions: any[]) => {
+    const toastId = toast.loading('Importing transactions...');
+    try {
+      const token = localStorage.getItem('token');
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const response = await axios.post(`${apiUrl}/api/upload/confirm`, { transactions: reviewedTransactions }, {
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
+      });
+      toast.update(toastId, { render: `Successfully imported ${response.data.count} transactions!`, type: 'success', isLoading: false, autoClose: 5000 });
+      setShowUploadModal(false);
+      setParsedTransactions([]);
+      refreshDashboard();
+      handleSendMessage(null, "I just uploaded a bank statement and saved new transactions. Can you review my updated expenses?");
+    } catch (error: any) {
+      toast.update(toastId, { render: `Error importing: ${error.response?.data?.detail || 'Unknown error'}`, type: 'error', isLoading: false, autoClose: 5000 });
+    }
   };
 
   const startNewChat = () => setCurrentThreadId(null);
@@ -147,20 +302,27 @@ const ChatWidget = () => {
 
   if (!isOpen) {
     return (
-      <div className="chat-widget-container">
-        <button className="chat-toggle-btn" onClick={() => setIsOpen(true)}><FiMessageSquare /></button>
-      </div>
+      <>
+        <div className="chat-widget-container">
+          <button className="chat-toggle-btn" onClick={() => setIsOpen(true)} style={{ background: 'none', border: 'none', padding: 0, width: 60, height: 60, borderRadius: '50%', overflow: 'hidden', cursor: 'pointer', boxShadow: '0 4px 16px rgba(108,63,209,0.35)' }}>
+            <img src={webotLogo} alt="WeBot" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+          </button>
+        </div>
+      </>
     );
   }
 
   return (
+    <>
     <div className="beebot-overlay">
       <div className="beebot-layout">
         {/* Sidebar */}
         <div className="beebot-sidebar">
           <div className="sidebar-brand">
-            <div className="brand-logo"><FiMessageSquare /></div>
-            <h2>BeeBot</h2>
+            <div className="brand-logo">
+              <img src={webotLogo} alt="WeBot Logo" style={{ width: 36, height: 36, borderRadius: '8px', objectFit: 'cover' }} />
+            </div>
+            <h2>WeBot</h2>
           </div>
           <button className="new-chat-btn" onClick={startNewChat}><FiPlus /> New Chat</button>
           <div className="history-group">
@@ -212,19 +374,23 @@ const ChatWidget = () => {
         </div>
 
         {/* Main Content */}
-        <div className="beebot-main">
+        <div className="beebot-main" style={{ position: 'relative' }}>
+          {isUploading && <ChatBotLoader />}
           <div className="beebot-header">
-            <div className="bot-selector"><span>🐝 BeeBot Pro</span></div>
+            <div className="bot-selector"><span>☘️ WeBot Pro</span></div>
             <button className="close-beebot-btn" onClick={() => setIsOpen(false)}><FiX size={20} /></button>
           </div>
 
           {activeMessages.length === 0 ? (
             <div className="beebot-empty-state">
-              <div className="orb-graphic"></div>
-              <h1>Good Morning</h1>
-              <h2 className="subtitle">How Can I <span className="highlight">Assist You Today?</span></h2>
+              <img src={webotLogo} alt="WeBot" className="orb-graphic" />
+              <h1>Hello {firstName} 👋</h1>
+              <h2 className="subtitle"><span className="highlight">{getGreeting()}!</span> How Can I Assist You Today?</h2>
               <div className="beebot-floating-input">
-                <span className="magic-icon">✨</span>
+                <button className="chat-upload-btn" onClick={handleUploadClick} disabled={isUploading || isLoading || preparingUpload} title="Upload Statement">
+                  {preparingUpload ? <FiLoader className="spin-icon" /> : <FiPlus />}
+                </button>
+                <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".pdf,.csv,.xlsx,.xls" className="hidden" style={{ display: 'none' }} />
                 <input type="text" placeholder="Initiate a query or send a command to the AI..."
                   value={inputValue} onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSendMessage(e)} />
@@ -242,7 +408,30 @@ const ChatWidget = () => {
                 {activeMessages.map((msg, i) => (
                   <div key={i} className={`bee-msg ${msg.role}`}>
                     <div className="bee-bubble">
-                      {msg.content}
+                      {msg.content.includes('[CHART:category_breakdown]') ? (
+                        <>
+                          <div className="chat-md-wrap">{renderMarkdown(msg.content.replace('[CHART:category_breakdown]', ''))}</div>
+                          <div className="chat-chart-wrapper" style={{ marginTop: '0.75rem', background: '#f9fafb', borderRadius: '12px', padding: '12px', width: '100%', boxSizing: 'border-box' }}>
+                            <CategoryChart data={charts?.category_breakdown || []} />
+                          </div>
+                        </>
+                      ) : msg.content.includes('[CHART:income_expense]') ? (
+                        <>
+                          <div className="chat-md-wrap">{renderMarkdown(msg.content.replace('[CHART:income_expense]', ''))}</div>
+                          <div className="chat-chart-wrapper" style={{ marginTop: '0.75rem', background: '#f9fafb', borderRadius: '12px', padding: '12px', width: '100%', boxSizing: 'border-box', height: '340px' }}>
+                            <IncomeExpenseChart data={charts?.credit_vs_debit || []} />
+                          </div>
+                        </>
+                      ) : msg.content.includes('[CHART:spending_trends]') ? (
+                        <>
+                          <div className="chat-md-wrap">{renderMarkdown(msg.content.replace('[CHART:spending_trends]', ''))}</div>
+                          <div className="chat-chart-wrapper" style={{ marginTop: '0.75rem', background: '#f9fafb', borderRadius: '12px', padding: '12px', width: '100%', boxSizing: 'border-box' }}>
+                            <SpendingChart />
+                          </div>
+                        </>
+                      ) : (
+                        <div className="chat-md-wrap">{renderMarkdown(msg.content)}</div>
+                      )}
                       <span className="msg-time">
                         {new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: 'numeric' }).format(new Date(msg.created_at))}
                       </span>
@@ -254,8 +443,11 @@ const ChatWidget = () => {
               </div>
               <div className="beebot-bottom-input">
                 <div className="beebot-floating-input active-chat">
-                  <span className="magic-icon">✨</span>
-                  <input type="text" placeholder="Send a message..." value={inputValue}
+                  <button className="chat-upload-btn" onClick={handleUploadClick} disabled={isUploading || isLoading || preparingUpload} title="Upload Statement">
+                    {preparingUpload ? <FiLoader className="spin-icon" /> : <FiPlus />}
+                  </button>
+                  <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".pdf,.csv,.xlsx,.xls" className="hidden" style={{ display: 'none' }} />
+                  <input type="text" placeholder="Ask me about your finances..." value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSendMessage(e)} />
                   <button className="beebot-send" onClick={(e) => handleSendMessage(e)} disabled={isLoading || !inputValue.trim()}><FiSend /></button>
@@ -265,7 +457,19 @@ const ChatWidget = () => {
           )}
         </div>
       </div>
+      
+      <UploadReviewModal 
+        isOpen={showUploadModal} 
+        transactions={parsedTransactions} 
+        onConfirm={handleConfirmImport} 
+        onClose={() => {
+          setShowUploadModal(false);
+          setParsedTransactions([]);
+        }}
+        loading={isUploading} 
+      />
     </div>
+    </>
   );
 };
 

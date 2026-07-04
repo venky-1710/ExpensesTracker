@@ -9,6 +9,7 @@ import CategoryChart from '../components/Charts/CategoryChart';
 import SpendingChart from '../components/Charts/SpendingChart';
 import DateFilter from '../components/DateFilter/DateFilter';
 import SubLoader from '../components/SubLoader/SubLoader';
+import Loader from '../components/Loader/Loader';
 import NotificationCenter from '../components/NotificationCenter/NotificationCenter';
 import { toast } from 'react-toastify';
 import axios from 'axios';

@@ -4,6 +4,14 @@
 /* Custom dark-mode variant using data-theme attribute */
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
+/* Override default grays to deep purples for a unified premium theme */
+@theme {
+  --color-gray-900: #0d0520;
+  --color-gray-800: #1a0d35;
+  --color-gray-700: #2d1b5e;
+  --color-gray-750: #25124b;
+}
+
 /* CSS Custom Properties for theming — kept for dark/light mode switching */
 :root {
   --color-primary: #4f46e5;
@@ -52,19 +60,19 @@
   --color-primary-dark: #4f46e5;
   --color-primary-light: #818cf8;
 
-  --bg-primary: #111827;
-  --bg-secondary: #1f2937;
-  --bg-tertiary: #374151;
-  --bg-hover: #374151;
-  --card-bg: #1f2937;
+  --bg-primary: #0d0520;
+  --bg-secondary: #1a0d35;
+  --bg-tertiary: #2d1b5e;
+  --bg-hover: #2d1b5e;
+  --card-bg: #1a0d35;
 
   --text-primary: #f9fafb;
   --text-secondary: #d1d5db;
   --text-tertiary: #9ca3af;
   --text-inverse: #111827;
 
-  --border-color: #374151;
-  --border-color-dark: #4b5563;
+  --border-color: rgba(255, 255, 255, 0.1);
+  --border-color-dark: rgba(255, 255, 255, 0.15);
 
   --shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.3);
   --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.4);
