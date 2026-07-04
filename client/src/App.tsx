@@ -12,9 +12,11 @@ import Transactions from './pages/Transactions';
 import CalendarView from './pages/CalendarView';
 import Profile from './pages/Profile';
 import DetailView from './pages/DetailView';
+import NotificationsPage from './pages/NotificationsPage';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
 import { DashboardProvider } from './context/DashboardContext';
+import { AuthProvider } from './context/AuthContext';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
@@ -40,28 +42,29 @@ function App() {
 
   return (
     <Router>
-      <DashboardProvider>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<Hero />} />
-          <Route path="/login" element={<SignUp onLoginSuccess={handleLoginSuccess} initialMode="signin" />} />
-          <Route path="/signup" element={<SignUp onLoginSuccess={handleLoginSuccess} initialMode="signup" />} />
-          <Route path="/terms" element={<Terms />} />
-          <Route path="/privacy" element={<Privacy />} />
+      <AuthProvider>
+        <DashboardProvider>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<Hero />} />
+            <Route path="/login" element={<SignUp onLoginSuccess={handleLoginSuccess} initialMode="signin" />} />
+            <Route path="/signup" element={<SignUp onLoginSuccess={handleLoginSuccess} initialMode="signup" />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
 
-          {/* Protected Routes with Dashboard Layout */}
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <DashboardLayout onLogout={handleLogout}>
-                <Dashboard />
-              </DashboardLayout>
-            </ProtectedRoute>
-          } />
+            {/* Protected Routes with Dashboard Layout */}
+            <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <DashboardLayout onLogout={handleLogout}>
+                  <Dashboard />
+                </DashboardLayout>
+              </ProtectedRoute>
+            } />
 
-          <Route path="/transactions" element={
-            <ProtectedRoute>
-              <DashboardLayout onLogout={handleLogout}>
-                <Transactions />
+            <Route path="/transactions" element={
+              <ProtectedRoute>
+                <DashboardLayout onLogout={handleLogout}>
+                  <Transactions />
               </DashboardLayout>
             </ProtectedRoute>
           } />
@@ -99,8 +102,17 @@ function App() {
               </DashboardLayout>
             </ProtectedRoute>
           } />
+
+          <Route path="/notifications" element={
+            <ProtectedRoute>
+              <DashboardLayout onLogout={handleLogout}>
+                <NotificationsPage />
+              </DashboardLayout>
+            </ProtectedRoute>
+          } />
         </Routes>
-      </DashboardProvider>
+        </DashboardProvider>
+      </AuthProvider>
       <ToastContainer />
     </Router>
   );

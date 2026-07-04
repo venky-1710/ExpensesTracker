@@ -172,6 +172,27 @@ class UserAPI:
             raise HTTPException(status_code=500, detail=str(e))
 
     @staticmethod
+    async def add_custom_tags(user_id: str, category: str = None, payment_method: str = None):
+        """Silently add new custom tags to the user profile."""
+        try:
+            add_to_set = {}
+            if category:
+                add_to_set["custom_categories"] = category
+            if payment_method:
+                add_to_set["custom_payment_methods"] = payment_method
+                
+            if not add_to_set:
+                return
+                
+            await db.auth_users.update_one(
+                {"_id": ObjectId(user_id)},
+                {"$addToSet": add_to_set}
+            )
+        except Exception as e:
+            logger.error(f"[ERROR] UserAPI.add_custom_tags - {str(e)}")
+
+
+    @staticmethod
     async def hard_delete(user_id: str, password: str) -> Dict[str, str]:
         """Permanently delete user account and all associated data after password verification."""
         try:

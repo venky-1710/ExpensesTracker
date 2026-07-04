@@ -8,6 +8,8 @@ export interface User {
   banner_image?: string;
   role?: string;
   theme_preference?: 'light' | 'dark';
+  custom_categories?: string[];
+  custom_payment_methods?: string[];
   created_at?: string;
 }
 

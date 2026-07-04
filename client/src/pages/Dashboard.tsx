@@ -9,6 +9,7 @@ import CategoryChart from '../components/Charts/CategoryChart';
 import SpendingChart from '../components/Charts/SpendingChart';
 import DateFilter from '../components/DateFilter/DateFilter';
 import SubLoader from '../components/SubLoader/SubLoader';
+import NotificationCenter from '../components/NotificationCenter/NotificationCenter';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import type { DateFilterState } from '../types';
@@ -286,6 +287,7 @@ const Dashboard = () => {
           </p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
+          <NotificationCenter />
           <DateFilter currentFilter={dateFilter} onFilterChange={handleFilterChange} />
           <input type="file" ref={fileInputRef} className="hidden" accept=".pdf,.csv,.xlsx,.xls" onChange={handleFileChange} />
           <button className="px-6 py-3 bg-white dark:bg-gray-800 text-[#6d4aff] dark:text-[#c850ff] border border-[#6d4aff] dark:border-[#c850ff] rounded-lg text-sm font-semibold cursor-pointer transition-all flex items-center gap-2 hover:-translate-y-0.5 hover:shadow-lg" onClick={handleUploadClick}>

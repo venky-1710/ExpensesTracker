@@ -14,6 +14,7 @@ from models.payloads import (
     PaginationParams,
 )
 from typing import List, Dict, Any
+from apis.user_api import UserAPI
 import traceback
 import csv
 import io
@@ -40,6 +41,9 @@ class TransactionAPI:
                 "created_at": datetime.now(),
                 "updated_at": datetime.now()
             }
+            
+            # Silently add to custom tags if they are new
+            await UserAPI.add_custom_tags(user_id, transaction_data.category, transaction_data.payment_method)
 
             result = await db.transactions.insert_one(doc)
             doc["id"] = str(result.inserted_id)
@@ -101,6 +105,13 @@ class TransactionAPI:
                 )
 
             update_dict["updated_at"] = datetime.now()
+
+            # Silently add to custom tags if they are new
+            await UserAPI.add_custom_tags(
+                user_id, 
+                update_dict.get("category"), 
+                update_dict.get("payment_method")
+            )
 
             result = await db.transactions.update_one(
                 {

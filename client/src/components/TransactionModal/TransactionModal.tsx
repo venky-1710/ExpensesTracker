@@ -3,6 +3,7 @@ import { FiX, FiCheck } from 'react-icons/fi';
 import { transactionService } from '../../services/transactionService';
 import './TransactionModal.css';
 import type { Transaction } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 
 interface Props {
   isOpen: boolean;
@@ -28,6 +29,7 @@ const CATEGORIES: Record<'credit' | 'debit', string[]> = {
 const PAYMENT_METHODS = ['Cash', 'Credit Card', 'Debit Card', 'Bank Transfer', 'UPI', 'Wallet', 'Other'];
 
 const TransactionModal = ({ isOpen, onClose, onSuccess, transaction = null }: Props) => {
+  const { user } = useAuth();
   const isEditMode = !!transaction;
 
   const getInitialFormData = (): FormData => ({
@@ -135,25 +137,45 @@ const TransactionModal = ({ isOpen, onClose, onSuccess, transaction = null }: Pr
 
           <div className="form-group">
             <label htmlFor="category">Category *</label>
-            <select id="category" name="category" value={formData.category} onChange={handleChange} disabled={loading} className={errors.category ? 'error' : ''}>
-              <option value="">Select a category</option>
-              {CATEGORIES[formData.type].map(cat => <option key={cat} value={cat}>{cat}</option>)}
-              {formData.category && !CATEGORIES[formData.type].includes(formData.category) && (
-                <option value={formData.category}>{formData.category}</option>
-              )}
-            </select>
+            <input 
+              type="text" 
+              id="category" 
+              name="category" 
+              list="category-options" 
+              value={formData.category} 
+              onChange={handleChange} 
+              disabled={loading} 
+              placeholder="Select or type a category" 
+              className={errors.category ? 'error' : ''} 
+              autoComplete="off"
+            />
+            <datalist id="category-options">
+              {Array.from(new Set([...CATEGORIES[formData.type], ...(user?.custom_categories || [])])).map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </datalist>
             {errors.category && <span className="error-text">{errors.category}</span>}
           </div>
 
           <div className="form-group">
             <label htmlFor="payment_method">Payment Method *</label>
-            <select id="payment_method" name="payment_method" value={formData.payment_method} onChange={handleChange} disabled={loading} className={errors.payment_method ? 'error' : ''}>
-              <option value="">Select payment method</option>
-              {PAYMENT_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
-              {formData.payment_method && !PAYMENT_METHODS.includes(formData.payment_method) && (
-                <option value={formData.payment_method}>{formData.payment_method}</option>
-              )}
-            </select>
+            <input 
+              type="text" 
+              id="payment_method" 
+              name="payment_method" 
+              list="payment-method-options" 
+              value={formData.payment_method} 
+              onChange={handleChange} 
+              disabled={loading} 
+              placeholder="Select or type a method" 
+              className={errors.payment_method ? 'error' : ''} 
+              autoComplete="off"
+            />
+            <datalist id="payment-method-options">
+              {Array.from(new Set([...PAYMENT_METHODS, ...(user?.custom_payment_methods || [])])).map(m => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </datalist>
             {errors.payment_method && <span className="error-text">{errors.payment_method}</span>}
           </div>
 

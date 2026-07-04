@@ -2,6 +2,7 @@ from database.database import db
 from bson import ObjectId
 from datetime import datetime
 import logging
+from apis.user_api import UserAPI
 
 logger = logging.getLogger(__name__)
 
@@ -31,9 +32,20 @@ async def create_user_event(user_id: str, event_data: dict) -> dict:
             "end_time": event_data.get("end_time"),
             "status": event_data.get("status", "pending"),
             "color": event_data.get("color", "#6d4aff"),
+            # Payment fields
+            "amount": event_data.get("amount"),
+            "payment_category": event_data.get("payment_category"),
+            "payment_method": event_data.get("payment_method"),
+            "transaction_type": event_data.get("transaction_type", "debit"),
+            "is_paid": False,
+            "payment_notified": False,
             "created_at": now,
             "updated_at": now
         }
+        
+        # Silently add to custom tags if they are new
+        await UserAPI.add_custom_tags(user_id, event_data.get("payment_category"), event_data.get("payment_method"))
+
         res = await db.calendar_events.insert_one(doc)
         doc["id"] = str(res.inserted_id)
         doc.pop("_id")
@@ -59,6 +71,13 @@ async def update_user_event(user_id: str, event_id: str, update_data: dict) -> d
 
         update_doc["updated_at"] = datetime.utcnow()
 
+        # Silently add to custom tags if they are new
+        await UserAPI.add_custom_tags(
+            user_id, 
+            update_doc.get("payment_category"), 
+            update_doc.get("payment_method")
+        )
+
         result = await db.calendar_events.update_one(
             {"_id": ObjectId(event_id), "user_id": ObjectId(user_id)},
             {"$set": update_doc}
@@ -83,4 +102,18 @@ async def delete_user_event(user_id: str, event_id: str) -> bool:
         return res.deleted_count > 0
     except Exception as e:
         logger.error(f"[ERROR] delete_user_event: {str(e)}")
+        return False
+
+async def undo_event_payment(user_id: str, event_id: str) -> bool:
+    try:
+        res = await db.calendar_events.update_one(
+            {"_id": ObjectId(event_id), "user_id": ObjectId(user_id)},
+            {
+                "$set": {"is_paid": False, "payment_notified": False},
+                "$unset": {"transaction_id": ""}
+            }
+        )
+        return res.modified_count > 0
+    except Exception as e:
+        logger.error(f"[ERROR] undo_event_payment: {str(e)}")
         return False

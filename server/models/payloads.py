@@ -52,6 +52,8 @@ class UserProfileResponse(BaseModel):
     role: str = "user"
     currency_preference: str = "USD"
     theme_preference: str = "light"
+    custom_categories: List[str] = []
+    custom_payment_methods: List[str] = []
     created_at: datetime
     updated_at: datetime
 
@@ -93,6 +95,8 @@ class UserPreferences(BaseModel):
     """User preferences update"""
     currency_preference: Optional[str] = None
     theme_preference: Optional[str] = Field(None, pattern="^(light|dark)$")
+    custom_categories: Optional[List[str]] = None
+    custom_payment_methods: Optional[List[str]] = None
 
 
 class UserInDB(BaseModel):
@@ -108,6 +112,8 @@ class UserInDB(BaseModel):
     role: str = "user"
     currency_preference: str = "USD"
     theme_preference: str = "light"
+    custom_categories: List[str] = []
+    custom_payment_methods: List[str] = []
     is_deleted: bool = False
     created_at: datetime
     updated_at: datetime
@@ -328,10 +334,15 @@ class WidgetMappingResponse(BaseModel):
 class CalendarEventRequest(BaseModel):
     title: str = Field(..., max_length=100)
     description: Optional[str] = None
-    start_time: str = Field(..., description="ISO 8601 string")
-    end_time: str = Field(..., description="ISO 8601 string")
+    start_time: str = Field(..., description="ISO 8601 string (local time)")
+    end_time: str = Field(..., description="ISO 8601 string (local time)")
     status: str = Field(default="pending")
     color: str = Field(default="#6d4aff")
+    # Optional payment fields
+    amount: Optional[float] = Field(None, gt=0, description="Amount due on event day")
+    payment_category: Optional[str] = Field(None, max_length=50, description="e.g. Bills, Rent, EMI")
+    payment_method: Optional[str] = Field(None, max_length=50, description="e.g. Cash, UPI, Card")
+    transaction_type: Optional[Literal["debit", "credit"]] = Field("debit", description="debit=expense, credit=income/salary")
 
 class CalendarEventUpdate(BaseModel):
     title: Optional[str] = Field(None, max_length=100)
@@ -340,6 +351,11 @@ class CalendarEventUpdate(BaseModel):
     end_time: Optional[str] = None
     status: Optional[str] = None
     color: Optional[str] = None
+    amount: Optional[float] = Field(None, gt=0)
+    payment_category: Optional[str] = Field(None, max_length=50)
+    payment_method: Optional[str] = Field(None, max_length=50)
+    transaction_type: Optional[Literal["debit", "credit"]] = None
+    is_paid: Optional[bool] = None
 
 class CalendarEventResponse(BaseModel):
     id: str
@@ -350,8 +366,42 @@ class CalendarEventResponse(BaseModel):
     end_time: str
     status: str
     color: str
+    amount: Optional[float] = None
+    payment_category: Optional[str] = None
+    payment_method: Optional[str] = None
+    transaction_type: Optional[str] = "debit"
+    transaction_id: Optional[str] = None
+    is_paid: bool = False
+    notified_1_day: bool = False
+    notified_same_day: bool = False
+    payment_notified: bool = False
     created_at: datetime
     updated_at: datetime
 
     class Config:
         from_attributes = True
+
+# --- Notification Models ---
+
+class NotificationCreate(BaseModel):
+    title: str = Field(..., max_length=100)
+    message: str = Field(..., max_length=500)
+    type: str = Field(default="info")
+    related_event_id: Optional[str] = None
+
+class NotificationResponse(BaseModel):
+    id: str
+    user_id: str
+    title: str
+    message: str
+    type: str
+    is_read: bool
+    related_event_id: Optional[str] = None
+    # Extra fields for payment_due notifications (populated on the fly)
+    related_event_amount: Optional[float] = None
+    related_event_payment_method: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+

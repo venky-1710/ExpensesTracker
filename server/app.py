@@ -17,6 +17,7 @@ from routes.chat_routes import router as chat_router
 from routes.cache_routes import router as cache_router
 from routes.upload_routes import upload_router
 from routes.calendar_routes import router as calendar_router
+from routes.notification_routes import router as notification_router
 from contextlib import asynccontextmanager
 import os
 import time
@@ -24,6 +25,8 @@ import traceback
 
 # Import logger AFTER load_dotenv
 from utils.logger import logger
+import asyncio
+from utils.scheduler import scheduler_loop
 
 
 @asynccontextmanager
@@ -47,6 +50,9 @@ async def lifespan(app: FastAPI):
         from scripts.create_indexes import create_indexes
         await create_indexes()
         logger.info("[DB] Indexes created successfully")
+
+        # Start notification scheduler
+        asyncio.create_task(scheduler_loop())
 
     except Exception as e:
         logger.error(f"[ERROR] Startup error: {str(e)}")
@@ -154,10 +160,11 @@ app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(user_router, prefix="/users", tags=["users"])
 app.include_router(transaction_router, prefix="/transactions", tags=["transactions"])
 app.include_router(dashboard_router, prefix="/dashboard", tags=["dashboard"])
-app.include_router(chat_router, prefix="/api/chat", tags=["AI Chatbot"])
-app.include_router(cache_router, prefix="/api/cache", tags=["Cache Management"])
-app.include_router(upload_router, prefix="/api/upload", tags=["Upload"])
-app.include_router(calendar_router, prefix="/api/calendar", tags=["Calendar"])
+app.include_router(chat_router, prefix="/api/chat", tags=["chat"])
+app.include_router(cache_router, prefix="/api/cache", tags=["cache"])
+app.include_router(upload_router, prefix="/api/upload", tags=["upload"])
+app.include_router(calendar_router, prefix="/api/calendar", tags=["calendar"])
+app.include_router(notification_router, prefix="/api/notifications", tags=["notifications"])
 
 
 @app.get("/", include_in_schema=False)
