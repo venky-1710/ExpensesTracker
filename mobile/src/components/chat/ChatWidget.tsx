@@ -3,7 +3,7 @@ import { View, TouchableOpacity, StyleSheet, Text, Modal, Image } from 'react-na
 import { useAppTheme, ThemeColors } from '../../context/ThemeContext';
 import { Feather } from '@expo/vector-icons';
 
-const webotLogo = require('../../../assets/images/webot_logo.png');
+const webotLogo = require('../../../assets/images/webot_logo.jpg');
 import ChatModal from './ChatModal';
 
 export default function ChatWidget() {

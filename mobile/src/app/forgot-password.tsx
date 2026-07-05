@@ -6,7 +6,7 @@ import Toast from 'react-native-toast-message';
 import { useAppTheme } from '../context/ThemeContext';
 import { Feather } from '@expo/vector-icons';
 
-const webotLogo = require('../../assets/images/webot_logo.png');
+const webotLogo = require('../../assets/images/webot_logo.jpg');
 
 export default function ForgotPasswordScreen() {
   const { C } = useAppTheme();

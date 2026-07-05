@@ -10,7 +10,7 @@ import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useAppTheme, ThemeColors } from '../../context/ThemeContext';
 
-const webotLogo = require('../../../assets/images/webot_logo.png');
+const webotLogo = require('../../../assets/images/webot_logo.jpg');
 
 export default function LoginScreen() {
   const { C } = useAppTheme();

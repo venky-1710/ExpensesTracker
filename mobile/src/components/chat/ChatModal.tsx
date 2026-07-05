@@ -7,8 +7,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 
-const webotLogo = require('../../../assets/images/webot_logo.png');
-const webotLogoCircle = require('../../../assets/images/webot_logo_circle.png');
+const webotLogo = require('../../../assets/images/webot_logo.jpg');
+const webotLogoCircle = require('../../../assets/images/webot_logo_circle.jpg');
 
 import { chatService } from '../../services/chatService';
 import { useAppTheme, ThemeColors } from '../../context/ThemeContext';
