@@ -317,3 +317,38 @@
 .password-toggle-btn:hover {
   color: #c850ff;
 }
+
+/* OTP verification boxes */
+.otp-container {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 8px 0 24px;
+}
+
+.otp-box {
+  width: 44px;
+  height: 52px;
+  text-align: center;
+  font-size: 22px;
+  font-weight: 700;
+  border-radius: 10px;
+  border: 1px solid #33285b;
+  background: #1a1035;
+  color: #ffffff;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.otp-box:focus {
+  border-color: #c850ff;
+  box-shadow: 0 0 0 1px rgba(200, 80, 255, 0.5);
+}
+
+@media (max-width: 600px) {
+  .otp-box {
+    width: 38px;
+    height: 46px;
+    font-size: 18px;
+  }
+}

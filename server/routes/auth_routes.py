@@ -1,9 +1,9 @@
 """
 Auth routes - Authentication endpoints
 """
-from fastapi import APIRouter, Depends, status, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, status, Response
 from fastapi.security import OAuth2PasswordRequestForm
-from models.payloads import UserCreate, UserProfileResponse, Token, PasswordResetRequest, PasswordResetConfirm, GoogleLoginRequest
+from models.payloads import UserCreate, UserProfileResponse, Token, PasswordResetRequest, PasswordResetConfirm, GoogleLoginRequest, VerifySignupRequest
 from apis.auth_api import AuthAPI
 from utils.auth import get_current_user
 from utils.helpers import api_handler
@@ -11,11 +11,17 @@ from utils.helpers import api_handler
 auth_router = APIRouter()
 
 
-@auth_router.post("/signup", response_model=UserProfileResponse, status_code=status.HTTP_201_CREATED)
+@auth_router.post("/request-signup")
 @api_handler
-async def signup(payload: UserCreate):
-    """Register a new user."""
-    return await AuthAPI.signup(payload)
+async def request_signup(payload: UserCreate, background_tasks: BackgroundTasks):
+    """Request a new user registration (sends OTP)."""
+    return await AuthAPI.request_signup(payload, background_tasks)
+
+@auth_router.post("/verify-signup")
+@api_handler
+async def verify_signup(payload: VerifySignupRequest):
+    """Verify OTP and complete user registration."""
+    return await AuthAPI.verify_signup(payload.email, payload.code)
 
 
 @auth_router.post("/login", response_model=Token)
@@ -46,9 +52,9 @@ async def read_me(current_user: dict = Depends(get_current_user)):
 
 @auth_router.post("/forgot-password")
 @api_handler
-async def forgot_password(payload: PasswordResetRequest):
+async def forgot_password(payload: PasswordResetRequest, background_tasks: BackgroundTasks):
     """Request a password reset link/code."""
-    result = await AuthAPI.request_password_reset(payload.email)
+    result = await AuthAPI.request_password_reset(payload.email, background_tasks)
     return result
 
 
@@ -58,6 +64,12 @@ async def reset_password(payload: PasswordResetConfirm):
     """Confirm password reset with code."""
     result = await AuthAPI.reset_password(payload.email, payload.code, payload.new_password)
     return result
+
+@auth_router.get("/check-availability")
+@api_handler
+async def check_availability(username: str = None, email: str = None):
+    """Check if username or email is available for registration."""
+    return await AuthAPI.check_availability(username, email)
 
 @auth_router.post("/google", response_model=Token)
 @api_handler

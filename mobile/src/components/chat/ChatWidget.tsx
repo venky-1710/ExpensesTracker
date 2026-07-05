@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { View, TouchableOpacity, StyleSheet, Text, Modal } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Text, Modal, Image } from 'react-native';
 import { useAppTheme, ThemeColors } from '../../context/ThemeContext';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
+
+const webotLogo = require('../../../assets/images/webot_logo.png');
 import ChatModal from './ChatModal';
 
 export default function ChatWidget() {
@@ -11,11 +13,18 @@ export default function ChatWidget() {
 
   return (
     <>
-      <TouchableOpacity style={s.fab} onPress={() => setIsOpen(true)} activeOpacity={0.8}>
-        <Ionicons name="chatbubble-ellipses" size={28} color="#fff" />
+      {/* Floating Action Button */}
+      <TouchableOpacity style={s.fab} onPress={() => setIsOpen(true)} activeOpacity={0.85}>
+        <Image source={webotLogo} style={s.fabLogo} resizeMode="cover" />
       </TouchableOpacity>
-      
-      <Modal visible={isOpen} animationType="slide" transparent={false} onRequestClose={() => setIsOpen(false)}>
+
+      <Modal
+        visible={isOpen}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setIsOpen(false)}
+        statusBarTranslucent
+      >
         <ChatModal onClose={() => setIsOpen(false)} />
       </Modal>
     </>
@@ -30,14 +39,16 @@ const getStyles = (C: ThemeColors) => StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: C.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 6,
-    shadowColor: '#000',
+    overflow: 'hidden',
+    elevation: 8,
+    shadowColor: C.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    borderWidth: 0,
+    shadowOpacity: 0.45,
+    shadowRadius: 10,
+  },
+  fabLogo: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
   }
 });

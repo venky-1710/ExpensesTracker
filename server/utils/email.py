@@ -1,8 +1,43 @@
 import os
-import resend
+import asyncio
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from utils.logger import logger
 
-resend.api_key = os.getenv("RESEND_API_KEY", "")
+def _send_smtp_email_blocking(to_email: str, subject: str, html_content: str):
+    """Core helper to send emails via Google SMTP."""
+    smtp_username = os.getenv("SMTP_USERNAME")
+    smtp_password = os.getenv("SMTP_PASSWORD")
+    
+    if not smtp_username or not smtp_password:
+        logger.warning("[EMAIL] SMTP credentials missing in .env. Skipping email.")
+        return
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = f"ExpenseTracker <{smtp_username}>"
+    msg["To"] = to_email
+
+    part = MIMEText(html_content, "html")
+    msg.attach(part)
+
+    try:
+        # Use Gmail's SMTP server
+        server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
+        server.login(smtp_username, smtp_password)
+        server.sendmail(smtp_username, to_email, msg.as_string())
+        server.quit()
+        logger.info(f"[EMAIL] Successfully sent email to {to_email}")
+    except Exception as e:
+        logger.error(f"[EMAIL ERROR] Failed to send email to {to_email}: {str(e)}")
+        raise e
+
+
+async def send_smtp_email(to_email: str, subject: str, html_content: str):
+    """Send an email without blocking the asyncio event loop."""
+    await asyncio.to_thread(_send_smtp_email_blocking, to_email, subject, html_content)
+
 
 async def send_reset_email(to_email: str, otp: str):
     """Send OTP password reset email via Resend API (works on all hosting platforms)."""
@@ -32,19 +67,40 @@ async def send_reset_email(to_email: str, otp: str):
     </html>
     """
 
-    try:
-        logger.info(f"[EMAIL] Sending OTP email to {to_email} via Resend...")
-        params = {
-            "from": from_address,
-            "to": [to_email],
-            "subject": "Your Password Reset Code",
-            "html": html_content,
-        }
-        response = resend.Emails.send(params)
-        logger.info(f"[EMAIL] Email sent successfully. ID: {response.get('id')}")
-    except Exception as e:
-        logger.error(f"[EMAIL ERROR] Failed to send email to {to_email}: {str(e)}")
-        raise e
+    await send_smtp_email(to_email, "Your Password Reset Code", html_content)
+    logger.info(f"[EMAIL DEV MODE] Sent OTP: {otp}")
+
+
+async def send_signup_otp_email(to_email: str, otp: str):
+    """Send OTP email for signup verification via Resend API."""
+    app_name = os.getenv("DATABASE_NAME", "ExpenseTrack")
+    from_address = os.getenv("EMAIL_FROM", "onboarding@resend.dev")
+
+    html_content = f"""
+    <html>
+      <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
+        <div style="max-width: 500px; margin: 0 auto; background-color: #ffffff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+          <h2 style="color: #6d4aff; text-align: center; margin-bottom: 20px;">Verify your email</h2>
+          <p style="color: #333; font-size: 16px; line-height: 1.5;">
+            Thank you for registering! Please use the following 6-digit code to complete your sign-up:
+          </p>
+          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0;">
+            <span style="font-size: 32px; font-weight: bold; color: #333; letter-spacing: 4px;">{otp}</span>
+          </div>
+          <p style="color: #666; font-size: 14px;">
+            This code will expire in 15 minutes.
+          </p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
+          <p style="color: #999; font-size: 12px; text-align: center;">
+            &copy; {app_name} Team
+          </p>
+        </div>
+      </body>
+    </html>
+    """
+
+    await send_smtp_email(to_email, "Your Signup Verification Code", html_content)
+    logger.info(f"[EMAIL DEV MODE] Sent OTP: {otp}")
 
 async def send_event_reminder_email(to_email: str, event_title: str, event_time: str, reminder_type: str):
     """Send calendar event reminder email."""
@@ -77,18 +133,7 @@ async def send_event_reminder_email(to_email: str, event_title: str, event_time:
     </html>
     """
 
-    try:
-        logger.info(f"[EMAIL] Sending reminder email to {to_email} via Resend...")
-        params = {
-            "from": from_address,
-            "to": [to_email],
-            "subject": subject,
-            "html": html_content,
-        }
-        response = resend.Emails.send(params)
-        logger.info(f"[EMAIL] Reminder email sent successfully. ID: {response.get('id')}")
-    except Exception as e:
-        logger.error(f"[EMAIL ERROR] Failed to send reminder email to {to_email}: {str(e)}")
+    await send_smtp_email(to_email, subject, html_content)
 
 async def send_event_created_email(
     to_email: str,
@@ -202,10 +247,4 @@ async def send_event_created_email(
     </html>
     """
 
-    try:
-        logger.info(f"[EMAIL] Sending event-created email to {to_email}…")
-        params = {"from": from_address, "to": [to_email], "subject": subject, "html": html_content}
-        resend.Emails.send(params)
-        logger.info(f"[EMAIL] Event-created email sent to {to_email}")
-    except Exception as e:
-        logger.error(f"[EMAIL ERROR] Failed to send event-created email to {to_email}: {str(e)}")
+    await send_smtp_email(to_email, subject, html_content)

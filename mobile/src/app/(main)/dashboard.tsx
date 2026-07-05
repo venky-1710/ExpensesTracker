@@ -9,9 +9,12 @@ import { useAuth } from '../../context/AuthContext';
 import { dashboardService } from '../../services/dashboardService';
 import { useAppTheme, ThemeColors } from '../../context/ThemeContext';
 import { Feather } from '@expo/vector-icons';
-import Svg, { Path, G, Text as SvgText, Polyline, Rect, Line, Defs, LinearGradient, Stop } from 'react-native-svg';
 import ChatWidget from '../../components/chat/ChatWidget';
 import DateFilterModal, { FilterState } from '../../components/DateFilterModal';
+import NotificationModal from '../../components/NotificationModal';
+import { notificationService } from '../../services/notificationService';
+import IncomeExpenseChart from '../../components/charts/IncomeExpenseChart';
+import CategoryPieChart from '../../components/charts/CategoryPieChart';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -56,290 +59,11 @@ const fmtMonthLabel = (dateStr: string) => {
   return MONTH_ABBR[(m - 1)] ?? dateStr.slice(5);
 };
 
-// ── Income vs Expenses Chart ────────────────────────────────────────
-const SERIES = [
-  { key: 'income',  label: 'Income',   color: '#10b981', gradId: 'igGreen' },
-  { key: 'expense', label: 'Expenses', color: '#ef4444', gradId: 'igRed'   },
-] as const;
+// ── Extracted Charts ──────────────────────────────────────────────
+// IncomeExpenseChart and CategoryPieChart are now in src/components/charts/
 
-function IncomeExpenseChart({ data, C }: { data: any[], C: ThemeColors }) {
-  const chart = getChartStyles(C);
-  const [hidden, setHidden] = useState<string[]>([]);
 
-  const toggle = (key: string) =>
-    setHidden(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
-
-  if (!data || data.length === 0) {
-    return (
-      <View style={chart.empty}>
-        <Feather name="bar-chart-2" size={32} color={C.textMuted} />
-        <Text style={chart.emptyText}>No data yet</Text>
-        <Text style={chart.emptySmall}>Add transactions to see your trend</Text>
-      </View>
-    );
-  }
-
-  const showIncome  = !hidden.includes('income');
-  const showExpense = !hidden.includes('expense');
-
-  const displayData = data.slice(-8);
-
-  // Recalculate max only from visible series
-  const maxVal = Math.max(
-    ...displayData.flatMap((d: any) => [
-      showIncome  ? (d.credits || 0) : 0,
-      showExpense ? (d.debits  || 0) : 0,
-    ]),
-    1,
-  );
-
-  // Layout
-  const Y_LABEL_W = 42;
-  const TOP_PAD   = 12;
-  const BOT_PAD   = 26;
-  const CHART_H   = 180;
-  const SVG_H     = CHART_H + TOP_PAD + BOT_PAD;
-  const FULL_W    = SW - 72;
-  const PLOT_W    = FULL_W - Y_LABEL_W;
-  const bothVis   = showIncome && showExpense;
-  const GROUP_W   = PLOT_W / displayData.length;
-  const BAR_W     = Math.min(18, GROUP_W * (bothVis ? 0.32 : 0.45));
-  const BAR_GAP   = bothVis ? 4 : 0;
-  const pairW     = bothVis ? BAR_W * 2 + BAR_GAP : BAR_W;
-  const GROUP_OFF = (GROUP_W - pairW) / 2;
-
-  const fmtY = (v: number) => {
-    if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
-    if (v >= 1_000)     return `${(v / 1_000).toFixed(0)}k`;
-    return `${Math.round(v)}`;
-  };
-
-  const gridPcts = [0, 0.25, 0.5, 0.75, 1];
-
-  return (
-    <View>
-      <Svg width={FULL_W} height={SVG_H}>
-        <Defs>
-          <LinearGradient id="igGreen" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor="#10b981" stopOpacity="1"    />
-            <Stop offset="1" stopColor="#10b981" stopOpacity="0.45" />
-          </LinearGradient>
-          <LinearGradient id="igRed" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor="#ef4444" stopOpacity="1"    />
-            <Stop offset="1" stopColor="#ef4444" stopOpacity="0.45" />
-          </LinearGradient>
-        </Defs>
-
-        {/* Y-axis gridlines + labels */}
-        {gridPcts.map((pct, i) => {
-          const y = TOP_PAD + CHART_H - pct * CHART_H;
-          return (
-            <G key={i}>
-              <Line
-                x1={Y_LABEL_W} y1={y} x2={FULL_W} y2={y}
-                stroke={C.border}
-                strokeWidth={i === 0 ? 1 : 0.7}
-                strokeOpacity={i === 0 ? 0.8 : 0.45}
-                strokeDasharray={i === 0 ? undefined : '4 5'}
-              />
-              {pct > 0 && (
-                <SvgText x={Y_LABEL_W - 6} y={y + 4} fontSize="9" fill={C.textMuted} textAnchor="end">
-                  {fmtY(pct * maxVal)}
-                </SvgText>
-              )}
-            </G>
-          );
-        })}
-
-        {/* Bars + x-labels */}
-        {displayData.map((d: any, i: number) => {
-          const incH  = Math.max(6, ((d.credits || 0) / maxVal) * CHART_H);
-          const expH  = Math.max(6, ((d.debits  || 0) / maxVal) * CHART_H);
-          const gx    = Y_LABEL_W + i * GROUP_W + GROUP_OFF;
-          const baseY = TOP_PAD + CHART_H;
-          const midX  = gx + pairW / 2;
-
-          return (
-            <G key={i}>
-              {showIncome && (
-                <Rect
-                  x={gx} y={baseY - incH}
-                  width={BAR_W} height={incH}
-                  rx={5} ry={5}
-                  fill="url(#igGreen)"
-                />
-              )}
-              {showExpense && (
-                <Rect
-                  x={bothVis ? gx + BAR_W + BAR_GAP : gx} y={baseY - expH}
-                  width={BAR_W} height={expH}
-                  rx={5} ry={5}
-                  fill="url(#igRed)"
-                />
-              )}
-              <SvgText x={midX} y={baseY + 18} fontSize="10" fill={C.textMuted} textAnchor="middle">
-                {fmtMonthLabel(d.date)}
-              </SvgText>
-            </G>
-          );
-        })}
-      </Svg>
-
-      {/* Toggle tags */}
-      <View style={chart.tagRow}>
-        {SERIES.map(s => {
-          const isHidden = hidden.includes(s.key);
-          return (
-            <TouchableOpacity
-              key={s.key}
-              style={[chart.legendItem, { opacity: isHidden ? 0.4 : 1 }]}
-              onPress={() => toggle(s.key)}
-              activeOpacity={0.7}
-            >
-              <View style={[chart.legendDot, { backgroundColor: s.color }]} />
-              <Text style={[chart.legendLabel, { textDecorationLine: isHidden ? 'line-through' : 'none' }]}>
-                {s.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-    </View>
-  );
-}
-
-// ── Custom SVG Pie Chart ──────────────────────────────────────────
-function CustomPieChartView({ data, C }: { data: any[], C: ThemeColors }) {
-  const chart = getChartStyles(C);
-  const scrollRef = useRef<ScrollView>(null);
-  const [hidden, setHidden] = useState<string[]>([]);
-
-  if (!data || data.length === 0) {
-    return (
-      <View style={chart.empty}>
-        <Feather name="pie-chart" size={32} color={C.textMuted} />
-        <Text style={chart.emptyText}>No categories yet</Text>
-        <Text style={chart.emptySmall}>Add expense transactions to see breakdown</Text>
-      </View>
-    );
-  }
-
-  const allPieData = data.sort((a, b) => b.amount - a.amount).slice(0, 8).map((item, i) => ({
-    ...item,
-    color: CHART_COLORS[i % CHART_COLORS.length]
-  }));
-
-  const visibleData = allPieData.filter(item => !hidden.includes(item.category));
-  const total = visibleData.reduce((sum, item) => sum + item.amount, 0);
-
-  const SIZE = SW - 32;
-  const CENTER = SIZE / 2;
-  const RADIUS = SIZE * 0.22;
-
-  let currentAngle = -Math.PI / 2;
-
-  const slices = visibleData.map((item) => {
-    const angle = total > 0 ? (item.amount / total) * (Math.PI * 2) : 0;
-    const startAngle = currentAngle;
-    const endAngle = currentAngle + angle;
-    currentAngle = endAngle;
-
-    const startX = CENTER + RADIUS * Math.cos(startAngle);
-    const startY = CENTER + RADIUS * Math.sin(startAngle);
-    const endX = CENTER + RADIUS * Math.cos(endAngle);
-    const endY = CENTER + RADIUS * Math.sin(endAngle);
-    const largeArcFlag = angle > Math.PI ? 1 : 0;
-
-    let d;
-    if (angle > Math.PI * 1.999) {
-      d = `M ${CENTER} ${CENTER - RADIUS} A ${RADIUS} ${RADIUS} 0 1 1 ${CENTER} ${CENTER + RADIUS} A ${RADIUS} ${RADIUS} 0 1 1 ${CENTER} ${CENTER - RADIUS} Z`;
-    } else {
-      d = `M ${CENTER} ${CENTER} L ${startX} ${startY} A ${RADIUS} ${RADIUS} 0 ${largeArcFlag} 1 ${endX} ${endY} Z`;
-    }
-
-    const midAngle = startAngle + angle / 2;
-    const isRight = Math.cos(midAngle) >= 0;
-    const lineStartR = RADIUS;
-    const lineMidR = RADIUS + 12;
-    const lineEndOffset = isRight ? 12 : -12;
-    const lineStartX = CENTER + lineStartR * Math.cos(midAngle);
-    const lineStartY = CENTER + lineStartR * Math.sin(midAngle);
-    const lineMidX = CENTER + lineMidR * Math.cos(midAngle);
-    const lineMidY = CENTER + lineMidR * Math.sin(midAngle);
-    const lineEndX = lineMidX + lineEndOffset;
-    const lineEndY = lineMidY;
-
-    return {
-      item, color: item.color, d,
-      linePoints: `${lineStartX},${lineStartY} ${lineMidX},${lineMidY} ${lineEndX},${lineEndY}`,
-      textX: lineEndX + (isRight ? 5 : -5),
-      textY: lineEndY + 4,
-      textAnchor: isRight ? 'start' : 'end',
-    };
-  });
-
-  return (
-    <View style={{ alignItems: 'center' }}>
-      <Svg width={SIZE} height={SIZE * 0.75}>
-        <G y={-10}>
-          {total === 0 ? (
-            <G>
-              <Path
-                d={`M ${CENTER} ${CENTER - RADIUS} A ${RADIUS} ${RADIUS} 0 1 1 ${CENTER} ${CENTER + RADIUS} A ${RADIUS} ${RADIUS} 0 1 1 ${CENTER} ${CENTER - RADIUS} Z`}
-                fill="rgba(150,150,150,0.1)"
-              />
-              <SvgText x={CENTER} y={CENTER + 4} fill={C.textMuted} fontSize="12" textAnchor="middle">
-                No visible data
-              </SvgText>
-            </G>
-          ) : (
-            slices.map((slice, i) => (
-              <G key={i}>
-                <Path d={slice.d} fill={slice.color} />
-                <Polyline points={slice.linePoints} fill="none" stroke={slice.color} strokeWidth="1" />
-                <SvgText x={slice.textX} y={slice.textY} fill={C.textSecondary} fontSize="11" textAnchor={slice.textAnchor}>
-                  {slice.item.category}
-                </SvgText>
-              </G>
-            ))
-          )}
-        </G>
-      </Svg>
-
-      <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', marginTop: 4, marginBottom: 8 }}>
-        <TouchableOpacity onPress={() => scrollRef.current?.scrollTo({ x: 0, animated: true })} style={{ padding: 4 }}>
-          <Feather name="chevron-left" size={20} color={C.textMuted} />
-        </TouchableOpacity>
-        <ScrollView ref={scrollRef} horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
-          <View style={[chart.legend, { marginBottom: 0 }]}>
-            {allPieData.map((item, i) => {
-              const isHidden = hidden.includes(item.category);
-              return (
-                <TouchableOpacity
-                  key={i}
-                  style={[chart.legendItem, { opacity: isHidden ? 0.4 : 1 }]}
-                  onPress={() => {
-                    setHidden(prev =>
-                      isHidden ? prev.filter(c => c !== item.category) : [...prev, item.category]
-                    );
-                  }}
-                >
-                  <View style={[chart.legendDot, { backgroundColor: item.color }]} />
-                  <Text style={[chart.legendLabel, { textDecorationLine: isHidden ? 'line-through' : 'none' }]}>
-                    {item.category}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </ScrollView>
-        <TouchableOpacity onPress={() => scrollRef.current?.scrollToEnd({ animated: true })} style={{ padding: 4 }}>
-          <Feather name="chevron-right" size={20} color={C.textMuted} />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-}
+import { useGlobalFilter } from '../../context/FilterContext';
 
 // ── KPI icon map ──────────────────────────────────────────────────
 const KPI_ICONS = ['trending-up', 'trending-down', 'dollar-sign', 'activity'] as const;
@@ -349,9 +73,10 @@ export default function DashboardScreen() {
   const { C } = useAppTheme();
   const s = getStyles(C);
   const { user } = useAuth();
-
-  const [filter, setFilter] = useState<FilterState>({ type: 'all', startDate: null, endDate: null });
+  const { filter, setFilter } = useGlobalFilter();
   const [filterVisible, setFilterVisible] = useState(false);
+  const [notifVisible, setNotifVisible] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const [kpis, setKpis] = useState<any>(null);
   const [charts, setCharts] = useState<any>(null);
@@ -364,17 +89,22 @@ export default function DashboardScreen() {
       const params = {
         filter_type: filter.type,
         ...(filter.startDate && { start_date: filter.startDate }),
-        ...(filter.endDate && { end_date: filter.endDate })
+        ...(filter.endDate && { end_date: filter.endDate }),
+        ...(filter.granularity && { granularity: filter.granularity })
       };
-      const [k, ch, w] = await Promise.all([
+      const [k, ch, w, n] = await Promise.all([
         dashboardService.getKPIs(params),
         dashboardService.getCharts(params),
         dashboardService.getWidgets(params),
+        notificationService.getNotifications(),
       ]);
       setKpis(k?.data || k);
       setCharts(ch?.data || ch);
       setWidgets(w?.data || w);
-    } catch (e) {
+
+      const unread = (n || []).filter((x: any) => !x.is_read).length;
+      setUnreadCount(unread);
+    } catch (e: any) {
       console.warn('Dashboard load error:', e.message || e);
     } finally {
       setLoading(false);
@@ -425,6 +155,14 @@ export default function DashboardScreen() {
             <Text style={s.nameText}>{user?.full_name || 'User'} 👋</Text>
           </View>
           <View style={s.headerRight}>
+            <TouchableOpacity style={s.bellBtn} onPress={() => setNotifVisible(true)}>
+              <Feather name="bell" size={18} color={C.textPrimary} />
+              {unreadCount > 0 && (
+                <View style={s.badge}>
+                  <Text style={s.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
             <TouchableOpacity style={s.filterBtn} onPress={() => setFilterVisible(true)}>
               <Feather name="calendar" size={14} color={C.textSecondary} />
               <Text style={s.filterText}>{getFilterLabel(filter)}</Text>
@@ -493,7 +231,9 @@ export default function DashboardScreen() {
           <View style={s.chartHeader}>
             <Text style={s.chartTitle}>Income vs Expenses</Text>
             <View style={[s.chartBadge, { backgroundColor: C.primary + '15' }]}>
-              <Text style={[s.chartBadgeText, { color: C.primary }]}>Monthly</Text>
+              <Text style={[s.chartBadgeText, { color: C.primary }]}>
+                {filter.granularity ? filter.granularity.charAt(0).toUpperCase() + filter.granularity.slice(1) : 'Monthly'}
+              </Text>
             </View>
           </View>
           <IncomeExpenseChart data={creditVsDebit} C={C} />
@@ -507,7 +247,7 @@ export default function DashboardScreen() {
               <Text style={[s.chartBadgeText, { color: C.amber }]}>Expenses</Text>
             </View>
           </View>
-          <CustomPieChartView data={categoryBreakdown} C={C} />
+          <CategoryPieChart data={categoryBreakdown} C={C} />
         </View>
 
         {/* ── Recent Transactions ── */}
@@ -566,6 +306,11 @@ export default function DashboardScreen() {
         onClose={() => setFilterVisible(false)}
         onApply={setFilter}
       />
+      <NotificationModal
+        visible={notifVisible}
+        onClose={() => setNotifVisible(false)}
+        onUnreadCountChange={setUnreadCount}
+      />
 
       <ChatWidget />
     </SafeAreaView>
@@ -584,7 +329,20 @@ const getStyles = (C: ThemeColors) => StyleSheet.create({
   },
   welcomeText: { fontSize: 13, color: C.textMuted, fontWeight: '500' },
   nameText: { fontSize: 22, fontWeight: '800', color: C.textPrimary, marginTop: 2 },
-  headerRight: { gap: 8 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  bellBtn: {
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: C.card, borderWidth: 1, borderColor: C.border,
+    alignItems: 'center', justifyContent: 'center',
+    position: 'relative',
+  },
+  badge: {
+    position: 'absolute', top: -2, right: -2,
+    backgroundColor: C.red, minWidth: 16, height: 16, borderRadius: 8,
+    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4,
+    borderWidth: 2, borderColor: C.bg,
+  },
+  badgeText: { color: '#fff', fontSize: 9, fontWeight: 'bold' },
   filterBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 9,

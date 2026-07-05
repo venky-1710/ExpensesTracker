@@ -131,7 +131,7 @@ const ChatWidget = () => {
   
   const { charts, refreshDashboard } = useDashboard();
   const { user } = useAuth();
-  const firstName = user?.full_name?.split(' ')[0] || user?.username || 'There';
+  const firstName = user?.full_name?.split(' ')[0] || user?.username || 'User';
   
   const [isUploading, setIsUploading] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);

@@ -101,20 +101,40 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const signup = async (userData) => {
+    const requestSignup = async (userData) => {
         try {
-            await authService.signup(userData);
+            await authService.requestSignup(userData);
             Toast.show({
                 type: 'success',
-                text1: 'Success',
-                text2: 'Signup successful! Please login.',
+                text1: 'Verification Sent',
+                text2: 'Please check your email for the OTP code.',
             });
             return true;
         } catch (error) {
             Toast.show({
                 type: 'error',
                 text1: 'Error',
-                text2: getErrorMessage(error) || 'Signup failed',
+                text2: getErrorMessage(error) || 'Failed to request signup',
+            });
+            return false;
+        }
+    };
+
+    const verifySignup = async (email, code) => {
+        try {
+            await authService.verifySignup(email, code);
+            await fetchUser();
+            Toast.show({
+                type: 'success',
+                text1: 'Welcome!',
+                text2: 'Your account has been created successfully.',
+            });
+            return true;
+        } catch (error) {
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: getErrorMessage(error) || 'Invalid OTP code',
             });
             return false;
         }
@@ -142,7 +162,8 @@ export const AuthProvider = ({ children }) => {
         isAuthenticated,
         login,
         googleLogin,
-        signup,
+        requestSignup,
+        verifySignup,
         logout,
         updateUser,
         refreshUser: fetchUser,

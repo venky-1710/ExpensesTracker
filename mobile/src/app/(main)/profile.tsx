@@ -10,6 +10,8 @@ import { useAuth } from '../../context/AuthContext';
 import { userService } from '../../services/userService';
 import Toast from 'react-native-toast-message';
 import { useAppTheme, ThemeColors } from '../../context/ThemeContext';
+import NotificationModal from '../../components/NotificationModal';
+import api from '../../services/api';
 
 export default function ProfileScreen() {
   const { C, isDark, themeMode, setThemeMode } = useAppTheme();
@@ -34,6 +36,18 @@ export default function ProfileScreen() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteShowPw, setDeleteShowPw] = useState(false);
+
+  const [notifModal, setNotifModal] = useState(false);
+  const [aboutModal, setAboutModal] = useState(false);
+  const [supportModal, setSupportModal] = useState(false);
+  const [supportForm, setSupportForm] = useState({
+    firstName: '',
+    lastName: '',
+    workEmail: '',
+    phoneNumber: '',
+    message: '',
+  });
+  const [isSubmittingSupport, setIsSubmittingSupport] = useState(false);
 
   const load = async () => {
     try {
@@ -176,7 +190,51 @@ export default function ProfileScreen() {
       color: C.green,
       onPress: () => setPwModal(true),
     },
+    {
+      label: 'Notifications',
+      sub: 'Alerts and updates',
+      icon: 'bell' as const,
+      color: '#f59e0b',
+      onPress: () => setNotifModal(true),
+    },
   ];
+
+  const supportItems = [
+    {
+      label: 'About App',
+      sub: 'Version, info & socials',
+      icon: 'info' as const,
+      color: '#8b5cf6',
+      onPress: () => setAboutModal(true),
+    },
+    {
+      label: 'Support & Contact',
+      sub: 'Need help? Contact us',
+      icon: 'help-circle' as const,
+      color: '#ec4899',
+      onPress: () => setSupportModal(true),
+    },
+  ];
+
+  const handleSendSupport = async () => {
+    if (!supportForm.firstName || !supportForm.workEmail || !supportForm.message) {
+      Toast.show({ type: 'error', text1: 'Required', text2: 'Please fill in the required fields' });
+      return;
+    }
+    
+    setIsSubmittingSupport(true);
+    try {
+      await api.post('/api/support/contact', supportForm);
+      setSupportModal(false);
+      setSupportForm({ firstName: '', lastName: '', workEmail: '', phoneNumber: '', message: '' });
+      Toast.show({ type: 'success', text1: 'Submitted Successfully', text2: 'Your message has been sent to support.' });
+    } catch (err: any) {
+      console.error('Contact submission error:', err);
+      Toast.show({ type: 'error', text1: 'Error', text2: err.response?.data?.detail || 'Failed to send message.' });
+    } finally {
+      setIsSubmittingSupport(false);
+    }
+  };
 
   return (
     <SafeAreaView style={s.root}>
@@ -268,6 +326,28 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {/* ── App Support ────────────────────────────── */}
+        <View style={s.section}>
+          <Text style={s.sectionLabel}>App Support</Text>
+          <View style={s.menuCard}>
+            {supportItems.map((item, i) => (
+              <React.Fragment key={item.label}>
+                <TouchableOpacity style={s.menuRow} onPress={item.onPress} activeOpacity={0.7}>
+                  <View style={[s.menuIconBox, { backgroundColor: item.color + '18' }]}>
+                    <Feather name={item.icon} size={17} color={item.color} />
+                  </View>
+                  <View style={s.menuMeta}>
+                    <Text style={s.menuLabel}>{item.label}</Text>
+                    <Text style={s.menuSub}>{item.sub}</Text>
+                  </View>
+                  <Feather name="chevron-right" size={16} color={C.textMuted} />
+                </TouchableOpacity>
+                {i < supportItems.length - 1 && <View style={s.rowSep} />}
+              </React.Fragment>
+            ))}
+          </View>
+        </View>
+
         {/* ── Sign Out ───────────────────────────────── */}
         <View style={s.section}>
           <TouchableOpacity style={s.signOutBtn} onPress={logout} activeOpacity={0.8}>
@@ -291,10 +371,143 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={{ height: 60 }} />
+        <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* ── Appearance Modal ───────────────────────── */}
+      {/* ── About Modal ────────────────────────────────────── */}
+      <Modal visible={aboutModal} animationType="fade" transparent onRequestClose={() => setAboutModal(false)}>
+        <View style={s.overlay}>
+          <View style={s.sheet}>
+            <View style={s.sheetHandle} />
+            <View style={s.sheetHeader}>
+              <Text style={s.sheetTitle}>About App</Text>
+              <TouchableOpacity onPress={() => setAboutModal(false)} style={s.closeBtn}>
+                <Feather name="x" size={16} color={C.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <View style={[s.sheetBody, { alignItems: 'center', paddingBottom: 40 }]}>
+              <View style={[s.avatar, { width: 80, height: 80, borderRadius: 24, backgroundColor: C.primary + '18', marginBottom: 16 }]}>
+                <Feather name="pie-chart" size={32} color={C.primary} />
+              </View>
+              <Text style={{ fontSize: 20, fontWeight: '800', color: C.textPrimary }}>ExpensesTracker</Text>
+              <Text style={{ fontSize: 13, color: C.textMuted, marginTop: 4 }}>Version 1.0.0</Text>
+              
+              <Text style={{ fontSize: 14, color: C.textSecondary, textAlign: 'center', marginTop: 16, lineHeight: 22 }}>
+                Track your expenses, manage your income, and analyze your financial habits effortlessly with our intelligent platform.
+              </Text>
+              
+              <View style={{ flexDirection: 'row', gap: 20, marginTop: 32 }}>
+                <TouchableOpacity style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#1DA1F218', alignItems: 'center', justifyContent: 'center' }}>
+                  <Feather name="twitter" size={20} color="#1DA1F2" />
+                </TouchableOpacity>
+                <TouchableOpacity style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#33333318', alignItems: 'center', justifyContent: 'center' }}>
+                  <Feather name="github" size={20} color={isDark ? '#fff' : '#333'} />
+                </TouchableOpacity>
+                <TouchableOpacity style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#E1306C18', alignItems: 'center', justifyContent: 'center' }}>
+                  <Feather name="instagram" size={20} color="#E1306C" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Support Modal ──────────────────────────────────── */}
+      <Modal visible={supportModal} animationType="fade" transparent onRequestClose={() => setSupportModal(false)}>
+        <View style={s.overlay}>
+          <View style={s.sheet}>
+            <View style={s.sheetHandle} />
+            <View style={s.sheetHeader}>
+              <Text style={s.sheetTitle}>Support & Contact</Text>
+              <TouchableOpacity onPress={() => setSupportModal(false)} style={s.closeBtn}>
+                <Feather name="x" size={16} color={C.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ paddingHorizontal: 24, paddingTop: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+              <Text style={{ fontSize: 24, fontWeight: '800', color: C.textPrimary, marginBottom: 8 }}>Get in Touch</Text>
+              <Text style={{ fontSize: 13, color: C.textMuted, marginBottom: 24 }}>
+                Please fill out the form below to share your feedback or request information about our services
+              </Text>
+
+              <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.fieldLabel}>First name</Text>
+                  <TextInput
+                    style={[s.input, { paddingLeft: 16 }]}
+                    placeholder="First name"
+                    placeholderTextColor={C.textMuted}
+                    value={supportForm.firstName}
+                    onChangeText={(t) => setSupportForm({ ...supportForm, firstName: t })}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.fieldLabel}>Last name</Text>
+                  <TextInput
+                    style={[s.input, { paddingLeft: 16 }]}
+                    placeholder="Last name"
+                    placeholderTextColor={C.textMuted}
+                    value={supportForm.lastName}
+                    onChangeText={(t) => setSupportForm({ ...supportForm, lastName: t })}
+                  />
+                </View>
+              </View>
+
+              <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.fieldLabel}>Work email</Text>
+                  <TextInput
+                    style={[s.input, { paddingLeft: 16 }]}
+                    placeholder="Email"
+                    placeholderTextColor={C.textMuted}
+                    keyboardType="email-address"
+                    value={supportForm.workEmail}
+                    onChangeText={(t) => setSupportForm({ ...supportForm, workEmail: t })}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.fieldLabel}>Phone number</Text>
+                  <TextInput
+                    style={[s.input, { paddingLeft: 16 }]}
+                    placeholder="Phone"
+                    placeholderTextColor={C.textMuted}
+                    keyboardType="phone-pad"
+                    value={supportForm.phoneNumber}
+                    onChangeText={(t) => setSupportForm({ ...supportForm, phoneNumber: t })}
+                  />
+                </View>
+              </View>
+
+              <View style={s.fieldGroup}>
+                <Text style={s.fieldLabel}>Feedback Message</Text>
+                <TextInput
+                  style={[s.input, { paddingLeft: 16, minHeight: 100, paddingTop: 16, paddingBottom: 16 }]}
+                  placeholder="How can we help?"
+                  placeholderTextColor={C.textMuted}
+                  value={supportForm.message}
+                  onChangeText={(t) => setSupportForm({ ...supportForm, message: t })}
+                  multiline
+                  textAlignVertical="top"
+                />
+              </View>
+
+              <TouchableOpacity 
+                style={[s.primaryBtn, { marginBottom: 40, opacity: isSubmittingSupport ? 0.7 : 1 }]} 
+                onPress={handleSendSupport} 
+                activeOpacity={0.8}
+                disabled={isSubmittingSupport}
+              >
+                {isSubmittingSupport ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={s.primaryBtnText}>Submit</Text>
+                )}
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Appearance Modal ─────────────────────────────── */}
       <Modal visible={themeModal} animationType="fade" transparent onRequestClose={() => setThemeModal(false)}>
         <View style={s.overlay}>
           <View style={s.sheet}>
@@ -335,6 +548,8 @@ export default function ProfileScreen() {
           </View>
         </View>
       </Modal>
+
+      <NotificationModal visible={notifModal} onClose={() => setNotifModal(false)} />
 
       {/* ── Edit Profile Modal ─────────────────────── */}
       <Modal visible={editModal} animationType="slide" transparent onRequestClose={() => setEditModal(false)}>

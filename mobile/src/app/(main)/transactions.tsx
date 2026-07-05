@@ -9,6 +9,8 @@ import { Feather } from '@expo/vector-icons';
 import { transactionService } from '../../services/transactionService';
 import Toast from 'react-native-toast-message';
 import { useAppTheme, ThemeColors } from '../../context/ThemeContext';
+import { useGlobalFilter } from '../../context/FilterContext';
+import DateFilterModal, { FilterState } from '../../components/DateFilterModal';
 
 const CATEGORIES = ['Food', 'Transport', 'Shopping', 'Entertainment', 'Health', 'Bills', 'Salary', 'Investment', 'Other'];
 const PAYMENT_METHODS = ['Cash', 'Card', 'UPI', 'Bank Transfer', 'Other'];
@@ -22,10 +24,13 @@ const CATEGORY_ICONS: Record<string, string> = {
 const formatCurrency = (n: number) => `₹${Math.abs(n).toLocaleString('en-IN')}`;
 const formatDate = (d: string) =>
   new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+const formatDateShort = (d: string) =>
+  new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
 const today = () => new Date().toISOString().split('T')[0];
 
 const BLANK_FORM = {
+  id: undefined,
   type: 'debit' as 'credit' | 'debit',
   amount: '',
   category: 'Other',
@@ -45,16 +50,37 @@ export default function TransactionsScreen() {
   const [summary, setSummary] = useState({ totalCredits: 0, totalDebits: 0, availableBalance: 0 });
 
   const [filterType, setFilterType] = useState<'' | 'credit' | 'debit'>('');
+  const { filter, setFilter } = useGlobalFilter();
+  const [filterVisible, setFilterVisible] = useState(false);
 
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [form, setForm] = useState({ ...BLANK_FORM });
   const [saving, setSaving] = useState(false);
 
+  const getFilterLabel = (f: FilterState) => {
+    if (f.type === 'custom' && f.startDate && f.endDate) {
+      const s = formatDateShort(f.startDate);
+      const e = formatDateShort(f.endDate);
+      return s === e ? s : `${s} – ${e}`;
+    } else if (f.type === 'custom' && f.startDate) {
+      return formatDateShort(f.startDate);
+    }
+    const map: Record<string, string> = {
+      'all': 'All Time', '6days': 'Last 7 Days', 'week': 'Last Week',
+      'month': 'Last Month', '6months': 'Last 6 Months', 'year': 'Current YTD',
+    };
+    return map[f.type] || 'Filter';
+  };
+
   const fetch = useCallback(async (pg = 1, reset = false) => {
     try {
       const params: any = { page: pg, limit: 20, sort_by: 'date', sort_order: 'desc' };
       if (filterType) params.type = filterType;
+      if (filter.startDate) params.start_date = filter.startDate;
+      if (filter.endDate) params.end_date = filter.endDate;
+      if (filter.type !== 'all') params.filter_type = filter.type;
+      
       const res = await transactionService.getTransactions(params);
       const txs = res.transactions || [];
       setTransactions(prev => reset ? txs : [...prev, ...txs]);
@@ -70,7 +96,7 @@ export default function TransactionsScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [filterType]);
+  }, [filterType, filter]);
 
   useEffect(() => {
     setLoading(true);
@@ -160,25 +186,24 @@ export default function TransactionsScreen() {
     const catIcon = (CATEGORY_ICONS[item.category] || 'circle') as any;
     return (
       <View style={s.txRow}>
-        <View style={[s.txIconBadge, { backgroundColor: isCredit ? '#10b98118' : '#ef444418' }]}>
-          <Feather name={catIcon} size={16} color={isCredit ? '#10b981' : '#ef4444'} />
+        <View style={[s.txIconBadge, { backgroundColor: isCredit ? C.green + '18' : C.red + '18' }]}>
+          <Feather name={catIcon} size={15} color={isCredit ? C.green : C.red} />
         </View>
         <View style={s.txInfo}>
           <Text style={s.txCategory}>{item.category}</Text>
           <Text style={s.txDesc} numberOfLines={1}>{item.description || 'No description'}</Text>
-          <View style={s.txMetaRow}>
-            <Feather name="clock" size={10} color={C.textMuted} />
-            <Text style={s.txMeta}>{formatDate(item.date)}</Text>
-            <Text style={s.txMetaDot}>·</Text>
-            <Feather name="credit-card" size={10} color={C.textMuted} />
-            <Text style={s.txMeta}>{item.payment_method}</Text>
-          </View>
+          <Text style={s.txDate}>{formatDate(item.date)}</Text>
         </View>
-        <View style={s.txRight}>
-          <Text style={[s.txAmount, { color: isCredit ? '#10b981' : '#ef4444' }]}>
+        <View style={s.txAmountCol}>
+          <Text style={[s.txAmount, { color: isCredit ? C.green : C.red }]}>
             {isCredit ? '+' : '-'}{formatCurrency(item.amount)}
           </Text>
-          <View style={s.txActions}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+            <View style={[s.txTypePill, { backgroundColor: isCredit ? C.green + '15' : C.red + '15' }]}>
+              <Text style={[s.txTypePillText, { color: isCredit ? C.green : C.red }]}>
+                {isCredit ? 'Credit' : 'Debit'}
+              </Text>
+            </View>
             <TouchableOpacity style={s.actionBtn} onPress={() => openEdit(item)} activeOpacity={0.7}>
               <Feather name="edit-2" size={13} color={C.primary} />
             </TouchableOpacity>
@@ -199,9 +224,10 @@ export default function TransactionsScreen() {
           <Text style={s.title}>Transactions</Text>
           <Text style={s.subtitle}>Manage your income & expenses</Text>
         </View>
-        <TouchableOpacity style={s.addBtn} onPress={openCreate} activeOpacity={0.8}>
-          <Feather name="plus" size={16} color="#fff" />
-          <Text style={s.addBtnText}>New</Text>
+        <TouchableOpacity style={s.filterBtn} onPress={() => setFilterVisible(true)}>
+          <Feather name="calendar" size={14} color={C.textSecondary} />
+          <Text style={s.filterText}>{getFilterLabel(filter)}</Text>
+          <Feather name="chevron-down" size={12} color={C.textMuted} />
         </TouchableOpacity>
       </View>
 
@@ -254,6 +280,7 @@ export default function TransactionsScreen() {
         </View>
       ) : (
         <FlatList
+          style={{ flex: 1 }}
           data={transactions}
           keyExtractor={(item, i) => item.id ?? String(i)}
           renderItem={renderItem}
@@ -270,9 +297,21 @@ export default function TransactionsScreen() {
             </View>
           }
           ListFooterComponent={page < totalPages ? <ActivityIndicator color={C.primary} style={{ marginVertical: 16 }} /> : null}
-          contentContainerStyle={{ flexGrow: 1 }}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 80 }}
         />
       )}
+
+      {/* Floating Action Button */}
+      <TouchableOpacity style={s.fab} onPress={openCreate} activeOpacity={0.8}>
+        <Feather name="plus" size={24} color="#fff" />
+      </TouchableOpacity>
+
+      <DateFilterModal
+        visible={filterVisible}
+        currentFilter={filter}
+        onClose={() => setFilterVisible(false)}
+        onApply={setFilter}
+      />
 
       {/* Add/Edit Modal */}
       <Modal visible={modal} animationType="slide" transparent onRequestClose={closeModal}>
@@ -422,20 +461,28 @@ const getStyles = (C: ThemeColors) => StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingTop: 20, paddingBottom: 12,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
+    paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16,
   },
   title: { fontSize: 28, fontWeight: '800', color: C.textPrimary },
   subtitle: { fontSize: 13, color: C.textMuted, marginTop: 2 },
-  addBtn: {
+  filterBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: C.primary, paddingHorizontal: 16, paddingVertical: 10,
-    borderRadius: 12, shadowColor: C.primary, shadowOpacity: 0.4, shadowRadius: 8, elevation: 4,
+    backgroundColor: C.card, paddingHorizontal: 12, paddingVertical: 8,
+    borderRadius: 20, borderWidth: 1, borderColor: C.border,
+    marginTop: 4,
   },
-  addBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  filterText: { fontSize: 12, fontWeight: '700', color: C.textPrimary },
+  fab: {
+    position: 'absolute', bottom: 24, right: 24,
+    width: 56, height: 56, borderRadius: 28,
+    backgroundColor: C.primary,
+    justifyContent: 'center', alignItems: 'center',
+    shadowColor: C.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 6,
+  },
 
-  summaryScroll: { maxHeight: 96 },
-  summaryRow: { paddingHorizontal: 16, gap: 12, paddingBottom: 8 },
+  summaryScroll: { flexGrow: 0, marginBottom: 16 },
+  summaryRow: { paddingHorizontal: 16, gap: 12 },
   summaryCard: {
     backgroundColor: C.card, borderRadius: 14, padding: 14,
     borderTopWidth: 3, borderWidth: 1, borderColor: C.border, minWidth: 130,
@@ -446,8 +493,8 @@ const getStyles = (C: ThemeColors) => StyleSheet.create({
   summaryLabel: { fontSize: 11, color: C.textMuted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
   summaryValue: { fontSize: 18, fontWeight: '800' },
 
-  filterScroll: { maxHeight: 52 },
-  filterRow: { paddingHorizontal: 16, gap: 8, alignItems: 'center', paddingBottom: 8 },
+  filterScroll: { flexGrow: 0, marginBottom: 12 },
+  filterRow: { paddingHorizontal: 16, gap: 8, alignItems: 'center' },
   filterChip: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 14, paddingVertical: 8,
@@ -457,29 +504,23 @@ const getStyles = (C: ThemeColors) => StyleSheet.create({
   filterChipText: { fontSize: 13, color: C.textSecondary, fontWeight: '600' },
   filterChipTextActive: { color: '#fff' },
 
-  txRow: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 16, paddingVertical: 14,
-    borderBottomWidth: 1, borderColor: C.border,
-    backgroundColor: C.bg, gap: 12,
-  },
-  txIconBadge: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  txRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, gap: 14, borderBottomWidth: 1, borderColor: C.border },
+  txIconBadge: { width: 40, height: 40, borderRadius: 13, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   txInfo: { flex: 1 },
   txCategory: { fontSize: 14, fontWeight: '700', color: C.textPrimary },
   txDesc: { fontSize: 12, color: C.textMuted, marginTop: 2 },
-  txMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 },
-  txMetaDot: { color: C.textMuted, fontSize: 10 },
-  txMeta: { fontSize: 11, color: C.textMuted },
-  txRight: { alignItems: 'flex-end', gap: 8 },
+  txDate: { fontSize: 11, color: C.textMuted, marginTop: 2 },
+  txAmountCol: { alignItems: 'flex-end', gap: 2 },
   txAmount: { fontSize: 15, fontWeight: '800' },
-  txActions: { flexDirection: 'row', gap: 8 },
+  txTypePill: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
+  txTypePillText: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4 },
   actionBtn: {
-    width: 32, height: 32, borderRadius: 9,
+    width: 26, height: 26, borderRadius: 6,
     backgroundColor: C.primary + '18',
     alignItems: 'center', justifyContent: 'center',
   },
   actionBtnDanger: {
-    width: 32, height: 32, borderRadius: 9,
+    width: 26, height: 26, borderRadius: 6,
     backgroundColor: C.red + '18',
     alignItems: 'center', justifyContent: 'center',
   },

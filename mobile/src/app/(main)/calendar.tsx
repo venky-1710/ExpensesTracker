@@ -29,7 +29,10 @@ const formatTime = (s: string) => {
 const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
 const getFirstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
 
-const BLANK_FORM = { title: '', description: '', start_time: '', end_time: '', color: '#6366f1' };
+const BLANK_FORM = {
+  title: '', description: '', start_time: '', end_time: '', color: '#6366f1',
+  amount: '', payment_category: 'Bills', payment_method: 'Card', transaction_type: 'debit' as 'credit' | 'debit',
+};
 
 export default function CalendarScreen() {
   const { C } = useAppTheme();
@@ -42,6 +45,8 @@ export default function CalendarScreen() {
   const [loading, setLoading] = useState(true);
 
   const [modal, setModal] = useState(false);
+  const [detailModal, setDetailModal] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [editing, setEditing] = useState<any>(null);
   const [form, setForm] = useState({ ...BLANK_FORM });
   const [saving, setSaving] = useState(false);
@@ -92,6 +97,11 @@ export default function CalendarScreen() {
     .filter(ev => isSameDay(parseEvtDate(ev.start_time), selectedDate))
     .sort((a, b) => parseEvtDate(a.start_time).getTime() - parseEvtDate(b.start_time).getTime());
 
+  const openDetail = (ev: any) => {
+    setSelectedEvent(ev);
+    setDetailModal(true);
+  };
+
   const openCreate = () => {
     const start = new Date(selectedDate);
     start.setHours(9, 0, 0, 0);
@@ -99,10 +109,9 @@ export default function CalendarScreen() {
     end.setHours(10, 0, 0, 0);
     setEditing(null);
     setForm({
-      title: '', description: '',
+      ...BLANK_FORM,
       start_time: start.toISOString().slice(0, 16),
       end_time: end.toISOString().slice(0, 16),
-      color: '#6366f1',
     });
     setModal(true);
   };
@@ -115,6 +124,10 @@ export default function CalendarScreen() {
       start_time: parseEvtDate(ev.start_time).toISOString().slice(0, 16),
       end_time: parseEvtDate(ev.end_time).toISOString().slice(0, 16),
       color: ev.color || '#6366f1',
+      amount: ev.amount ? ev.amount.toString() : '',
+      payment_category: ev.payment_category || 'Bills',
+      payment_method: ev.payment_method || 'Card',
+      transaction_type: ev.transaction_type || 'debit',
     });
     setModal(true);
   };
@@ -130,6 +143,7 @@ export default function CalendarScreen() {
         ...form,
         start_time: new Date(form.start_time).toISOString(),
         end_time: new Date(form.end_time).toISOString(),
+        amount: form.amount ? parseFloat(form.amount) : null,
       };
       if (editing) {
         const updated = await calendarService.updateEvent(editing.id, payload);
@@ -145,6 +159,26 @@ export default function CalendarScreen() {
       Toast.show({ type: 'error', text1: 'Error', text2: e.response?.data?.detail || 'Failed to save event' });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleMarkPaid = async (ev: any) => {
+    try {
+      await calendarService.markAsPaid(ev.id);
+      setEvents(prev => prev.map(e => e.id === ev.id ? { ...e, is_paid: true } : e));
+      Toast.show({ type: 'success', text1: 'Success', text2: 'Marked as paid' });
+    } catch (e) {
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to mark as paid' });
+    }
+  };
+
+  const handleUndoPaid = async (ev: any) => {
+    try {
+      await calendarService.undoPaid(ev.id);
+      setEvents(prev => prev.map(e => e.id === ev.id ? { ...e, is_paid: false } : e));
+      Toast.show({ type: 'success', text1: 'Success', text2: 'Payment undone' });
+    } catch (e) {
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to undo payment' });
     }
   };
 
@@ -272,7 +306,12 @@ export default function CalendarScreen() {
             </View>
           ) : (
             selectedDayEvents.map(ev => (
-              <View key={ev.id} style={[s.evtCard, { borderLeftColor: ev.color || '#6366f1' }]}>
+              <TouchableOpacity 
+                key={ev.id} 
+                style={[s.evtCard, { borderLeftColor: ev.color || '#6366f1' }]}
+                onPress={() => openDetail(ev)}
+                activeOpacity={0.7}
+              >
                 <View style={[s.evtColorDot, { backgroundColor: ev.color || '#6366f1' }]} />
                 <View style={s.evtContent}>
                   <Text style={s.evtTitle}>{ev.title}</Text>
@@ -282,19 +321,130 @@ export default function CalendarScreen() {
                   </View>
                   {ev.description ? <Text style={s.evtDesc} numberOfLines={2}>{ev.description}</Text> : null}
                 </View>
-                <View style={s.evtBtns}>
-                  <TouchableOpacity style={s.evtIconBtn} onPress={() => openEdit(ev)} activeOpacity={0.7}>
-                    <Feather name="edit-2" size={13} color={C.primary} />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[s.evtIconBtn, { backgroundColor: C.red + '18' }]} onPress={() => handleDelete(ev)} activeOpacity={0.7}>
-                    <Feather name="trash-2" size={13} color={C.red} />
-                  </TouchableOpacity>
-                </View>
-              </View>
+                {ev.amount != null && (
+                  <View style={s.statusBadge}>
+                    <Feather name={ev.is_paid ? 'check-circle' : 'circle'} size={14} color={ev.is_paid ? C.green : C.amber} />
+                  </View>
+                )}
+              </TouchableOpacity>
             ))
           )}
         </View>
       </ScrollView>
+
+      {/* Event Detail Modal */}
+      <Modal visible={detailModal} animationType="slide" transparent onRequestClose={() => setDetailModal(false)}>
+        <View style={s.overlay}>
+          <View style={s.modalCard}>
+            <View style={s.dragHandle} />
+            {selectedEvent && (
+              <>
+                <View style={s.modalHeader}>
+                  <View style={{ flex: 1, paddingRight: 16 }}>
+                    <Text style={s.modalTitle}>{selectedEvent.title}</Text>
+                    <View style={[s.evtTimeRow, { marginTop: 4 }]}>
+                      <Feather name="clock" size={14} color={C.textMuted} />
+                      <Text style={[s.evtTime, { fontSize: 14 }]}>
+                        {formatTime(selectedEvent.start_time)} – {formatTime(selectedEvent.end_time)}
+                      </Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity style={s.closeBtn} onPress={() => setDetailModal(false)}>
+                    <Feather name="x" size={18} color={C.textMuted} />
+                  </TouchableOpacity>
+                </View>
+
+                <ScrollView style={s.modalBody} showsVerticalScrollIndicator={false}>
+                  {selectedEvent.description ? (
+                    <View style={s.detailSection}>
+                      <Text style={s.formLabel}>Description</Text>
+                      <Text style={s.detailText}>{selectedEvent.description}</Text>
+                    </View>
+                  ) : null}
+
+                  {selectedEvent.amount ? (
+                    <View style={s.detailSection}>
+                      <Text style={s.formLabel}>Financial Details</Text>
+                      <View style={s.detailRow}>
+                        <Text style={s.detailLabel}>Amount</Text>
+                        <Text style={s.detailValue}>₹{selectedEvent.amount}</Text>
+                      </View>
+                      <View style={s.detailRow}>
+                        <Text style={s.detailLabel}>Type</Text>
+                        <View style={[s.typePill, { backgroundColor: selectedEvent.transaction_type === 'credit' ? C.green + '20' : C.red + '20' }]}>
+                          <Text style={[s.typePillText, { color: selectedEvent.transaction_type === 'credit' ? C.green : C.red }]}>
+                            {(selectedEvent.transaction_type || 'debit').toUpperCase()}
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={s.detailRow}>
+                        <Text style={s.detailLabel}>Category</Text>
+                        <Text style={s.detailValue}>{selectedEvent.payment_category || 'Bills'}</Text>
+                      </View>
+                      <View style={s.detailRow}>
+                        <Text style={s.detailLabel}>Status</Text>
+                        <View style={[s.typePill, { backgroundColor: selectedEvent.is_paid ? C.green + '20' : C.amber + '20' }]}>
+                          <Text style={[s.typePillText, { color: selectedEvent.is_paid ? C.green : C.amber }]}>
+                            {selectedEvent.is_paid ? 'COMPLETED' : 'PENDING'}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  ) : null}
+
+                  {/* Actions */}
+                  <View style={s.detailActions}>
+                    {selectedEvent.amount != null ? (
+                      selectedEvent.is_paid ? (
+                        <TouchableOpacity 
+                          style={[s.actionBtn, { backgroundColor: C.textSecondary + '15' }]} 
+                          onPress={() => { handleUndoPaid(selectedEvent); setDetailModal(false); }}
+                          activeOpacity={0.8}
+                        >
+                          <Feather name="corner-up-left" size={18} color={C.textSecondary} />
+                          <Text style={[s.actionBtnText, { color: C.textSecondary }]}>Undo Payment</Text>
+                        </TouchableOpacity>
+                      ) : (
+                        <TouchableOpacity 
+                          style={[s.actionBtn, { backgroundColor: C.green + '15' }]} 
+                          onPress={() => { handleMarkPaid(selectedEvent); setDetailModal(false); }}
+                          activeOpacity={0.8}
+                        >
+                          <Feather name="check-circle" size={18} color={C.green} />
+                          <Text style={[s.actionBtnText, { color: C.green }]}>
+                            {selectedEvent.transaction_type === 'credit' ? 'Mark as Received' : 'Mark as Paid'}
+                          </Text>
+                        </TouchableOpacity>
+                      )
+                    ) : null}
+
+                    <View style={s.actionRowSplit}>
+                      <TouchableOpacity 
+                        style={[s.actionBtn, { flex: 1, backgroundColor: C.primary + '15' }]} 
+                        onPress={() => { setDetailModal(false); openEdit(selectedEvent); }}
+                        activeOpacity={0.8}
+                      >
+                        <Feather name="edit-2" size={16} color={C.primary} />
+                        <Text style={[s.actionBtnText, { color: C.primary }]}>Edit</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity 
+                        style={[s.actionBtn, { flex: 1, backgroundColor: C.red + '15' }]} 
+                        onPress={() => { setDetailModal(false); handleDelete(selectedEvent); }}
+                        activeOpacity={0.8}
+                      >
+                        <Feather name="trash-2" size={16} color={C.red} />
+                        <Text style={[s.actionBtnText, { color: C.red }]}>Delete</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                  <View style={{ height: 40 }} />
+                </ScrollView>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
 
       {/* Event Modal */}
       <Modal visible={modal} animationType="slide" transparent onRequestClose={() => setModal(false)}>
@@ -351,6 +501,39 @@ export default function CalendarScreen() {
                   value={form.end_time}
                   onChangeText={v => setForm({ ...form, end_time: v })}
                 />
+              </View>
+
+              <Text style={s.formLabel}>Amount (Optional)</Text>
+              <View style={s.inputRow}>
+                <View style={s.inputIconLeft}>
+                  <Feather name="dollar-sign" size={16} color={C.textMuted} />
+                </View>
+                <TextInput
+                  style={[s.formInput, s.inputWithIcon]}
+                  placeholder="e.g. 50"
+                  placeholderTextColor={C.textMuted}
+                  keyboardType="numeric"
+                  value={form.amount}
+                  onChangeText={v => setForm({ ...form, amount: v })}
+                />
+              </View>
+              
+              <Text style={s.formLabel}>Transaction Type</Text>
+              <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
+                <TouchableOpacity
+                  style={[s.typeBtn, form.transaction_type === 'debit' && s.typeBtnActive]}
+                  onPress={() => setForm({ ...form, transaction_type: 'debit' })}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[s.typeBtnText, form.transaction_type === 'debit' && s.typeBtnTextActive]}>Debit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[s.typeBtn, form.transaction_type === 'credit' && s.typeBtnActive]}
+                  onPress={() => setForm({ ...form, transaction_type: 'credit' })}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[s.typeBtnText, form.transaction_type === 'credit' && s.typeBtnTextActive]}>Credit</Text>
+                </TouchableOpacity>
               </View>
 
               <Text style={s.formLabel}>Description</Text>
@@ -536,6 +719,15 @@ const getStyles = (C: ThemeColors) => StyleSheet.create({
   inputRow: { position: 'relative', justifyContent: 'center', marginBottom: 0 },
   inputIconLeft: { position: 'absolute', left: 16, zIndex: 1 },
   inputWithIcon: { paddingLeft: 46 },
+  
+  typeBtn: {
+    flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 12,
+    borderWidth: 1, borderColor: C.border, backgroundColor: C.card,
+  },
+  typeBtnActive: { backgroundColor: C.primary, borderColor: C.primary },
+  typeBtnText: { fontSize: 14, fontWeight: '600', color: C.textSecondary },
+  typeBtnTextActive: { color: '#fff' },
+
   colorRow: { flexDirection: 'row', gap: 12, marginBottom: 24, flexWrap: 'wrap' },
   colorSwatch: {
     width: 38, height: 38, borderRadius: 19,
@@ -548,4 +740,28 @@ const getStyles = (C: ThemeColors) => StyleSheet.create({
     shadowColor: C.primary, shadowOpacity: 0.4, shadowRadius: 12, elevation: 6,
   },
   saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  
+  statusBadge: {
+    padding: 10, alignItems: 'center', justifyContent: 'center'
+  },
+  detailSection: {
+    backgroundColor: C.bg, borderRadius: 16, padding: 16, marginBottom: 20,
+    borderWidth: 1, borderColor: C.border,
+  },
+  detailText: { fontSize: 14, color: C.textPrimary, lineHeight: 22 },
+  detailRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingVertical: 10, borderBottomWidth: 1, borderColor: C.border + '50',
+  },
+  detailLabel: { fontSize: 14, color: C.textSecondary, fontWeight: '500' },
+  detailValue: { fontSize: 14, color: C.textPrimary, fontWeight: '700' },
+  typePill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  typePillText: { fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
+  detailActions: { gap: 12, marginTop: 10 },
+  actionRowSplit: { flexDirection: 'row', gap: 12 },
+  actionBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    paddingVertical: 16, borderRadius: 14,
+  },
+  actionBtnText: { fontSize: 15, fontWeight: '700' },
 });

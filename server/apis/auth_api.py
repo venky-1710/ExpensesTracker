@@ -3,7 +3,7 @@ Auth API - Authentication business logic and database queries.
 """
 from datetime import datetime
 from bson import ObjectId
-from fastapi import HTTPException, status
+from fastapi import BackgroundTasks, HTTPException, status
 from database.database import db
 from utils.auth import get_password_hash, verify_password, create_access_token
 from utils.helpers import format_user_doc
@@ -17,35 +17,71 @@ class AuthAPI:
     """Authentication business logic with inline MongoDB queries."""
 
     @staticmethod
-    async def signup(payload: UserCreate) -> Dict[str, Any]:
-        """Register a new user."""
+    async def request_signup(payload: UserCreate, background_tasks: BackgroundTasks) -> Dict[str, Any]:
+        """Request signup, generate OTP, and store unverified user."""
         try:
-            logger.info(f"[AUTH] Signup attempt for email: {payload.email}")
+            logger.info(f"[AUTH] Signup request for email: {payload.email}")
 
-            # Check if email already exists (ignore soft-deleted accounts)
             existing_email = await db.auth_users.find_one({"email": payload.email, "is_deleted": {"$ne": True}})
             if existing_email:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="User with this email already exists"
-                )
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User with this email already exists")
 
-            # Check if username already exists (ignore soft-deleted accounts)
             existing_username = await db.auth_users.find_one({"username": payload.username, "is_deleted": {"$ne": True}})
             if existing_username:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Username already taken"
-                )
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username already taken")
 
+            import random
+            from datetime import timedelta
+            from utils.email import send_signup_otp_email
+            
+            otp = f"{random.randint(100000, 999999)}"
+            expires_at = datetime.now() + timedelta(minutes=15)
+            
             hashed_password = get_password_hash(payload.password)
-
-            user_doc = {
+            unverified_user = {
                 "full_name": payload.full_name,
                 "username": payload.username,
                 "email": payload.email,
                 "password_hash": hashed_password,
                 "phone": payload.phone,
+                "otp": otp,
+                "otp_expires": expires_at,
+                "created_at": datetime.now(),
+            }
+            
+            await db.unverified_users.update_one(
+                {"email": payload.email},
+                {"$set": unverified_user},
+                upsert=True
+            )
+            
+            background_tasks.add_task(send_signup_otp_email, payload.email, otp)
+            return {"message": "OTP sent to email"}
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"[ERROR] AuthAPI.request_signup - {str(e)}")
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Signup request failed: {str(e)}")
+
+    @staticmethod
+    async def verify_signup(email: str, code: str) -> Dict[str, Any]:
+        """Verify OTP and complete user registration."""
+        try:
+            unverified = await db.unverified_users.find_one({
+                "email": email,
+                "otp": code,
+                "otp_expires": {"$gt": datetime.now()}
+            })
+            if not unverified:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired OTP")
+                
+            user_doc = {
+                "full_name": unverified["full_name"],
+                "username": unverified["username"],
+                "email": unverified["email"],
+                "password_hash": unverified["password_hash"],
+                "phone": unverified.get("phone"),
                 "profile_image": None,
                 "banner_image": None,
                 "role": "user",
@@ -55,24 +91,28 @@ class AuthAPI:
                 "created_at": datetime.now(),
                 "updated_at": datetime.now(),
             }
-
+            
             result = await db.auth_users.insert_one(user_doc)
             user_doc["id"] = str(result.inserted_id)
             user_doc.pop("_id", None)
             user_doc.pop("password_hash", None)
-
-            logger.info(f"[AUTH] Signup successful for email: {payload.email}")
-            return user_doc
-
+            
+            await db.unverified_users.delete_one({"email": email})
+            
+            access_token = create_access_token(data={"sub": user_doc["id"]})
+            logger.info(f"[AUTH] Signup verified for email: {email}")
+            
+            return {
+                "message": "Signup successful",
+                "user": user_doc,
+                "access_token": access_token
+            }
+            
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"[ERROR] AuthAPI.signup - {str(e)}")
-            logger.error(f"[TRACEBACK] {traceback.format_exc()}")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Signup failed: {str(e)}"
-            )
+            logger.error(f"[ERROR] AuthAPI.verify_signup - {str(e)}")
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Verification failed: {str(e)}")
 
     @staticmethod
     async def login(form_data) -> Dict[str, str]:
@@ -113,12 +153,12 @@ class AuthAPI:
             )
 
     @staticmethod
-    async def request_password_reset(email: str) -> Dict[str, Any]:
+    async def request_password_reset(email: str, background_tasks: BackgroundTasks) -> Dict[str, Any]:
         try:
             logger.info(f"[AUTH] Password reset requested for: {email}")
             user = await db.auth_users.find_one({"email": email, "is_deleted": False})
             if not user:
-                return {"message": "If the email is registered, a reset code was sent."}
+                raise HTTPException(status_code=404, detail="This email does not exist in our system.")
             
             import random
             from datetime import timedelta
@@ -132,10 +172,12 @@ class AuthAPI:
                 {"$set": {"reset_code": reset_code, "reset_expires": expires_at}}
             )
             
-            # Send real email
-            await send_reset_email(email, reset_code)
-            
-            return {"message": "If the email is registered, a reset code was sent."}
+            # Send real email in the background so the request doesn't wait on SMTP
+            background_tasks.add_task(send_reset_email, email, reset_code)
+
+            return {"message": "A reset code has been sent to your email."}
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error(f"[ERROR] AuthAPI.request_password_reset - {str(e)}")
             raise HTTPException(status_code=500, detail="Failed to request password reset")
@@ -253,4 +295,25 @@ class AuthAPI:
             raise
         except Exception as e:
             logger.error(f"[ERROR] AuthAPI.google_login - {str(e)}")
-            raise HTTPException(status_code=500, detail="Google login failed")
+            raise HTTPException(status_code=500, detail="Failed to login with Google")
+
+    @staticmethod
+    async def check_availability(username: str = None, email: str = None) -> Dict[str, bool]:
+        """Check if a username or email is available."""
+        result = {"username_available": True, "email_available": True}
+        
+        try:
+            if username:
+                user_by_name = await db.auth_users.find_one({"username": username, "is_deleted": {"$ne": True}})
+                if user_by_name:
+                    result["username_available"] = False
+                    
+            if email:
+                user_by_email = await db.auth_users.find_one({"email": email, "is_deleted": {"$ne": True}})
+                if user_by_email:
+                    result["email_available"] = False
+                    
+            return result
+        except Exception as e:
+            logger.error(f"[ERROR] AuthAPI.check_availability - {str(e)}")
+            raise HTTPException(status_code=500, detail="Failed to check availability")

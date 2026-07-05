@@ -3,17 +3,33 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 
 export const authService = {
-  async signup(userData) {
+  async requestSignup(userData) {
     try {
       console.log('🔵 Signup request:', { ...userData, password: '***' });
-      // Send as JSON (same as web client)
-      const response = await api.post('/auth/signup', userData, {
+      const response = await api.post('/auth/request-signup', userData, {
         headers: { 'Content-Type': 'application/json' },
       });
-      console.log('✅ Signup successful:', response.data);
+      console.log('✅ Signup request successful:', response.data);
       return response.data;
     } catch (error) {
-      console.error('❌ Signup error:', error.response?.data || error.message);
+      console.error('❌ Signup request error:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  async verifySignup(email, code) {
+    try {
+      console.log('🔵 Verify signup request:', email);
+      const response = await api.post('/auth/verify-signup', { email, code });
+      
+      console.log('✅ Signup verified successful');
+      if (response.data.access_token) {
+        await AsyncStorage.setItem('token', response.data.access_token);
+        api.defaults.headers.common['Authorization'] = `Bearer ${response.data.access_token}`;
+      }
+      return response.data;
+    } catch (error) {
+      console.error('❌ Verify signup error:', error.response?.data || error.message);
       throw error;
     }
   },
@@ -106,4 +122,18 @@ export const authService = {
     await AsyncStorage.removeItem('token');
     await AsyncStorage.removeItem('user');
   },
+  
+  async checkAvailability(username, email) {
+    try {
+      const params = new URLSearchParams();
+      if (username) params.append('username', username);
+      if (email) params.append('email', email);
+      
+      const response = await api.get(`/auth/check-availability?${params.toString()}`);
+      return response.data;
+    } catch (error) {
+      console.error('Check availability error:', error);
+      return { username_available: true, email_available: true }; // Fallback
+    }
+  }
 };

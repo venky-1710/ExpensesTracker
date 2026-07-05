@@ -18,6 +18,7 @@ from routes.cache_routes import router as cache_router
 from routes.upload_routes import upload_router
 from routes.calendar_routes import router as calendar_router
 from routes.notification_routes import router as notification_router
+from routes.support_routes import router as support_router
 from contextlib import asynccontextmanager
 import os
 import time
@@ -165,6 +166,7 @@ app.include_router(cache_router, prefix="/api/cache", tags=["cache"])
 app.include_router(upload_router, prefix="/api/upload", tags=["upload"])
 app.include_router(calendar_router, prefix="/api/calendar", tags=["calendar"])
 app.include_router(notification_router, prefix="/api/notifications", tags=["notifications"])
+app.include_router(support_router, prefix="/api/support", tags=["support"])
 
 
 @app.get("/", include_in_schema=False)

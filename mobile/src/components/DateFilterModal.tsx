@@ -22,6 +22,7 @@ export interface FilterState {
   type: string;
   startDate: string | null;
   endDate: string | null;
+  granularity?: string;
 }
 
 interface DateFilterModalProps {
@@ -39,10 +40,14 @@ export default function DateFilterModal({ visible, currentFilter, onApply, onClo
   const [selectionStart, setSelectionStart] = useState<Date | null>(null);
   const [selectionEnd, setSelectionEnd] = useState<Date | null>(null);
   const [selectedPreset, setSelectedPreset] = useState<string>('all');
+  const [granularity, setGranularity] = useState<string>('monthly');
 
   useEffect(() => {
     if (visible) {
       setSelectedPreset(currentFilter.type);
+      if (currentFilter.granularity) {
+        setGranularity(currentFilter.granularity);
+      }
       if (currentFilter.startDate) {
         const sd = new Date(currentFilter.startDate);
         setSelectionStart(sd);
@@ -66,8 +71,54 @@ export default function DateFilterModal({ visible, currentFilter, onApply, onClo
     setCurrentMonthView(new Date(currentMonthView.getFullYear(), currentMonthView.getMonth() + 1, 1));
   };
 
+  const getDaysDuration = (start: Date | null, end: Date | null, type: string | null) => {
+    if (type === 'custom' && start && end) {
+      return Math.abs(Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+    }
+    switch (type) {
+      case '6days': return 6;
+      case 'week': return 7;
+      case 'month': return 30;
+      case '6months': return 180;
+      case 'year': return 365;
+      case 'all': return 3650;
+      default: return 30;
+    }
+  };
+
+  const getGranularityOptions = () => {
+    const type = selectedPreset;
+    const days = getDaysDuration(selectionStart, selectionEnd, type);
+    
+    if (days <= 31) {
+      return [
+        { label: 'Daily', value: 'daily' },
+        { label: 'Weekly', value: 'weekly' },
+        { label: 'Monthly', value: 'monthly' }
+      ];
+    } else if (days <= 366) {
+      return [
+        { label: 'Daily', value: 'daily' },
+        { label: 'Weekly', value: 'weekly' },
+        { label: 'Monthly', value: 'monthly' },
+        { label: 'Quarterly', value: 'quarterly' }
+      ];
+    } else {
+      return [
+        { label: 'Monthly', value: 'monthly' },
+        { label: 'Quarterly', value: 'quarterly' },
+        { label: 'Yearly', value: 'yearly' }
+      ];
+    }
+  };
+
   const handlePresetSelect = (preset: string) => {
     setSelectedPreset(preset);
+    
+    const days = getDaysDuration(null, null, preset);
+    const defaultGran = days > 31 ? 'monthly' : 'daily';
+    setGranularity(defaultGran);
+
     if (preset === 'custom') return;
 
     const today = new Date();
@@ -132,6 +183,7 @@ export default function DateFilterModal({ visible, currentFilter, onApply, onClo
       type: selectedPreset,
       startDate: selectionStart ? selectionStart.toISOString() : null,
       endDate: selectionEnd ? selectionEnd.toISOString() : null,
+      granularity: granularity
     });
     onClose();
   };
@@ -237,6 +289,24 @@ export default function DateFilterModal({ visible, currentFilter, onApply, onClo
             </Text>
           </View>
 
+          {/* Granularity Selector */}
+          <View style={s.granularityContainer}>
+            <Text style={s.granularityLabel}>Granularity:</Text>
+            <View style={s.granularityRow}>
+              {getGranularityOptions().map(opt => (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={[s.granularityChip, granularity === opt.value && s.granularityChipActive]}
+                  onPress={() => setGranularity(opt.value)}
+                >
+                  <Text style={[s.granularityText, granularity === opt.value && s.granularityTextActive]}>
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
           {/* Presets Horizontal Scroll */}
           <View style={s.presetsContainer}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.presetsScroll}>
@@ -306,6 +376,14 @@ const getStyles = (C: ThemeColors) => StyleSheet.create({
 
   selectedRangeBox: { alignItems: 'center', paddingVertical: 16 },
   selectedRangeText: { fontSize: 13, color: C.textSecondary, fontWeight: '600' },
+
+  granularityContainer: { paddingHorizontal: 20, marginBottom: 16 },
+  granularityLabel: { fontSize: 11, fontWeight: '700', color: C.textMuted, textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 },
+  granularityRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  granularityChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: C.inputBg, borderWidth: 1, borderColor: C.border },
+  granularityChipActive: { backgroundColor: C.primary, borderColor: C.primary },
+  granularityText: { fontSize: 12, fontWeight: '600', color: C.textSecondary },
+  granularityTextActive: { color: '#fff' },
 
   presetsContainer: { borderTopWidth: 1, borderColor: C.border, paddingVertical: 16 },
   presetsScroll: { paddingHorizontal: 16, gap: 8 },

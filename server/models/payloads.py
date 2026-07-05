@@ -29,6 +29,11 @@ class UserCreate(BaseModel):
     password: str = Field(..., min_length=8, max_length=72)
     phone: Optional[str] = None
 
+class VerifySignupRequest(BaseModel):
+    """Verify signup OTP payload"""
+    email: str
+    code: str
+
 
 class UserLogin(BaseModel):
     """User login payload"""

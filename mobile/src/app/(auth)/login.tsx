@@ -1,13 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
+  KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
+import { authService } from '../../services/authService';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useAppTheme, ThemeColors } from '../../context/ThemeContext';
+
+const webotLogo = require('../../../assets/images/webot_logo.png');
 
 export default function LoginScreen() {
   const { C } = useAppTheme();
@@ -21,7 +24,42 @@ export default function LoginScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const { login, signup, googleLogin } = useAuth();
+  const [signupStep, setSignupStep] = useState(1);
+  const [otpCode, setOtpCode] = useState('');
+  const otpInputRef = useRef<TextInput>(null);
+  const { login, requestSignup, verifySignup, googleLogin } = useAuth();
+
+  // Debounced check for availability
+  useEffect(() => {
+    if (isLogin) {
+      setFieldErrors(prev => ({ ...prev, username: '', email: '' }));
+      return;
+    }
+    
+    const timeoutId = setTimeout(async () => {
+      const u = username.trim();
+      const e = email.trim();
+      
+      if (u.length > 2 || e.length > 5) {
+        try {
+          const res = await authService.checkAvailability(u || undefined, e || undefined);
+          setFieldErrors(prev => {
+            const next = { ...prev };
+            if (!res.username_available && u.length > 2) next.username = 'Username is already taken';
+            else delete next.username;
+            
+            if (!res.email_available && e.length > 5) next.email = 'Email is already registered';
+            else delete next.email;
+            return next;
+          });
+        } catch (err) {
+          // Ignore
+        }
+      }
+    }, 500);
+    
+    return () => clearTimeout(timeoutId);
+  }, [username, email, isLogin]);
 
   // Password strength: 0-4
   const getPasswordStrength = (pw: string) => {
@@ -42,41 +80,52 @@ export default function LoginScreen() {
 
   const handleSubmit = async () => {
     setFieldErrors({});
-    if (!email || !password) return;
-    if (!isLogin) {
-      if (!name || !username) return;
-      if (pwStrength < 2) {
-        setFieldErrors({ password: 'Password is too weak. Use 8+ chars with uppercase, numbers, or symbols.' });
-        return;
-      }
-    }
-    setSubmitting(true);
-    try {
-      if (isLogin) {
+    if (isLogin) {
+      if (!email || !password) return;
+      setSubmitting(true);
+      try {
         const ok = await login(email, password);
         if (ok) router.replace('/(main)/dashboard');
-      } else {
-        const ok = await signup({ email, password, full_name: name, username });
-        if (ok) {
-          setIsLogin(true);
-          setPassword('');
-          setName('');
-          setUsername('');
-        }
-      }
-    } catch (e: any) {
-      const detail = e.response?.data?.detail || '';
-      if (typeof detail === 'string') {
-        if (detail.toLowerCase().includes('username')) {
-          setFieldErrors({ username: detail });
-        } else if (detail.toLowerCase().includes('email')) {
-          setFieldErrors({ email: detail });
-        }
-      }
-    } finally {
+      } catch (e) {}
       setSubmitting(false);
+    } else {
+      if (signupStep === 1) {
+        if (!email || !password || !name || !username) return;
+        if (pwStrength < 2) {
+          setFieldErrors({ password: 'Password is too weak. Use 8+ chars with uppercase, numbers, or symbols.' });
+          return;
+        }
+        setSubmitting(true);
+        try {
+          console.log('Submitting requestSignup...');
+          const ok = await requestSignup({ email, password, full_name: name, username });
+          console.log('requestSignup ok?', ok);
+          if (ok) {
+            console.log('Setting signup step to 2');
+            setSignupStep(2);
+          }
+        } catch (e: any) {
+          const detail = e.response?.data?.detail || '';
+          if (typeof detail === 'string') {
+            if (detail.toLowerCase().includes('username')) setFieldErrors({ username: detail });
+            else if (detail.toLowerCase().includes('email')) setFieldErrors({ email: detail });
+          }
+        }
+        setSubmitting(false);
+      }
     }
   };
+
+  const handleVerifyOtp = async () => {
+    if (otpCode.length !== 6) return;
+    setSubmitting(true);
+    try {
+      const ok = await verifySignup(email, otpCode);
+      if (ok) router.replace('/(main)/dashboard');
+    } catch (e) {}
+    setSubmitting(false);
+  };
+
 
   return (
     <SafeAreaView style={s.root}>
@@ -89,11 +138,11 @@ export default function LoginScreen() {
 
           {/* Brand Section */}
           <View style={s.brandSection}>
-            <View style={s.logoBox}>
-              <Feather name="credit-card" size={30} color={C.primary} />
+            <Image source={webotLogo} style={s.logoImage} resizeMode="contain" />
+            <View style={s.brandTextContainer}>
+              <Text style={s.brandName}>ExpenseTrack</Text>
+              <Text style={s.brandTagline}>Smart money, smarter you</Text>
             </View>
-            <Text style={s.brandName}>ExpenseTrack</Text>
-            <Text style={s.brandTagline}>Smart money, smarter you</Text>
           </View>
 
           {/* Form Card */}
@@ -104,13 +153,41 @@ export default function LoginScreen() {
             </Text>
 
             <View style={s.form}>
-              {!isLogin && (
+              {!isLogin && signupStep === 2 ? (
+                <View style={s.fieldGroup}>
+                  <Text style={s.fieldLabel}>6-Digit Verification Code</Text>
+                  <TouchableOpacity
+                    activeOpacity={1}
+                    style={s.otpContainer}
+                    onPress={() => otpInputRef.current?.focus()}
+                  >
+                    {[0, 1, 2, 3, 4, 5].map((i) => (
+                      <View key={i} style={[s.otpBox, otpCode.length === i && s.otpBoxActive]}>
+                        <Text style={s.otpText}>{otpCode[i] || ''}</Text>
+                      </View>
+                    ))}
+                    <TextInput
+                      ref={otpInputRef}
+                      style={s.hiddenInput}
+                      value={otpCode}
+                      onChangeText={setOtpCode}
+                      keyboardType="number-pad"
+                      maxLength={6}
+                      caretHidden
+                      autoFocus
+                    />
+                  </TouchableOpacity>
+                  <Text style={s.fieldHint}>We sent a code to {email}</Text>
+                </View>
+              ) : (
                 <>
+                  {!isLogin && (
+                    <>
                   <View style={s.fieldGroup}>
                     <Text style={s.fieldLabel}>Full Name</Text>
                     <View style={s.inputContainer}>
                       <View style={s.inputIconLeft}>
-                        <Feather name="user" size={16} color={C.textMuted} />
+                        <Feather name="user" size={20} color={C.textMuted} />
                       </View>
                       <TextInput
                         style={[s.input, s.inputWithIcon]}
@@ -127,24 +204,19 @@ export default function LoginScreen() {
                     <Text style={s.fieldLabel}>Username</Text>
                     <View style={s.inputContainer}>
                       <View style={s.inputIconLeft}>
-                        <Feather name="at-sign" size={16} color={fieldErrors.username ? C.red : C.textMuted} />
+                        <Feather name="at-sign" size={20} color={fieldErrors.username ? C.red : C.textMuted} />
                       </View>
                       <TextInput
                         style={[s.input, s.inputWithIcon, fieldErrors.username && { borderColor: C.red }]}
-                        placeholder="johndoe"
+                        placeholder="e.g. johndoe"
                         placeholderTextColor={C.textMuted}
                         value={username}
-                        onChangeText={v => { setUsername(v); setFieldErrors(f => ({ ...f, username: '' })); }}
+                        onChangeText={setUsername}
                         autoCapitalize="none"
                         autoCorrect={false}
                       />
                     </View>
-                    {!!fieldErrors.username && (
-                      <View style={s.fieldErrorRow}>
-                        <Feather name="alert-circle" size={12} color={C.red} />
-                        <Text style={[s.fieldErrorText, { color: C.red }]}>{fieldErrors.username}</Text>
-                      </View>
-                    )}
+                    {fieldErrors.username && <Text style={{ color: C.red, fontSize: 12, marginTop: 4 }}>{fieldErrors.username}</Text>}
                   </View>
                 </>
               )}
@@ -153,25 +225,20 @@ export default function LoginScreen() {
                 <Text style={s.fieldLabel}>Email Address</Text>
                 <View style={s.inputContainer}>
                   <View style={s.inputIconLeft}>
-                    <Feather name="mail" size={16} color={fieldErrors.email ? C.red : C.textMuted} />
+                    <Feather name="mail" size={20} color={fieldErrors.email ? C.red : C.textMuted} />
                   </View>
                   <TextInput
                     style={[s.input, s.inputWithIcon, fieldErrors.email && { borderColor: C.red }]}
                     placeholder="you@example.com"
                     placeholderTextColor={C.textMuted}
                     value={email}
-                    onChangeText={v => { setEmail(v); setFieldErrors(f => ({ ...f, email: '' })); }}
+                    onChangeText={setEmail}
                     keyboardType="email-address"
                     autoCapitalize="none"
                     autoCorrect={false}
                   />
                 </View>
-                {!!fieldErrors.email && (
-                  <View style={s.fieldErrorRow}>
-                    <Feather name="alert-circle" size={12} color={C.red} />
-                    <Text style={[s.fieldErrorText, { color: C.red }]}>{fieldErrors.email}</Text>
-                  </View>
-                )}
+                {fieldErrors.email && <Text style={{ color: C.red, fontSize: 12, marginTop: 4 }}>{fieldErrors.email}</Text>}
               </View>
 
               <View style={s.fieldGroup}>
@@ -215,6 +282,8 @@ export default function LoginScreen() {
                   </View>
                 )}
               </View>
+            </>
+          )}
 
               {isLogin && (
                 <TouchableOpacity style={s.forgotBtn} onPress={() => router.push('/forgot-password')}>
@@ -224,14 +293,16 @@ export default function LoginScreen() {
 
               <TouchableOpacity
                 style={[s.btn, submitting && { opacity: 0.6 }, !isLogin && { marginTop: 8 }]}
-                onPress={handleSubmit}
+                onPress={!isLogin && signupStep === 2 ? handleVerifyOtp : handleSubmit}
                 disabled={submitting}
               >
                 {submitting
                   ? <ActivityIndicator color="#fff" size="small" />
                   : (
                     <View style={s.btnInner}>
-                      <Text style={s.btnText}>{isLogin ? 'Sign In' : 'Create Account'}</Text>
+                      <Text style={s.btnText}>
+                        {isLogin ? 'Sign In' : (signupStep === 2 ? 'Verify Code' : 'Create Account')}
+                      </Text>
                       <Feather name="arrow-right" size={18} color="#fff" />
                     </View>
                   )
@@ -297,20 +368,21 @@ const getStyles = (C: ThemeColors) => StyleSheet.create({
   },
 
   brandSection: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 28,
+    gap: 16,
   },
-  logoBox: {
-    width: 68, height: 68, borderRadius: 22,
-    backgroundColor: C.primary + '18',
-    borderWidth: 1.5, borderColor: C.primary + '35',
-    alignItems: 'center', justifyContent: 'center',
-    marginBottom: 14,
-    shadowColor: C.primary, shadowOpacity: 0.25, shadowRadius: 16, elevation: 6,
+  logoImage: {
+    width: 52, height: 52, borderRadius: 12,
+  },
+  brandTextContainer: {
+    justifyContent: 'center',
   },
   brandName: {
-    fontSize: 22, fontWeight: '800', color: C.textPrimary,
-    letterSpacing: 0.5, marginBottom: 4,
+    fontSize: 24, fontWeight: '800', color: C.textPrimary,
+    letterSpacing: 0.2, marginBottom: 2,
   },
   brandTagline: {
     fontSize: 13, color: C.textMuted, fontWeight: '500',
@@ -363,6 +435,18 @@ const getStyles = (C: ThemeColors) => StyleSheet.create({
   eyeIcon: {
     position: 'absolute', right: 16,
   },
+
+  otpContainer: { flexDirection: 'row', justifyContent: 'space-between', marginVertical: 12 },
+  otpBox: { 
+    width: 48, height: 56, 
+    borderRadius: 12, borderWidth: 1, borderColor: C.inputBorder,
+    backgroundColor: C.inputBg,
+    alignItems: 'center', justifyContent: 'center' 
+  },
+  otpBoxActive: { borderColor: C.primary, backgroundColor: 'rgba(109,74,255,0.05)' },
+  otpText: { fontSize: 24, fontWeight: '700', color: C.textPrimary },
+  hiddenInput: { position: 'absolute', width: 1, height: 1, opacity: 0 },
+  fieldHint: { fontSize: 12, color: C.textSecondary, marginTop: 4, textAlign: 'center' },
 
   forgotBtn: {
     alignSelf: 'flex-end',

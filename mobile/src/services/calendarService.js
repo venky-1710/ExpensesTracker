@@ -20,4 +20,14 @@ export const calendarService = {
     const response = await api.delete(`/api/calendar/${id}`);
     return response.data;
   },
+
+  async markAsPaid(id) {
+    const response = await api.post(`/api/calendar/${id}/mark-paid`);
+    return response.data;
+  },
+
+  async undoPaid(id) {
+    const response = await api.post(`/api/calendar/${id}/undo-paid`);
+    return response.data;
+  },
 };

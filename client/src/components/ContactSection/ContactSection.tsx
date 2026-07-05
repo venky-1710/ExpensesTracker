@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import api from '../../services/api';
 
 interface ContactForm {
   firstName: string;
@@ -19,16 +20,23 @@ const ContactSection = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submitted, setSubmitted] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
+    setError(null);
+    try {
+      await api.post('/api/support/contact', form);
       setSubmitted(true);
       setForm({ firstName: '', lastName: '', workEmail: '', phoneNumber: '', message: '' });
-      setTimeout(() => setSubmitted(false), 3000);
-    }, 1500);
+      setTimeout(() => setSubmitted(false), 5000);
+    } catch (err: any) {
+      console.error('Contact submission error:', err);
+      setError(err.response?.data?.detail || 'Failed to send message. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -140,6 +148,12 @@ const ContactSection = () => {
                 />
               </div>
             </div>
+
+            {error && (
+              <div className="text-red-500 text-sm font-medium mt-2 px-1">
+                {error}
+              </div>
+            )}
 
             {/* Submit Button */}
             <button
