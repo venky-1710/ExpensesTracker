@@ -20,6 +20,7 @@ import UploadReviewModal from './UploadReviewModal';
 import { dashboardService } from '../../services/dashboardService';
 import IncomeExpenseChart from '../charts/IncomeExpenseChart';
 import CategoryPieChart from '../charts/CategoryPieChart';
+import { TypingIndicator } from '../TypingIndicator';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -108,45 +109,6 @@ const InlineText = ({ text, baseColor, style }: { text: string; baseColor: strin
   );
 };
 
-// ─── Typing Indicator ────────────────────────────────────────────────────────
-
-const TypingIndicator = ({ C }: { C: ThemeColors }) => {
-  const dot1 = useRef(new Animated.Value(0)).current;
-  const dot2 = useRef(new Animated.Value(0)).current;
-  const dot3 = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    const anim = (dot: Animated.Value, delay: number) =>
-      Animated.loop(
-        Animated.sequence([
-          Animated.delay(delay),
-          Animated.timing(dot, { toValue: -6, duration: 300, useNativeDriver: true }),
-          Animated.timing(dot, { toValue: 0, duration: 300, useNativeDriver: true }),
-          Animated.delay(600 - delay),
-        ])
-      );
-    const a1 = anim(dot1, 0);
-    const a2 = anim(dot2, 150);
-    const a3 = anim(dot3, 300);
-    a1.start(); a2.start(); a3.start();
-    return () => { a1.stop(); a2.stop(); a3.stop(); };
-  }, []);
-
-  return (
-    <View style={[styles.msgWrapper, styles.msgModel]}>
-      <View style={[styles.bubble, styles.bubbleModel, { backgroundColor: C.card, borderColor: C.border }]}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4 }}>
-          {[dot1, dot2, dot3].map((d, i) => (
-            <Animated.View key={i} style={{
-              width: 8, height: 8, borderRadius: 4,
-              backgroundColor: C.primary, transform: [{ translateY: d }]
-            }} />
-          ))}
-        </View>
-      </View>
-    </View>
-  );
-};
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
@@ -319,7 +281,7 @@ export default function ChatModal({ onClose }: { onClose: () => void }) {
       setIsUploading(true);
       Toast.show({ type: 'info', text1: 'Analyzing...', text2: 'This may take a minute.', autoHide: false });
 
-      const data = await uploadService.analyzeStatement(file.uri, file.name, file.mimeType || 'application/octet-stream');
+      const data = await uploadService.analyzeStatement(file.uri, file.name, file.mimeType || 'application/octet-stream', (file as any).file);
       
       Toast.hide();
       if (data && data.transactions) {

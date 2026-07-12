@@ -59,6 +59,7 @@ class UserProfileResponse(BaseModel):
     theme_preference: str = "light"
     custom_categories: List[str] = []
     custom_payment_methods: List[str] = []
+    custom_work_codes: List[str] = []
     created_at: datetime
     updated_at: datetime
 
@@ -102,6 +103,7 @@ class UserPreferences(BaseModel):
     theme_preference: Optional[str] = Field(None, pattern="^(light|dark)$")
     custom_categories: Optional[List[str]] = None
     custom_payment_methods: Optional[List[str]] = None
+    custom_work_codes: Optional[List[str]] = None
 
 
 class UserInDB(BaseModel):
@@ -119,6 +121,7 @@ class UserInDB(BaseModel):
     theme_preference: str = "light"
     custom_categories: List[str] = []
     custom_payment_methods: List[str] = []
+    custom_work_codes: List[str] = []
     is_deleted: bool = False
     created_at: datetime
     updated_at: datetime
@@ -409,4 +412,34 @@ class NotificationResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+
+class TimesheetCreate(BaseModel):
+    date: str = Field(..., example="2026-07-11")
+    work_code: str = Field(..., example="Coordination")
+    description: str = Field(..., min_length=1, example="Law Audit")
+    duration: float = Field(..., example=3.5)
+    billable: bool = Field(True, example=True)
+
+class TimesheetUpdate(BaseModel):
+    date: Optional[str] = None
+    work_code: Optional[str] = None
+    description: Optional[str] = None
+    duration: Optional[float] = None
+    billable: Optional[bool] = None
+
+class TimesheetResponse(BaseModel):
+    id: str
+    user_id: str
+    date: str
+    work_code: str
+    description: str
+    duration: float
+    billable: bool
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        populate_by_name = True
 

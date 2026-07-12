@@ -2,8 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, RefreshControl, Modal, TextInput,
-  ScrollView, Alert,
+  ScrollView, Alert, Platform
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { transactionService } from '../../services/transactionService';
@@ -57,6 +58,18 @@ export default function TransactionsScreen() {
   const [editing, setEditing] = useState<any>(null);
   const [form, setForm] = useState({ ...BLANK_FORM });
   const [saving, setSaving] = useState(false);
+  const [dateMode, setDateMode] = useState<'date' | null>(null);
+
+  const onDateChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      setDateMode(null);
+      if (event.type === 'set' && selectedDate) {
+        setForm({ ...form, date: selectedDate.toISOString().slice(0, 10) });
+      }
+    } else {
+      if (selectedDate) setForm({ ...form, date: selectedDate.toISOString().slice(0, 10) });
+    }
+  };
 
   const getFilterLabel = (f: FilterState) => {
     if (f.type === 'custom' && f.startDate && f.endDate) {
@@ -186,6 +199,7 @@ export default function TransactionsScreen() {
     const catIcon = (CATEGORY_ICONS[item.category] || 'circle') as any;
     return (
       <View style={s.txRow}>
+        <View style={[s.decorativeBubble, { backgroundColor: (isCredit ? C.green : C.red) + '15' }]} pointerEvents="none" />
         <View style={[s.txIconBadge, { backgroundColor: isCredit ? C.green + '18' : C.red + '18' }]}>
           <Feather name={catIcon} size={15} color={isCredit ? C.green : C.red} />
         </View>
@@ -373,30 +387,46 @@ export default function TransactionsScreen() {
 
               {/* Category */}
               <Text style={s.formLabel}>Category</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: (!CATEGORIES.filter(c => c !== 'Other').includes(form.category)) ? 10 : 20 }}>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
-                  {CATEGORIES.map(c => (
+                  {CATEGORIES.map(c => {
+                    const isActive = form.category === c || (c === 'Other' && !CATEGORIES.filter(cat => cat !== 'Other').includes(form.category));
+                    return (
                     <TouchableOpacity
                       key={c}
-                      style={[s.chipSmall, form.category === c && s.chipSmallActive]}
-                      onPress={() => setForm({ ...form, category: c })}
+                      style={[s.chipSmall, isActive && s.chipSmallActive]}
+                      onPress={() => setForm({ ...form, category: c === 'Other' ? '' : c })}
                       activeOpacity={0.7}
                     >
                       <Feather
-                        name={(CATEGORY_ICONS[c] || 'circle') as any}
+                        name={(CATEGORY_ICONS[c] || 'tag') as any}
                         size={12}
-                        color={form.category === c ? '#fff' : C.textMuted}
+                        color={isActive ? '#fff' : C.textMuted}
                       />
-                      <Text style={[s.chipSmallText, form.category === c && s.chipSmallTextActive]}>{c}</Text>
+                      <Text style={[s.chipSmallText, isActive && s.chipSmallTextActive]}>{c}</Text>
                     </TouchableOpacity>
-                  ))}
+                  )})}
                 </View>
               </ScrollView>
+              {(!CATEGORIES.filter(c => c !== 'Other').includes(form.category)) && (
+                <View style={s.inputRow}>
+                  <View style={s.inputIconLeft}>
+                    <Feather name="tag" size={16} color={C.textMuted} />
+                  </View>
+                  <TextInput
+                    style={[s.formInput, s.inputWithIcon]}
+                    placeholder="Enter custom category"
+                    placeholderTextColor={C.textMuted}
+                    value={CATEGORIES.filter(c => c !== 'Other').includes(form.category) ? '' : form.category}
+                    onChangeText={v => setForm({ ...form, category: v })}
+                  />
+                </View>
+              )}
 
               {/* Description */}
               <Text style={s.formLabel}>Description</Text>
               <TextInput
-                style={[s.formInput, { minHeight: 72, textAlignVertical: 'top' }]}
+                style={[s.formInput, { minHeight: 72, textAlignVertical: 'top', marginBottom: 20 }]}
                 placeholder="Optional notes..."
                 placeholderTextColor={C.textMuted}
                 value={form.description}
@@ -424,18 +454,41 @@ export default function TransactionsScreen() {
 
               {/* Date */}
               <Text style={s.formLabel}>Date</Text>
-              <View style={s.inputRow}>
+              <TouchableOpacity style={s.inputRow} onPress={() => setDateMode('date')} activeOpacity={0.7}>
                 <View style={s.inputIconLeft}>
                   <Feather name="calendar" size={16} color={C.textMuted} />
                 </View>
-                <TextInput
-                  style={[s.formInput, s.inputWithIcon]}
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor={C.textMuted}
-                  value={form.date}
-                  onChangeText={v => setForm({ ...form, date: v })}
+                <View style={[s.formInput, s.inputWithIcon, { justifyContent: 'center' }]}>
+                  <Text style={{ color: form.date ? C.textPrimary : C.textMuted, fontSize: 15 }}>
+                    {form.date ? new Date(form.date).toLocaleDateString('en-US', { dateStyle: 'medium' }) : 'Select Date'}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+              {dateMode !== null && Platform.OS === 'ios' && (
+                <View style={{ backgroundColor: C.inputBg, borderRadius: 14, marginBottom: 16 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'flex-end', padding: 12 }}>
+                    <TouchableOpacity onPress={() => setDateMode(null)}>
+                      <Text style={{ color: C.primary, fontWeight: 'bold' }}>Done</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <DateTimePicker
+                    value={form.date ? new Date(form.date) : new Date()}
+                    mode="date"
+                    display="spinner"
+                    onChange={onDateChange}
+                    themeVariant={isDark ? 'dark' : 'light'}
+                    textColor={C.textPrimary}
+                  />
+                </View>
+              )}
+              {dateMode !== null && Platform.OS === 'android' && (
+                <DateTimePicker
+                  value={form.date ? new Date(form.date) : new Date()}
+                  mode={dateMode}
+                  display="default"
+                  onChange={onDateChange}
                 />
-              </View>
+              )}
 
               <TouchableOpacity style={[s.saveBtn, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving} activeOpacity={0.8}>
                 {saving
@@ -504,8 +557,15 @@ const getStyles = (C: ThemeColors) => StyleSheet.create({
   filterChipText: { fontSize: 13, color: C.textSecondary, fontWeight: '600' },
   filterChipTextActive: { color: '#fff' },
 
-  txRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, gap: 14, borderBottomWidth: 1, borderColor: C.border },
-  txIconBadge: { width: 40, height: 40, borderRadius: 13, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  txRow: { 
+    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, 
+    paddingVertical: 16, gap: 14, backgroundColor: C.card,
+    borderWidth: 1, borderColor: C.border,
+    borderRadius: 24, borderTopLeftRadius: 32, borderBottomRightRadius: 32,
+    marginHorizontal: 16, marginBottom: 12,
+    overflow: 'hidden',
+  },
+  txIconBadge: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   txInfo: { flex: 1 },
   txCategory: { fontSize: 14, fontWeight: '700', color: C.textPrimary },
   txDesc: { fontSize: 12, color: C.textMuted, marginTop: 2 },
@@ -514,6 +574,12 @@ const getStyles = (C: ThemeColors) => StyleSheet.create({
   txAmount: { fontSize: 15, fontWeight: '800' },
   txTypePill: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
   txTypePillText: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4 },
+  
+  decorativeBubble: {
+    position: 'absolute', top: -30, right: -20,
+    width: 100, height: 100, borderRadius: 50,
+  },
+  
   actionBtn: {
     width: 26, height: 26, borderRadius: 6,
     backgroundColor: C.primary + '18',
@@ -560,10 +626,10 @@ const getStyles = (C: ThemeColors) => StyleSheet.create({
   formLabel: { fontSize: 12, fontWeight: '700', color: C.textSecondary, marginBottom: 10, letterSpacing: 0.5, textTransform: 'uppercase' },
   formInput: {
     backgroundColor: C.inputBg, borderRadius: 12, borderWidth: 1, borderColor: C.border,
-    paddingHorizontal: 16, paddingVertical: 14, color: C.textPrimary, fontSize: 15, marginBottom: 20,
+    paddingHorizontal: 16, paddingVertical: 14, color: C.textPrimary, fontSize: 15, marginBottom: 0,
   },
 
-  inputRow: { position: 'relative', justifyContent: 'center', marginBottom: 0 },
+  inputRow: { position: 'relative', justifyContent: 'center', marginBottom: 20 },
   inputPrefix: {
     position: 'absolute', left: 16, zIndex: 1,
   },

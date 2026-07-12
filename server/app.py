@@ -8,6 +8,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.exceptions import RequestValidationError
+from fastapi.encoders import jsonable_encoder
 from database.database import client, MONGODB_URI
 from routes.auth_routes import auth_router
 from routes.user_routes import user_router
@@ -19,6 +20,7 @@ from routes.upload_routes import upload_router
 from routes.calendar_routes import router as calendar_router
 from routes.notification_routes import router as notification_router
 from routes.support_routes import router as support_router
+from routes.timesheet_routes import router as timesheet_router
 from contextlib import asynccontextmanager
 import os
 import time
@@ -128,7 +130,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content={
             "success": False,
             "error": "Validation error",
-            "detail": exc.errors()
+            "detail": jsonable_encoder(exc.errors())
         }
     )
 
@@ -167,6 +169,7 @@ app.include_router(upload_router, prefix="/api/upload", tags=["upload"])
 app.include_router(calendar_router, prefix="/api/calendar", tags=["calendar"])
 app.include_router(notification_router, prefix="/api/notifications", tags=["notifications"])
 app.include_router(support_router, prefix="/api/support", tags=["support"])
+app.include_router(timesheet_router)
 
 
 @app.get("/", include_in_schema=False)

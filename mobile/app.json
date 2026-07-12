@@ -46,7 +46,9 @@
         {
           "photosPermission": "The app needs access to your photos to let you update your profile picture and banner."
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker",
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true

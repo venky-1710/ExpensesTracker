@@ -52,3 +52,45 @@ async def confirm_transactions(
     """Accept user-reviewed transactions and insert them into the database."""
     user_id = current_user.get("user_id") or current_user.get("id") or str(current_user.get("_id"))
     return await UploadAPI.confirm_transactions(payload.transactions, user_id)
+
+
+class TimesheetItem(BaseModel):
+    date: str
+    work_code: str
+    duration: float
+    description: str
+
+
+class ConfirmTimesheetPayload(BaseModel):
+    timesheets: List[TimesheetItem]
+
+
+@upload_router.post("/timesheets/analyze")
+@api_handler
+async def analyze_timesheets(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Upload a document, analyze it with AI, and return extracted timesheets for user review.
+    """
+    content = await file.read()
+    user_work_codes = current_user.get("custom_work_codes", [])
+    extracted_data = await UploadAPI.analyze_timesheets(content, file.filename, user_work_codes)
+
+    return {
+        "message": "Analysis successful. Please review the timesheets.",
+        "count": len(extracted_data),
+        "timesheets": extracted_data
+    }
+
+
+@upload_router.post("/timesheets/confirm")
+@api_handler
+async def confirm_timesheets(
+    payload: ConfirmTimesheetPayload,
+    current_user: dict = Depends(get_current_user)
+):
+    """Accept user-reviewed timesheets and insert them into the database."""
+    user_id = current_user.get("user_id") or current_user.get("id") or str(current_user.get("_id"))
+    return await UploadAPI.confirm_timesheets(payload.timesheets, user_id)

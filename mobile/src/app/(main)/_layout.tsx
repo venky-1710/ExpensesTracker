@@ -53,6 +53,13 @@ export default function MainLayout() {
         }}
       />
       <Tabs.Screen
+        name="timesheets"
+        options={{
+          title: 'Timesheet',
+          tabBarIcon: ({ color, size }) => <Feather name="clock" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',

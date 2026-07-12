@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  ActivityIndicator, Modal, TextInput, Alert,
+  ActivityIndicator, Modal, TextInput, Alert, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { calendarService } from '../../services/calendarService';
 import Toast from 'react-native-toast-message';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAppTheme, ThemeColors } from '../../context/ThemeContext';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
@@ -35,7 +36,7 @@ const BLANK_FORM = {
 };
 
 export default function CalendarScreen() {
-  const { C } = useAppTheme();
+  const { C, isDark } = useAppTheme();
   const s = getStyles(C);
   const now = new Date();
   const [currentYear, setCurrentYear] = useState(now.getFullYear());
@@ -43,6 +44,7 @@ export default function CalendarScreen() {
   const [selectedDate, setSelectedDate] = useState(now);
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<'today' | 'calendar'>('today');
 
   const [modal, setModal] = useState(false);
   const [detailModal, setDetailModal] = useState(false);
@@ -50,6 +52,52 @@ export default function CalendarScreen() {
   const [editing, setEditing] = useState<any>(null);
   const [form, setForm] = useState({ ...BLANK_FORM });
   const [saving, setSaving] = useState(false);
+  const [startMode, setStartMode] = useState<'date' | 'time' | null>(null);
+  const [endMode, setEndMode] = useState<'date' | 'time' | null>(null);
+
+  const onStartChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      if (event.type === 'set' && selectedDate) {
+        if (startMode === 'date') {
+          const current = new Date(form.start_time || new Date());
+          current.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+          setForm({ ...form, start_time: current.toISOString() });
+          setStartMode('time');
+        } else if (startMode === 'time') {
+          const current = new Date(form.start_time || new Date());
+          current.setHours(selectedDate.getHours(), selectedDate.getMinutes());
+          setForm({ ...form, start_time: current.toISOString() });
+          setStartMode(null);
+        }
+      } else {
+        setStartMode(null);
+      }
+    } else {
+      if (selectedDate) setForm({ ...form, start_time: selectedDate.toISOString() });
+    }
+  };
+
+  const onEndChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      if (event.type === 'set' && selectedDate) {
+        if (endMode === 'date') {
+          const current = new Date(form.end_time || new Date());
+          current.setFullYear(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+          setForm({ ...form, end_time: current.toISOString() });
+          setEndMode('time');
+        } else if (endMode === 'time') {
+          const current = new Date(form.end_time || new Date());
+          current.setHours(selectedDate.getHours(), selectedDate.getMinutes());
+          setForm({ ...form, end_time: current.toISOString() });
+          setEndMode(null);
+        }
+      } else {
+        setEndMode(null);
+      }
+    } else {
+      if (selectedDate) setForm({ ...form, end_time: selectedDate.toISOString() });
+    }
+  };
 
   const load = useCallback(async () => {
     try {
@@ -110,8 +158,8 @@ export default function CalendarScreen() {
     setEditing(null);
     setForm({
       ...BLANK_FORM,
-      start_time: start.toISOString().slice(0, 16),
-      end_time: end.toISOString().slice(0, 16),
+      start_time: start.toISOString(),
+      end_time: end.toISOString(),
     });
     setModal(true);
   };
@@ -121,8 +169,8 @@ export default function CalendarScreen() {
     setForm({
       title: ev.title,
       description: ev.description || '',
-      start_time: parseEvtDate(ev.start_time).toISOString().slice(0, 16),
-      end_time: parseEvtDate(ev.end_time).toISOString().slice(0, 16),
+      start_time: parseEvtDate(ev.start_time).toISOString(),
+      end_time: parseEvtDate(ev.end_time).toISOString(),
       color: ev.color || '#6366f1',
       amount: ev.amount ? ev.amount.toString() : '',
       payment_category: ev.payment_category || 'Bills',
@@ -196,140 +244,196 @@ export default function CalendarScreen() {
     ]);
   };
 
+  const PASTEL_COLORS = [
+    isDark ? '#4c1d95' : '#c4b5fd', // Purple
+    isDark ? '#9f1239' : '#fecdd3', // Pink
+    isDark ? '#115e59' : '#99f6e4', // Teal
+    isDark ? '#3f6212' : '#d9f99d', // Lime/Green
+    isDark ? '#854d0e' : '#fde047', // Yellow
+    isDark ? '#1e3a8a' : '#bfdbfe', // Blue
+  ];
+
   return (
     <SafeAreaView style={s.root}>
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={s.header}>
-          <View>
-            <Text style={s.title}>Calendar</Text>
-            <Text style={s.subtitle}>Schedule financial events</Text>
-          </View>
-          <TouchableOpacity style={s.addBtn} onPress={openCreate} activeOpacity={0.8}>
-            <Feather name="plus" size={16} color="#fff" />
-            <Text style={s.addBtnText}>Event</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Month Nav */}
-        <View style={s.monthNav}>
-          <TouchableOpacity style={s.navBtn} onPress={prevMonth} activeOpacity={0.7}>
-            <Feather name="chevron-left" size={20} color={C.textPrimary} />
-          </TouchableOpacity>
-          <View style={s.monthCenter}>
-            <Text style={s.monthText}>{MONTHS[currentMonth]} {currentYear}</Text>
-            <TouchableOpacity onPress={goToday} style={s.todayPill}>
-              <Text style={s.todayLink}>Today</Text>
+      <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+        
+        {/* Top Segmented Control & Add Button */}
+        <View style={s.topBar}>
+          <View style={s.segmentControl}>
+            <TouchableOpacity 
+              style={[s.segmentBtn, viewMode === 'today' && s.segmentBtnActive]} 
+              onPress={() => { setViewMode('today'); goToday(); }} 
+              activeOpacity={0.8}
+            >
+              <Text style={[s.segmentText, viewMode === 'today' && s.segmentTextActive]}>Today</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[s.segmentBtn, viewMode === 'calendar' && s.segmentBtnActive]} 
+              onPress={() => setViewMode('calendar')} 
+              activeOpacity={0.8}
+            >
+              <Text style={[s.segmentText, viewMode === 'calendar' && s.segmentTextActive]}>Calendar</Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={s.navBtn} onPress={nextMonth} activeOpacity={0.7}>
-            <Feather name="chevron-right" size={20} color={C.textPrimary} />
+          <TouchableOpacity style={s.addBtnCircle} onPress={openCreate} activeOpacity={0.8}>
+            <Feather name="plus" size={20} color={isDark ? '#000' : '#fff'} />
           </TouchableOpacity>
         </View>
 
-        {/* Day Headers */}
-        <View style={s.dayHeaders}>
-          {DAYS.map(d => (
-            <Text key={d} style={s.dayHeader}>{d}</Text>
-          ))}
-        </View>
-
-        {/* Calendar Grid */}
-        <View style={s.grid}>
-          {days.map((item, i) => {
-            const isToday = isSameDay(item.date, now);
-            const isSelected = isSameDay(item.date, selectedDate);
-            const isCurrentMonth = item.type === 'current';
-            const dayEvts = events.filter(ev => isSameDay(parseEvtDate(ev.start_time), item.date));
-
-            return (
-              <TouchableOpacity
-                key={`day-${i}`}
-                style={[
-                  s.dayCell,
-                  isSelected && s.dayCellSelected,
-                  isToday && !isSelected && s.dayCellToday,
-                  !isCurrentMonth && s.dayCellMuted,
-                ]}
-                onPress={() => {
-                  if (item.type === 'prev') prevMonth();
-                  if (item.type === 'next') nextMonth();
-                  setSelectedDate(item.date);
-                }}
-                activeOpacity={0.7}
-              >
-                <Text style={[
-                  s.dayNum,
-                  isSelected && s.dayNumSelected,
-                  isToday && !isSelected && s.dayNumToday,
-                  !isCurrentMonth && !isSelected && s.dayNumMuted,
-                ]}>
-                  {item.day}
+        {viewMode === 'today' ? (
+          /* ── TODAY VIEW ────────────────────────────────────── */
+          <View style={s.todayContainer}>
+            <View style={s.todayHeaderRow}>
+              <View style={s.todayDateWrap}>
+                <Text style={s.todayWeekday}>{now.toLocaleDateString('en-US', { weekday: 'long' })}</Text>
+                <Text style={s.todayHugeDate}>
+                  {now.getDate().toString().padStart(2, '0')}
                 </Text>
-                {dayEvts.slice(0, 2).map((ev, j) => (
-                  <View key={j} style={[s.evtDot, { backgroundColor: ev.color || '#6366f1', opacity: isCurrentMonth ? 1 : 0.3 }]} />
-                ))}
-                {dayEvts.length > 2 && (
-                  <Text style={[s.moreText, !isCurrentMonth && { opacity: 0.3 }]}>+{dayEvts.length - 2}</Text>
-                )}
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+                <View style={{ alignItems: 'flex-start' }}>
+                  <Text style={s.todayMonthText}>{MONTHS[now.getMonth()].toUpperCase()}</Text>
+                  <Text style={s.todayYearText}>{now.getFullYear()}</Text>
+                </View>
+              </View>
+              <View style={s.todayTimeWrap}>
+                <Text style={s.todayTimeText}>{now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</Text>
+                <Text style={s.todayTimeSub}>Local Time</Text>
+              </View>
+            </View>
 
-        {/* Selected Day Events */}
-        <View style={s.sidebar}>
-          <View style={s.sidebarHeader}>
-            <View>
-              <Text style={s.sidebarDate}>
-                {selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-              </Text>
-              {selectedDayEvents.length > 0 && (
-                <Text style={s.sidebarCount}>{selectedDayEvents.length} event{selectedDayEvents.length !== 1 ? 's' : ''}</Text>
+            <View style={s.tasksSection}>
+              <View style={s.tasksHeader}>
+                <Text style={s.tasksTitle}>Todays tasks</Text>
+                <View style={s.remindersPill}>
+                  <Text style={s.remindersText}>Reminders</Text>
+                </View>
+              </View>
+
+              {loading ? (
+                <ActivityIndicator color={C.primary} style={{ margin: 20 }} />
+              ) : selectedDayEvents.length === 0 ? (
+                <Text style={s.emptyDaySubtext}>No tasks for today.</Text>
+              ) : (
+                selectedDayEvents.map((ev, idx) => {
+                  const start = parseEvtDate(ev.start_time);
+                  const end = parseEvtDate(ev.end_time);
+                  const durationMins = Math.max(1, Math.round((end.getTime() - start.getTime()) / 60000));
+                  
+                  // Use theme-aware pastels for today cards, fallback to ev.color
+                  const cardColor = PASTEL_COLORS[idx % PASTEL_COLORS.length];
+                  const textColor = isDark ? '#ffffff' : '#111111';
+
+                  return (
+                    <TouchableOpacity 
+                      key={ev.id} 
+                      style={[s.taskCard, { backgroundColor: cardColor }]} 
+                      onPress={() => openDetail(ev)} 
+                      activeOpacity={0.9}
+                    >
+                      <View style={[s.decorativeBubble, { backgroundColor: textColor + '15' }]} pointerEvents="none" />
+                      <View style={s.taskCardTop}>
+                        <Text style={[s.taskCardTitle, { color: textColor }]} numberOfLines={2}>{ev.title}</Text>
+                      </View>
+                      <View style={s.taskCardBottom}>
+                        <View>
+                          <Text style={[s.taskTimeVal, { color: textColor }]}>{formatTime(ev.start_time)}</Text>
+                          <Text style={[s.taskTimeLbl, { color: textColor + 'aa' }]}>Start</Text>
+                        </View>
+                        <View style={[s.taskDurationPill, { backgroundColor: textColor + '1a' }]}>
+                          <Text style={[s.taskDurationText, { color: textColor }]}>{durationMins} Min</Text>
+                        </View>
+                        <View style={{ alignItems: 'flex-end' }}>
+                          <Text style={[s.taskTimeVal, { color: textColor }]}>{formatTime(ev.end_time)}</Text>
+                          <Text style={[s.taskTimeLbl, { color: textColor + 'aa' }]}>End</Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })
               )}
             </View>
-            <TouchableOpacity style={s.sidebarAddBtn} onPress={openCreate} activeOpacity={0.8}>
-              <Feather name="plus" size={14} color={C.primary} />
-              <Text style={s.sidebarAddText}>Add</Text>
-            </TouchableOpacity>
           </View>
-
-          {loading ? (
-            <ActivityIndicator color={C.primary} style={{ margin: 20 }} />
-          ) : selectedDayEvents.length === 0 ? (
-            <View style={s.emptyDay}>
-              <View style={s.emptyDayIconBox}>
-                <Feather name="calendar" size={24} color={C.textMuted} />
-              </View>
-              <Text style={s.emptyDayText}>No events scheduled</Text>
-              <Text style={s.emptyDaySubtext}>Tap + Add to create one</Text>
-            </View>
-          ) : (
-            selectedDayEvents.map(ev => (
-              <TouchableOpacity 
-                key={ev.id} 
-                style={[s.evtCard, { borderLeftColor: ev.color || '#6366f1' }]}
-                onPress={() => openDetail(ev)}
-                activeOpacity={0.7}
-              >
-                <View style={[s.evtColorDot, { backgroundColor: ev.color || '#6366f1' }]} />
-                <View style={s.evtContent}>
-                  <Text style={s.evtTitle}>{ev.title}</Text>
-                  <View style={s.evtTimeRow}>
-                    <Feather name="clock" size={12} color={C.textMuted} />
-                    <Text style={s.evtTime}>{formatTime(ev.start_time)} – {formatTime(ev.end_time)}</Text>
-                  </View>
-                  {ev.description ? <Text style={s.evtDesc} numberOfLines={2}>{ev.description}</Text> : null}
-                </View>
-                {ev.amount != null && (
-                  <View style={s.statusBadge}>
-                    <Feather name={ev.is_paid ? 'check-circle' : 'circle'} size={14} color={ev.is_paid ? C.green : C.amber} />
-                  </View>
-                )}
+        ) : (
+          /* ── CALENDAR VIEW ─────────────────────────────────── */
+          <View style={s.calContainer}>
+            <View style={s.monthSelector}>
+              <Text style={s.monthMuted}>{MONTHS[(currentMonth + 11) % 12].substring(0, 3).toUpperCase()}</Text>
+              <TouchableOpacity onPress={prevMonth} style={{ padding: 10 }}>
+                <Feather name="chevron-left" size={20} color={C.textPrimary} />
               </TouchableOpacity>
-            ))
-          )}
-        </View>
+              <View style={{ alignItems: 'center' }}>
+                <Text style={s.monthActive}>{MONTHS[currentMonth].toUpperCase()}</Text>
+                <Text style={s.yearSubtext}>{currentYear}</Text>
+              </View>
+              <TouchableOpacity onPress={nextMonth} style={{ padding: 10 }}>
+                <Feather name="chevron-right" size={20} color={C.textPrimary} />
+              </TouchableOpacity>
+              <Text style={s.monthMuted}>{MONTHS[(currentMonth + 1) % 12].substring(0, 3).toUpperCase()}</Text>
+            </View>
+
+            <View style={s.dayCardsList}>
+              {days.filter(d => d.type === 'current').map((item, i) => {
+                const dayEvts = events.filter(ev => isSameDay(parseEvtDate(ev.start_time), item.date));
+                const dayColor = PASTEL_COLORS[i % PASTEL_COLORS.length];
+                const textColor = isDark ? '#ffffff' : '#111111';
+
+                return (
+                  <View key={`dc-${i}`} style={[s.dayCard, { backgroundColor: dayColor }]}>
+                    <View style={[s.decorativeBubble, { backgroundColor: textColor + '15' }]} pointerEvents="none" />
+                    
+                    {/* Top Right Add Button */}
+                    <TouchableOpacity 
+                      style={[s.timelineAddBtn, { position: 'absolute', top: 20, right: 20, backgroundColor: textColor + '1a', zIndex: 10 }]} 
+                      onPress={() => { setSelectedDate(item.date); openCreate(); }}
+                      activeOpacity={0.8}
+                    >
+                      <Feather name="plus" size={14} color={textColor} />
+                    </TouchableOpacity>
+
+                    <View style={s.dayCardLeft}>
+                      <Text style={[s.dayCardWeekday, { color: textColor }]}>{item.date.toLocaleDateString('en-US', { weekday: 'long' })}</Text>
+                      <Text style={[s.dayCardNum, { color: textColor }]}>{item.day}</Text>
+                      <Text style={[s.dayCardMonth, { color: textColor }]}>{MONTHS[currentMonth].substring(0, 3).toUpperCase()}</Text>
+                    </View>
+                    <View style={s.dayCardRight}>
+                      {dayEvts.map((ev, j) => {
+                        const startD = parseEvtDate(ev.start_time);
+                        const endD = parseEvtDate(ev.end_time);
+                        const formatShortTime = (d: Date) => {
+                          const h = d.getHours();
+                          const ampm = h >= 12 ? 'pm' : 'am';
+                          return `${h % 12 || 12} ${ampm}`;
+                        };
+                        
+                        return (
+                          <View key={`ev-${j}`} style={[s.timelineEvt, { flexDirection: 'column', alignItems: 'flex-start', gap: 6, marginBottom: j < dayEvts.length - 1 ? 16 : 0 }]}>
+                            <TouchableOpacity 
+                              style={[s.timelineBlock, { paddingHorizontal: 0, paddingVertical: 0 }]} 
+                              onPress={() => openDetail(ev)}
+                              activeOpacity={0.8}
+                            >
+                              <Text style={[s.timelineBlockText, { color: textColor, fontSize: 16, marginBottom: 4 }]} numberOfLines={1}>{ev.title}</Text>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                <Feather name="clock" size={12} color={textColor + 'cc'} />
+                                <Text style={{ fontSize: 13, fontWeight: '700', color: textColor + 'cc' }}>
+                                  {formatShortTime(startD)} - {formatShortTime(endD)}
+                                </Text>
+                              </View>
+                            </TouchableOpacity>
+                          </View>
+                        );
+                      })}
+                      {dayEvts.length === 0 && (
+                        <View style={[s.timelineEvt, { justifyContent: 'flex-start' }]}>
+                          <Text style={{ color: textColor + 'cc', fontSize: 14, fontWeight: '700' }}>All day</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        )}
       </ScrollView>
 
       {/* Event Detail Modal */}
@@ -476,32 +580,78 @@ export default function CalendarScreen() {
               </View>
 
               <Text style={s.formLabel}>Start Time</Text>
-              <View style={s.inputRow}>
+              <TouchableOpacity style={s.inputRow} onPress={() => setStartMode('date')} activeOpacity={0.7}>
                 <View style={s.inputIconLeft}>
                   <Feather name="calendar" size={16} color={C.textMuted} />
                 </View>
-                <TextInput
-                  style={[s.formInput, s.inputWithIcon]}
-                  placeholder="2026-01-15T09:00"
-                  placeholderTextColor={C.textMuted}
-                  value={form.start_time}
-                  onChangeText={v => setForm({ ...form, start_time: v })}
+                <View style={[s.formInput, s.inputWithIcon, { justifyContent: 'center' }]}>
+                  <Text style={{ color: form.start_time ? C.textPrimary : C.textMuted, fontSize: 15 }}>
+                    {form.start_time ? new Date(form.start_time).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : 'Select Date & Time'}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+              {startMode !== null && Platform.OS === 'ios' && (
+                <View style={{ backgroundColor: C.inputBg, borderRadius: 14, marginBottom: 16 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'flex-end', padding: 12 }}>
+                    <TouchableOpacity onPress={() => setStartMode(null)}>
+                      <Text style={{ color: C.primary, fontWeight: 'bold' }}>Done</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <DateTimePicker
+                    value={form.start_time ? new Date(form.start_time) : new Date()}
+                    mode="datetime"
+                    display="spinner"
+                    onChange={onStartChange}
+                    themeVariant={isDark ? 'dark' : 'light'}
+                    textColor={C.textPrimary}
+                  />
+                </View>
+              )}
+              {startMode !== null && Platform.OS === 'android' && (
+                <DateTimePicker
+                  value={form.start_time ? new Date(form.start_time) : new Date()}
+                  mode={startMode}
+                  display="default"
+                  onChange={onStartChange}
                 />
-              </View>
+              )}
 
               <Text style={s.formLabel}>End Time</Text>
-              <View style={s.inputRow}>
+              <TouchableOpacity style={s.inputRow} onPress={() => setEndMode('date')} activeOpacity={0.7}>
                 <View style={s.inputIconLeft}>
                   <Feather name="clock" size={16} color={C.textMuted} />
                 </View>
-                <TextInput
-                  style={[s.formInput, s.inputWithIcon]}
-                  placeholder="2026-01-15T10:00"
-                  placeholderTextColor={C.textMuted}
-                  value={form.end_time}
-                  onChangeText={v => setForm({ ...form, end_time: v })}
+                <View style={[s.formInput, s.inputWithIcon, { justifyContent: 'center' }]}>
+                  <Text style={{ color: form.end_time ? C.textPrimary : C.textMuted, fontSize: 15 }}>
+                    {form.end_time ? new Date(form.end_time).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : 'Select Date & Time'}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+              {endMode !== null && Platform.OS === 'ios' && (
+                <View style={{ backgroundColor: C.inputBg, borderRadius: 14, marginBottom: 16 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'flex-end', padding: 12 }}>
+                    <TouchableOpacity onPress={() => setEndMode(null)}>
+                      <Text style={{ color: C.primary, fontWeight: 'bold' }}>Done</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <DateTimePicker
+                    value={form.end_time ? new Date(form.end_time) : new Date()}
+                    mode="datetime"
+                    display="spinner"
+                    onChange={onEndChange}
+                    themeVariant={isDark ? 'dark' : 'light'}
+                    textColor={C.textPrimary}
+                  />
+                </View>
+              )}
+              {endMode !== null && Platform.OS === 'android' && (
+                <DateTimePicker
+                  value={form.end_time ? new Date(form.end_time) : new Date()}
+                  mode={endMode}
+                  display="default"
+                  onChange={onEndChange}
                 />
-              </View>
+              )}
 
               <Text style={s.formLabel}>Amount (Optional)</Text>
               <View style={s.inputRow}>
@@ -536,9 +686,39 @@ export default function CalendarScreen() {
                 </TouchableOpacity>
               </View>
 
+              <Text style={s.formLabel}>Category</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: (!['Bills', 'Food', 'Transport', 'Shopping'].includes(form.payment_category)) ? 10 : 20 }}>
+                {['Bills', 'Food', 'Transport', 'Shopping', 'Other'].map(cat => {
+                  const isActive = form.payment_category === cat || (cat === 'Other' && !['Bills', 'Food', 'Transport', 'Shopping'].includes(form.payment_category));
+                  return (
+                    <TouchableOpacity
+                      key={cat}
+                      style={[s.catPill, isActive && s.catPillActive]}
+                      onPress={() => setForm({ ...form, payment_category: cat === 'Other' ? '' : cat })}
+                    >
+                      <Text style={[s.catPillText, isActive && s.catPillTextActive]}>{cat}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+              {(!['Bills', 'Food', 'Transport', 'Shopping'].includes(form.payment_category)) && (
+                <View style={s.inputRow}>
+                  <View style={s.inputIconLeft}>
+                    <Feather name="tag" size={16} color={C.textMuted} />
+                  </View>
+                  <TextInput
+                    style={[s.formInput, s.inputWithIcon]}
+                    placeholder="Enter custom category"
+                    placeholderTextColor={C.textMuted}
+                    value={['Bills', 'Food', 'Transport', 'Shopping'].includes(form.payment_category) ? '' : form.payment_category}
+                    onChangeText={v => setForm({ ...form, payment_category: v })}
+                  />
+                </View>
+              )}
+
               <Text style={s.formLabel}>Description</Text>
               <TextInput
-                style={[s.formInput, { minHeight: 80, textAlignVertical: 'top' }]}
+                style={[s.formInput, { minHeight: 80, textAlignVertical: 'top', marginBottom: 20 }]}
                 placeholder="Optional notes..."
                 placeholderTextColor={C.textMuted}
                 value={form.description}
@@ -582,111 +762,113 @@ export default function CalendarScreen() {
 
 const getStyles = (C: ThemeColors) => StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
-  header: {
+  // Top Segment Control & Add Button
+  topBar: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 24, paddingTop: 24, paddingBottom: 16,
+    paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16,
   },
-  title: { fontSize: 26, fontWeight: '800', color: C.textPrimary, letterSpacing: 0.5 },
-  subtitle: { fontSize: 13, color: C.textMuted, marginTop: 4 },
-  addBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: C.primary, paddingHorizontal: 16, paddingVertical: 10,
-    borderRadius: 14,
-    shadowColor: C.primary, shadowOpacity: 0.4, shadowRadius: 10, elevation: 5,
-  },
-  addBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-
-  monthNav: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingVertical: 8, marginBottom: 12,
-  },
-  navBtn: {
-    width: 44, height: 44, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: C.card, borderRadius: 14,
+  segmentControl: {
+    flexDirection: 'row', backgroundColor: C.card, borderRadius: 20, padding: 4,
     borderWidth: 1, borderColor: C.border,
   },
-  monthCenter: { alignItems: 'center', gap: 6 },
-  monthText: { fontSize: 18, fontWeight: '800', color: C.textPrimary, letterSpacing: 0.5 },
-  todayPill: {
-    backgroundColor: C.primary + '18', paddingHorizontal: 12, paddingVertical: 3, borderRadius: 10,
+  segmentBtn: {
+    paddingVertical: 8, paddingHorizontal: 20, borderRadius: 16,
   },
-  todayLink: { fontSize: 11, color: C.primary, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 },
-
-  dayHeaders: { flexDirection: 'row', paddingHorizontal: 16, paddingBottom: 8 },
-  dayHeader: {
-    flex: 1, textAlign: 'center', fontSize: 11, fontWeight: '800',
-    color: C.textSecondary, textTransform: 'uppercase', letterSpacing: 1,
-  },
-
-  grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 12 },
-  dayCell: {
-    width: '14.28%', aspectRatio: 0.85, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 10,
-    borderRadius: 14, gap: 3,
-  },
-  dayCellMuted: { opacity: 0.35 },
-  dayCellToday: { borderWidth: 1.5, borderColor: C.primary + '60', backgroundColor: C.primary + '10' },
-  dayCellSelected: {
-    backgroundColor: C.primary,
-    shadowColor: C.primary, shadowOpacity: 0.4, shadowRadius: 10, elevation: 6,
-    opacity: 1,
-  },
-  dayNum: { fontSize: 15, fontWeight: '700', color: C.textMuted },
-  dayNumMuted: { color: C.textMuted + '80' },
-  dayNumToday: { color: C.primary, fontWeight: '800' },
-  dayNumSelected: { color: '#fff', fontWeight: '800' },
-  evtDot: { width: 5, height: 5, borderRadius: 3 },
-  moreText: { fontSize: 9, color: C.textMuted, fontWeight: '800' },
-
-  sidebar: {
-    flex: 1, marginTop: 20,
-    backgroundColor: C.card,
-    borderTopLeftRadius: 36, borderTopRightRadius: 36,
-    paddingHorizontal: 24, paddingTop: 28, paddingBottom: 120,
-    borderTopWidth: 1, borderColor: C.border,
-  },
-  sidebarHeader: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20,
-  },
-  sidebarDate: { fontSize: 17, fontWeight: '800', color: C.textPrimary },
-  sidebarCount: { fontSize: 12, color: C.textMuted, marginTop: 3, fontWeight: '500' },
-  sidebarAddBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: C.primary + '18', paddingHorizontal: 14, paddingVertical: 9,
-    borderRadius: 12,
-  },
-  sidebarAddText: { color: C.primary, fontWeight: '700', fontSize: 13 },
-
-  emptyDay: { padding: 36, alignItems: 'center', gap: 10 },
-  emptyDayIconBox: {
-    width: 60, height: 60, borderRadius: 18,
-    backgroundColor: C.bg, borderWidth: 1, borderColor: C.border,
+  segmentBtnActive: { backgroundColor: C.textPrimary },
+  segmentText: { fontSize: 13, fontWeight: '700', color: C.textMuted },
+  segmentTextActive: { color: C.bg },
+  addBtnCircle: {
+    width: 44, height: 44, borderRadius: 22, backgroundColor: C.textPrimary,
     alignItems: 'center', justifyContent: 'center',
   },
-  emptyDayText: { fontSize: 15, color: C.textPrimary, fontWeight: '700' },
-  emptyDaySubtext: { fontSize: 13, color: C.textMuted },
 
-  evtCard: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 16, paddingVertical: 16,
-    backgroundColor: C.bg, borderRadius: 18,
-    marginBottom: 10,
-    borderLeftWidth: 4,
-    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 2,
+  // Today View Styles
+  todayContainer: { paddingHorizontal: 20 },
+  todayHeaderRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end',
+    marginBottom: 40, marginTop: 10,
   },
-  evtColorDot: { display: 'none', width: 0 },
-  evtContent: { flex: 1 },
-  evtTitle: { fontSize: 15, fontWeight: '800', color: C.textPrimary, marginBottom: 5 },
-  evtTimeRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  evtTime: { fontSize: 13, color: C.textSecondary, fontWeight: '600' },
-  evtDesc: { fontSize: 13, color: C.textMuted, marginTop: 6, lineHeight: 18 },
-  evtBtns: { gap: 8, marginLeft: 12 },
-  evtIconBtn: {
-    width: 34, height: 34, borderRadius: 10,
-    backgroundColor: C.primary + '18',
+  todayDateWrap: { flex: 1 },
+  todayWeekday: { fontSize: 16, color: C.textMuted, fontWeight: '500', marginBottom: -4 },
+  todayHugeDate: { fontSize: 64, fontWeight: '500', color: C.textPrimary, lineHeight: 72 },
+  todayMonthText: { fontSize: 50, fontWeight: '500', color: C.textPrimary, lineHeight: 56, marginTop: -8 },
+  todayYearText: { fontSize: 18, fontWeight: '700', color: C.textMuted, marginTop: -4 },
+  
+  todayTimeWrap: { alignItems: 'flex-end', paddingBottom: 6 },
+  todayTimeText: { fontSize: 20, fontWeight: '700', color: C.textPrimary },
+  todayTimeSub: { fontSize: 12, color: C.textMuted, marginTop: 2 },
+
+  tasksSection: { marginTop: 10 },
+  tasksHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  tasksTitle: { fontSize: 18, fontWeight: '800', color: C.textPrimary },
+  remindersPill: {
+    backgroundColor: C.card, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
+    borderWidth: 1, borderColor: C.border,
+  },
+  remindersText: { fontSize: 11, fontWeight: '700', color: C.textSecondary, textTransform: 'uppercase' },
+
+  taskCard: {
+    padding: 24, borderRadius: 28, borderTopLeftRadius: 36, borderBottomRightRadius: 36, marginBottom: 16,
+    overflow: 'hidden',
+  },
+  taskCardTop: { marginBottom: 30 },
+  taskCardTitle: { fontSize: 28, fontWeight: '800', lineHeight: 32 },
+  taskCardBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
+  taskTimeVal: { fontSize: 20, fontWeight: '800' },
+  taskTimeLbl: { fontSize: 12, fontWeight: '600', marginTop: 4 },
+  taskDurationPill: {
+    paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20,
+    alignSelf: 'flex-end', marginBottom: 2,
+  },
+  taskDurationText: { fontSize: 12, fontWeight: '700' },
+
+  emptyDaySubtext: { fontSize: 14, color: C.textMuted, textAlign: 'center', marginTop: 20 },
+
+  // Calendar View Styles
+  calContainer: { paddingHorizontal: 20 },
+  monthSelector: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 10, marginBottom: 24, marginTop: 10,
+  },
+  monthActive: { fontSize: 24, fontWeight: '800', color: C.textPrimary, letterSpacing: -0.5 },
+  yearSubtext: { fontSize: 12, fontWeight: '600', color: C.textMuted, marginTop: -2 },
+  monthMuted: { fontSize: 20, fontWeight: '700', color: C.textMuted + '60' },
+
+  dayCardsList: { gap: 16 },
+  dayCard: {
+    flexDirection: 'row', borderRadius: 28, borderTopLeftRadius: 36, borderBottomRightRadius: 36, padding: 24, minHeight: 160,
+    overflow: 'hidden',
+  },
+  dayCardLeft: {
+    width: '35%', paddingRight: 10,
+  },
+  dayCardWeekday: { fontSize: 14, fontWeight: '500', marginBottom: 4 },
+  dayCardNum: { fontSize: 50, fontWeight: '500', lineHeight: 54 },
+  dayCardMonth: { fontSize: 32, fontWeight: '500', lineHeight: 36, marginTop: -8 },
+  
+  dayCardRight: {
+    flex: 1, paddingLeft: 16,
+    justifyContent: 'center', gap: 16,
+  },
+  timelineEvt: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  timelineTimeBox: { width: 45 },
+  timelineTimeText: { fontSize: 12, fontWeight: '600' },
+  timelineBlock: {
+    flex: 1, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12,
+  },
+  timelineBlockText: { fontSize: 13, fontWeight: '700' },
+  timelineAddBtn: {
+    width: 28, height: 28, borderRadius: 14,
     alignItems: 'center', justifyContent: 'center',
   },
 
   overlay: { flex: 1, backgroundColor: '#000000C0', justifyContent: 'flex-end' },
+  
+  decorativeBubble: {
+    position: 'absolute', top: -40, right: -30,
+    width: 140, height: 140, borderRadius: 70,
+  },
+  
   modalCard: {
     backgroundColor: C.card, borderTopLeftRadius: 28, borderTopRightRadius: 28,
     maxHeight: '92%',
@@ -704,7 +886,7 @@ const getStyles = (C: ThemeColors) => StyleSheet.create({
   modalSubtitle: { fontSize: 12, color: C.textMuted, marginTop: 2 },
   closeBtn: {
     width: 32, height: 32, borderRadius: 16,
-    backgroundColor: C.border + '60',
+    backgroundColor: C.border,
     alignItems: 'center', justifyContent: 'center',
   },
   modalBody: { paddingHorizontal: 24, paddingTop: 20 },
@@ -714,9 +896,9 @@ const getStyles = (C: ThemeColors) => StyleSheet.create({
   },
   formInput: {
     backgroundColor: C.inputBg, borderRadius: 14, borderWidth: 1, borderColor: C.border,
-    paddingHorizontal: 16, paddingVertical: 14, color: C.textPrimary, fontSize: 15, marginBottom: 20,
+    paddingHorizontal: 16, paddingVertical: 14, color: C.textPrimary, fontSize: 15, marginBottom: 0,
   },
-  inputRow: { position: 'relative', justifyContent: 'center', marginBottom: 0 },
+  inputRow: { position: 'relative', justifyContent: 'center', marginBottom: 20 },
   inputIconLeft: { position: 'absolute', left: 16, zIndex: 1 },
   inputWithIcon: { paddingLeft: 46 },
   
@@ -727,6 +909,15 @@ const getStyles = (C: ThemeColors) => StyleSheet.create({
   typeBtnActive: { backgroundColor: C.primary, borderColor: C.primary },
   typeBtnText: { fontSize: 14, fontWeight: '600', color: C.textSecondary },
   typeBtnTextActive: { color: '#fff' },
+
+  catPill: {
+    paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20,
+    backgroundColor: C.card, borderWidth: 1, borderColor: C.border,
+    marginRight: 10,
+  },
+  catPillActive: { backgroundColor: C.primary, borderColor: C.primary },
+  catPillText: { fontSize: 13, fontWeight: '600', color: C.textSecondary },
+  catPillTextActive: { color: '#fff' },
 
   colorRow: { flexDirection: 'row', gap: 12, marginBottom: 24, flexWrap: 'wrap' },
   colorSwatch: {
@@ -751,10 +942,12 @@ const getStyles = (C: ThemeColors) => StyleSheet.create({
   detailText: { fontSize: 14, color: C.textPrimary, lineHeight: 22 },
   detailRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingVertical: 10, borderBottomWidth: 1, borderColor: C.border + '50',
+    paddingVertical: 10, borderBottomWidth: 1, borderColor: C.border,
   },
   detailLabel: { fontSize: 14, color: C.textSecondary, fontWeight: '500' },
   detailValue: { fontSize: 14, color: C.textPrimary, fontWeight: '700' },
+  evtTimeRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  evtTime: { fontSize: 13, color: C.textSecondary, fontWeight: '600' },
   typePill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   typePillText: { fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
   detailActions: { gap: 12, marginTop: 10 },

@@ -8,6 +8,7 @@ import {
 } from 'react-icons/fi';
 import NavBar from '../components/NavBar/NavBar';
 import ContactSection from '../components/ContactSection/ContactSection';
+import webotLogo from '../assets/webot_logo.png';
 
 interface StatItem {
   num: string;
@@ -228,7 +229,7 @@ const Hero = () => {
             {/* Brand Section */}
             <div className="md:col-span-12 lg:col-span-5 pr-0 lg:pr-8">
               <div className="flex items-center gap-3 text-2xl font-extrabold text-gray-900 dark:text-white mb-6 tracking-tight">
-                <img src="/favicon.png" alt="ExpenseTrack" className="w-12 h-12 object-contain" />
+                <img src={webotLogo} alt="ExpenseTrack" className="w-12 h-12 object-cover rounded-[16px]" />
                 <span>ExpenseTrack</span>
               </div>
               <p className="text-gray-600 dark:text-gray-400 text-base mb-8 max-w-sm leading-relaxed">

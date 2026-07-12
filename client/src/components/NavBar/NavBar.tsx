@@ -12,6 +12,8 @@ interface NavLink {
   id: string;
 }
 
+import webotLogo from '../../assets/webot_logo.png';
+
 const NavBar = ({ isDark, toggleTheme }: Props) => {
   const [menuOpen, setMenuOpen] = useState<boolean>(false);
   const [scrolled, setScrolled] = useState<boolean>(false);
@@ -38,7 +40,7 @@ const NavBar = ({ isDark, toggleTheme }: Props) => {
     <nav className={`fixed top-0 left-0 right-0 z-[1000] px-[5%] transition-all duration-300 ${scrolled ? 'bg-white/80 dark:bg-[#050B14]/80 backdrop-blur-md shadow-sm border-b border-gray-200 dark:border-white/10' : 'bg-transparent'}`}>
       <div className="flex items-center justify-between h-[68px] max-w-7xl mx-auto">
         <Link to="/" className="flex items-center gap-2 no-underline shrink-0 group">
-          <img src="/favicon.png" alt="ExpenseTrack" className="w-10 h-10 object-contain group-hover:scale-105 transition-transform" />
+          <img src={webotLogo} alt="ExpenseTrack" className="w-10 h-10 object-cover rounded-[16px] group-hover:scale-105 transition-transform" />
           <span className="text-lg font-extrabold text-gray-900 dark:text-white tracking-tight">ExpenseTrack</span>
         </Link>
 

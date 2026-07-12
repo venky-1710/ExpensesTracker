@@ -20,26 +20,35 @@ export const uploadService = {
    * Upload a bank statement file and analyze it with AI.
    * Returns { count, transactions }
    */
-  analyzeStatement: async (fileUri: string, fileName: string, mimeType: string) => {
+  analyzeStatement: async (fileUri: string, fileName: string, mimeType: string, webFile?: any) => {
     const token = await AsyncStorage.getItem('token');
     const baseUrl = getBaseUrl();
 
     const formData = new FormData();
-    formData.append('file', {
-      uri: fileUri,
-      name: fileName,
-      type: mimeType,
-    } as any);
+    if (Platform.OS === 'web' && webFile) {
+      formData.append('file', webFile);
+    } else {
+      formData.append('file', {
+        uri: fileUri,
+        name: fileName,
+        type: mimeType,
+      } as any);
+    }
 
-    const response = await axios.post(`${baseUrl}/api/upload/analyze`, formData, {
+    const response = await fetch(`${baseUrl}/api/upload/analyze`, {
+      method: 'POST',
+      body: formData,
       headers: {
-        'Content-Type': 'multipart/form-data',
         Authorization: `Bearer ${token}`,
       },
-      timeout: 120000, // 2 min — AI analysis can take time
     });
 
-    return response.data;
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ detail: 'Upload failed' }));
+      throw { response: { data: errorData, status: response.status } };
+    }
+
+    return await response.json();
   },
 
   /**
@@ -47,6 +56,48 @@ export const uploadService = {
    */
   confirmTransactions: async (transactions: any[]) => {
     const response = await api.post('/api/upload/confirm', { transactions });
+    return response.data;
+  },
+
+  /**
+   * Upload a timesheet document and analyze it with AI.
+   */
+  analyzeTimesheets: async (fileUri: string, fileName: string, mimeType: string, webFile?: any) => {
+    const token = await AsyncStorage.getItem('token');
+    const baseUrl = getBaseUrl();
+
+    const formData = new FormData();
+    if (Platform.OS === 'web' && webFile) {
+      formData.append('file', webFile);
+    } else {
+      formData.append('file', {
+        uri: fileUri,
+        name: fileName,
+        type: mimeType,
+      } as any);
+    }
+
+    const response = await fetch(`${baseUrl}/api/upload/timesheets/analyze`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ detail: 'Upload failed' }));
+      throw { response: { data: errorData, status: response.status } };
+    }
+
+    return await response.json();
+  },
+
+  /**
+   * Confirm and import the reviewed timesheets.
+   */
+  confirmTimesheets: async (timesheets: any[]) => {
+    const response = await api.post('/api/upload/timesheets/confirm', { timesheets });
     return response.data;
   },
 };

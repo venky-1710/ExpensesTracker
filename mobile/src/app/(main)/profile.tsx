@@ -27,7 +27,6 @@ export default function ProfileScreen() {
   });
   const [saving, setSaving] = useState(false);
 
-  const [themeModal, setThemeModal] = useState(false);
   const [pwModal, setPwModal] = useState(false);
   const [pwForm, setPwForm] = useState({ old_password: '', new_password: '', confirm_password: '' });
   const [pwSaving, setPwSaving] = useState(false);
@@ -181,7 +180,7 @@ export default function ProfileScreen() {
       sub: `Theme: ${themeLabel}`,
       icon: themeIcon,
       color: C.blue,
-      onPress: () => setThemeModal(true),
+      isThemeToggle: true,
     },
     {
       label: 'Security',
@@ -310,16 +309,53 @@ export default function ProfileScreen() {
           <View style={s.menuCard}>
             {accountItems.map((item, i) => (
               <React.Fragment key={item.label}>
-                <TouchableOpacity style={s.menuRow} onPress={item.onPress} activeOpacity={0.7}>
-                  <View style={[s.menuIconBox, { backgroundColor: item.color + '18' }]}>
-                    <Feather name={item.icon} size={17} color={item.color} />
+                {item.isThemeToggle ? (
+                  <View style={[s.menuRow, { paddingVertical: 12, paddingRight: 12 }]}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: 14 }}>
+                      <View style={[s.menuIconBox, { backgroundColor: item.color + '18' }]}>
+                        <Feather name={item.icon} size={17} color={item.color} />
+                      </View>
+                      <View style={s.menuMeta}>
+                        <Text style={s.menuLabel}>{item.label}</Text>
+                        <Text style={s.menuSub}>{item.sub}</Text>
+                      </View>
+                    </View>
+                    <View style={{ flexDirection: 'row', gap: 6 }}>
+                      {([
+                        { mode: 'system', icon: 'monitor' },
+                        { mode: 'light', icon: 'sun' },
+                        { mode: 'dark', icon: 'moon' },
+                      ] as const).map(opt => (
+                        <TouchableOpacity
+                          key={opt.mode}
+                          style={[
+                            s.inlineThemeBtn,
+                            themeMode === opt.mode && s.inlineThemeBtnActive
+                          ]}
+                          onPress={() => setThemeMode(opt.mode)}
+                          activeOpacity={0.7}
+                        >
+                          <Feather 
+                            name={opt.icon} 
+                            size={16} 
+                            color={themeMode === opt.mode ? C.primary : C.textMuted} 
+                          />
+                        </TouchableOpacity>
+                      ))}
+                    </View>
                   </View>
-                  <View style={s.menuMeta}>
-                    <Text style={s.menuLabel}>{item.label}</Text>
-                    <Text style={s.menuSub}>{item.sub}</Text>
-                  </View>
-                  <Feather name="chevron-right" size={16} color={C.textMuted} />
-                </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity style={s.menuRow} onPress={item.onPress} activeOpacity={0.7}>
+                    <View style={[s.menuIconBox, { backgroundColor: item.color + '18' }]}>
+                      <Feather name={item.icon} size={17} color={item.color} />
+                    </View>
+                    <View style={s.menuMeta}>
+                      <Text style={s.menuLabel}>{item.label}</Text>
+                      <Text style={s.menuSub}>{item.sub}</Text>
+                    </View>
+                    <Feather name="chevron-right" size={16} color={C.textMuted} />
+                  </TouchableOpacity>
+                )}
                 {i < accountItems.length - 1 && <View style={s.rowSep} />}
               </React.Fragment>
             ))}
@@ -386,11 +422,16 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             </View>
             <View style={[s.sheetBody, { alignItems: 'center', paddingBottom: 40 }]}>
-              <View style={[s.avatar, { width: 80, height: 80, borderRadius: 24, backgroundColor: C.primary + '18', marginBottom: 16 }]}>
-                <Feather name="pie-chart" size={32} color={C.primary} />
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16, gap: 16 }}>
+                <Image 
+                  source={require('../../../assets/images/webot_logo.jpg')} 
+                  style={{ width: 64, height: 64, borderRadius: 16 }} 
+                />
+                <View>
+                  <Text style={{ fontSize: 24, fontWeight: '800', color: C.textPrimary }}>ExpensesTracker</Text>
+                  <Text style={{ fontSize: 14, color: C.textMuted, marginTop: 4 }}>Version 1.0.0</Text>
+                </View>
               </View>
-              <Text style={{ fontSize: 20, fontWeight: '800', color: C.textPrimary }}>ExpensesTracker</Text>
-              <Text style={{ fontSize: 13, color: C.textMuted, marginTop: 4 }}>Version 1.0.0</Text>
               
               <Text style={{ fontSize: 14, color: C.textSecondary, textAlign: 'center', marginTop: 16, lineHeight: 22 }}>
                 Track your expenses, manage your income, and analyze your financial habits effortlessly with our intelligent platform.
@@ -503,48 +544,6 @@ export default function ProfileScreen() {
                 )}
               </TouchableOpacity>
             </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      {/* ── Appearance Modal ─────────────────────────────── */}
-      <Modal visible={themeModal} animationType="fade" transparent onRequestClose={() => setThemeModal(false)}>
-        <View style={s.overlay}>
-          <View style={s.sheet}>
-            <View style={s.sheetHandle} />
-            <View style={s.sheetHeader}>
-              <Text style={s.sheetTitle}>Appearance</Text>
-              <TouchableOpacity style={s.closeBtn} onPress={() => setThemeModal(false)}>
-                <Feather name="x" size={17} color={C.textMuted} />
-              </TouchableOpacity>
-            </View>
-            <View style={s.sheetBody}>
-              {([
-                { mode: 'system', label: 'System Default', icon: 'monitor', desc: 'Follows device setting' },
-                { mode: 'light', label: 'Light Mode', icon: 'sun', desc: 'Always light' },
-                { mode: 'dark', label: 'Dark Mode', icon: 'moon', desc: 'Always dark' },
-              ] as const).map((opt, i, arr) => (
-                <React.Fragment key={opt.mode}>
-                  <TouchableOpacity
-                    style={[s.themeRow, themeMode === opt.mode && s.themeRowActive]}
-                    onPress={() => { setThemeMode(opt.mode); setThemeModal(false); }}
-                    activeOpacity={0.7}
-                  >
-                    <View style={[s.themeIconBox, themeMode === opt.mode && { backgroundColor: C.primary + '20' }]}>
-                      <Feather name={opt.icon} size={17} color={themeMode === opt.mode ? C.primary : C.textMuted} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[s.themeLabel, themeMode === opt.mode && { color: C.primary }]}>{opt.label}</Text>
-                      <Text style={s.themeDesc}>{opt.desc}</Text>
-                    </View>
-                    <View style={[s.radio, themeMode === opt.mode && s.radioActive]}>
-                      {themeMode === opt.mode && <View style={s.radioDot} />}
-                    </View>
-                  </TouchableOpacity>
-                  {i < arr.length - 1 && <View style={s.rowSep} />}
-                </React.Fragment>
-              ))}
-            </View>
           </View>
         </View>
       </Modal>
@@ -962,27 +961,20 @@ const getStyles = (C: ThemeColors) => StyleSheet.create({
   },
   sheetBody: { paddingHorizontal: 24, paddingTop: 20 },
 
-  // Appearance modal
-  themeRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    paddingVertical: 14, paddingHorizontal: 4,
+  // Inline Theme Buttons
+  inlineThemeBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: C.inputBg,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  themeRowActive: {},
-  themeIconBox: {
-    width: 40, height: 40, borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center',
-    backgroundColor: C.border + '50',
-  },
-  themeLabel: { fontSize: 15, fontWeight: '600', color: C.textPrimary, marginBottom: 1 },
-  themeDesc: { fontSize: 12, color: C.textMuted },
-  radio: {
-    width: 20, height: 20, borderRadius: 10,
-    borderWidth: 2, borderColor: C.border,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  radioActive: { borderColor: C.primary },
-  radioDot: {
-    width: 10, height: 10, borderRadius: 5, backgroundColor: C.primary,
+  inlineThemeBtnActive: {
+    borderColor: C.primary,
+    backgroundColor: C.primary + '10',
   },
 
   // Edit profile image pickers

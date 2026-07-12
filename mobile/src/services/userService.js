@@ -23,4 +23,9 @@ export const userService = {
     const response = await api.delete('/users/me', { data: { password } });
     return response.data;
   },
+
+  async updatePreferences(data) {
+    const response = await api.put('/users/preferences', data);
+    return response.data;
+  },
 };

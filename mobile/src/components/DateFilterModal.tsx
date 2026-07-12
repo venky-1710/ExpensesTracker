@@ -179,6 +179,13 @@ export default function DateFilterModal({ visible, currentFilter, onApply, onClo
   };
 
   const handleApply = () => {
+    if (selectedPreset === 'custom' && (!selectionStart || !selectionEnd)) {
+      import('react-native-toast-message').then(module => {
+        module.default.show({ type: 'error', text1: 'Incomplete Range', text2: 'Please select both start and end dates for the custom range.' });
+      });
+      return;
+    }
+
     onApply({
       type: selectedPreset,
       startDate: selectionStart ? selectionStart.toISOString() : null,
