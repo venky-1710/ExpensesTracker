@@ -8,6 +8,7 @@ export default function MainLayout() {
 
   return (
     <Tabs
+      sceneContainerStyle={{ backgroundColor: C.bg }}
       screenOptions={{
         headerShown: false,
         tabBarStyle: {

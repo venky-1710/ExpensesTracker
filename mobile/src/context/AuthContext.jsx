@@ -53,7 +53,11 @@ export const AuthProvider = ({ children }) => {
             setUser(userData);
             setIsAuthenticated(true);
         } catch (error) {
-            console.error('Failed to fetch user:', error);
+            if (error.response?.status === 401) {
+                console.warn('Session expired or invalid token. Redirecting to login.');
+            } else {
+                console.error('Failed to fetch user:', error);
+            }
             await AsyncStorage.removeItem('token');
             setIsAuthenticated(false);
         } finally {

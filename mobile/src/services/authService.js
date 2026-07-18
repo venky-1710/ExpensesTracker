@@ -68,7 +68,11 @@ export const authService = {
       console.log('✅ Profile retrieved:', response.data);
       return response.data;
     } catch (error) {
-      console.error('❌ Get profile error:', error.response?.data || error.message);
+      if (error.response?.status === 401) {
+        console.warn('⚠️ Session expired (401):', error.response?.data || error.message);
+      } else {
+        console.error('❌ Get profile error:', error.response?.data || error.message);
+      }
       throw error;
     }
   },

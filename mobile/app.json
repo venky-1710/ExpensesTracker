@@ -34,10 +34,12 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
-          "android": {
-            "image": "./assets/images/splash-icon.png",
-            "imageWidth": 76
+          "backgroundColor": "#f8fafc",
+          "image": "./assets/images/webot_logo_transparent.png",
+          "imageWidth": 100,
+          "dark": {
+            "backgroundColor": "#0a0118",
+            "image": "./assets/images/webot_logo_transparent.png"
           }
         }
       ],

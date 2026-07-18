@@ -10,6 +10,7 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { timesheetService } from '../../services/timesheetService';
 import Toast from 'react-native-toast-message';
 import { useAppTheme, ThemeColors } from '../../context/ThemeContext';
+import { GlobalLoader } from '../../components/GlobalLoader';
 import { useGlobalFilter } from '../../context/FilterContext';
 import { useAuth } from '../../context/AuthContext';
 import { userService } from '../../services/userService';
@@ -22,7 +23,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as DocumentPicker from 'expo-document-picker';
 import { uploadService } from '../../services/uploadService';
 import { TypingIndicator } from '../../components/TypingIndicator';
-import { DocumentLoader } from '../../components/DocumentLoader';
+
 
 const BLANK_FORM = {
   date: new Date().toISOString().split('T')[0],
@@ -76,6 +77,14 @@ export default function TimesheetsScreen() {
   const [uploadLoading, setUploadLoading] = useState(false);
   const [reviewModal, setReviewModal] = useState(false);
   const [reviewedTimesheets, setReviewedTimesheets] = useState<any[]>([]);
+
+  const [columnsModal, setColumnsModal] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState({
+    date: true,
+    work_code: true,
+    description: true,
+    duration: true,
+  });
 
   const fabAnim = React.useRef(new Animated.Value(0)).current;
   const item1Anim = React.useRef(new Animated.Value(0)).current;
@@ -193,7 +202,7 @@ export default function TimesheetsScreen() {
     }
   };
 
-  const fetchTimesheets = useCallback(async (pageNum = 1) => {
+  const fetchTimesheets = useCallback(async (pageNum = 1, replace = false) => {
     try {
       if (pageNum === 1) setLoading(true);
       else setLoadingMore(true);
@@ -206,15 +215,15 @@ export default function TimesheetsScreen() {
         start = filter.startDate;
         end = filter.endDate;
       }
-      
+
       const data = await timesheetService.getTimesheets(start, end, pageNum, 20);
-      
-      if (pageNum === 1) {
+
+      if (pageNum === 1 || replace) {
         setTimesheets(data.timesheets || []);
       } else {
         setTimesheets(prev => [...prev, ...(data.timesheets || [])]);
       }
-      
+
       setHasMore(data.pagination?.has_more || false);
       setPage(pageNum);
     } catch (err: any) {
@@ -432,10 +441,10 @@ export default function TimesheetsScreen() {
 
       const uri = FileSystem.cacheDirectory + 'Timesheets.csv';
       await FileSystem.writeAsStringAsync(uri, csvContent);
-      await Sharing.shareAsync(uri, { 
-        mimeType: 'text/csv', 
+      await Sharing.shareAsync(uri, {
+        mimeType: 'text/csv',
         UTI: 'public.comma-separated-values',
-        dialogTitle: 'Export Timesheets' 
+        dialogTitle: 'Export Timesheets'
       });
     } catch (e: any) {
       console.error('CSV Export Error:', e);
@@ -452,7 +461,7 @@ export default function TimesheetsScreen() {
   const renderItem = ({ item, index }: { item: any; index: number }) => {
     const cardColor = PASTEL_COLORS[index % PASTEL_COLORS.length];
     const textColor = isDark ? '#ffffff' : '#111111';
-    
+
     let itemDate = new Date(item.date);
     if (isNaN(itemDate.getTime()) && typeof item.date === 'string' && item.date.includes('-')) {
       const parts = item.date.split('-');
@@ -485,7 +494,7 @@ export default function TimesheetsScreen() {
           <View style={s.timelineEvt}>
             <View style={s.timelineBlock}>
               <Text style={[s.timelineBlockText, { color: textColor, fontSize: 18, marginBottom: 4 }]} numberOfLines={1}>{item.work_code || 'Unknown'}</Text>
-              
+
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: item.description ? 8 : 0 }}>
                 <Feather name="clock" size={14} color={textColor + 'cc'} />
                 <Text style={{ fontSize: 14, fontWeight: '700', color: textColor + 'cc' }}>
@@ -530,6 +539,9 @@ export default function TimesheetsScreen() {
             </TouchableOpacity>
             <TouchableOpacity style={s.addBtnCircleSmall} onPress={exportPDF} activeOpacity={0.8}>
               <MaterialCommunityIcons name="file-pdf-box" size={18} color={isDark ? '#000' : '#fff'} />
+            </TouchableOpacity>
+            <TouchableOpacity style={s.addBtnCircleSmall} onPress={() => setColumnsModal(true)} activeOpacity={0.8}>
+              <Feather name="columns" size={14} color={isDark ? '#000' : '#fff'} />
             </TouchableOpacity>
             <TouchableOpacity style={s.addBtnCircleSmall} onPress={() => setFilterVisible(true)} activeOpacity={0.8}>
               <Feather name="filter" size={14} color={isDark ? '#000' : '#fff'} />
@@ -582,72 +594,114 @@ export default function TimesheetsScreen() {
               <View>
                 {/* Table Header */}
                 <View style={[s.tableRow, s.tableHeader]}>
-                  <TouchableOpacity onPress={() => handleSort('date')} style={[{ width: 100 }, s.tableSortCell]}>
-                    <Text style={[s.tableCellHeader, sortField === 'date' && { color: C.primary }]}>Date</Text>
-                    {sortField === 'date' && <Feather name={sortAsc ? 'chevron-up' : 'chevron-down'} size={14} color={C.primary} />}
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => handleSort('work_code')} style={[{ width: 150 }, s.tableSortCell]}>
-                    <Text style={[s.tableCellHeader, sortField === 'work_code' && { color: C.primary }]}>Work Code</Text>
-                    {sortField === 'work_code' && <Feather name={sortAsc ? 'chevron-up' : 'chevron-down'} size={14} color={C.primary} />}
-                  </TouchableOpacity>
-                  <View style={{ width: 200, paddingVertical: 12, paddingHorizontal: 16 }}>
-                    <Text style={s.tableCellHeader}>Description</Text>
-                  </View>
-                  <TouchableOpacity onPress={() => handleSort('duration')} style={[{ width: 80 }, s.tableSortCell]}>
-                    <Text style={[s.tableCellHeader, sortField === 'duration' && { color: C.primary }]}>Hours</Text>
-                    {sortField === 'duration' && <Feather name={sortAsc ? 'chevron-up' : 'chevron-down'} size={14} color={C.primary} />}
-                  </TouchableOpacity>
+                  {visibleColumns.date && (
+                    <TouchableOpacity onPress={() => handleSort('date')} style={[{ width: 100 }, s.tableSortCell]}>
+                      <Text style={[s.tableCellHeader, sortField === 'date' && { color: C.primary }]}>Date</Text>
+                      {sortField === 'date' && <Feather name={sortAsc ? 'chevron-up' : 'chevron-down'} size={14} color={C.primary} />}
+                    </TouchableOpacity>
+                  )}
+                  {visibleColumns.work_code && (
+                    <TouchableOpacity onPress={() => handleSort('work_code')} style={[{ width: 150 }, s.tableSortCell]}>
+                      <Text style={[s.tableCellHeader, sortField === 'work_code' && { color: C.primary }]}>Work Code</Text>
+                      {sortField === 'work_code' && <Feather name={sortAsc ? 'chevron-up' : 'chevron-down'} size={14} color={C.primary} />}
+                    </TouchableOpacity>
+                  )}
+                  {visibleColumns.description && (
+                    <View style={{ width: 200, paddingVertical: 12, paddingHorizontal: 16 }}>
+                      <Text style={s.tableCellHeader}>Description</Text>
+                    </View>
+                  )}
+                  {visibleColumns.duration && (
+                    <TouchableOpacity onPress={() => handleSort('duration')} style={[{ width: 80 }, s.tableSortCell]}>
+                      <Text style={[s.tableCellHeader, sortField === 'duration' && { color: C.primary }]}>Hours</Text>
+                      {sortField === 'duration' && <Feather name={sortAsc ? 'chevron-up' : 'chevron-down'} size={14} color={C.primary} />}
+                    </TouchableOpacity>
+                  )}
                 </View>
                 {/* Table Body */}
-              <FlatList
-                data={sortedTimesheets}
-                keyExtractor={(item, index) => item.id || String(index)}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchTimesheets(1); }} tintColor={C.primary} />}
-                onEndReached={loadMore}
-                onEndReachedThreshold={0.5}
-                ListFooterComponent={loadingMore ? <ActivityIndicator color={C.primary} style={{ margin: 20 }} /> : null}
-                ListEmptyComponent={
-                  <View style={{ padding: 40, alignItems: 'center', width: 530 }}>
-                    <Text style={{ color: C.textMuted }}>No timesheets found.</Text>
-                  </View>
-                }
-                renderItem={({ item: ts, index: i }) => (
-                  <View style={[s.tableRow, { alignItems: 'flex-start' }, i % 2 === 1 && { backgroundColor: C.bg }]}>
-                    <View style={{ width: 100, paddingVertical: 12, paddingHorizontal: 16 }}>
-                      {(() => {
-                        let d = new Date(ts.date);
-                        if (isNaN(d.getTime()) && ts.date.includes('-')) {
-                           const parts = ts.date.split('-');
-                           if (parts[0].length === 2 && parts[2].length === 4) {
-                              d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
-                           }
-                        }
-                        if (isNaN(d.getTime())) return <Text style={[s.tableCell, { paddingVertical: 0, paddingHorizontal: 0 }]}>{ts.date}</Text>;
-                        return (
-                          <View>
-                            <Text style={{ fontSize: 16, fontWeight: '800', color: C.textPrimary }}>{d.getDate().toString().padStart(2, '0')}</Text>
-                            <Text style={{ fontSize: 13, fontWeight: '600', color: C.textSecondary, textTransform: 'capitalize' }}>{MONTHS[d.getMonth()].substring(0, 3)}</Text>
-                            <Text style={{ fontSize: 12, fontWeight: '500', color: C.textMuted }}>{d.getFullYear()}</Text>
+                <FlatList
+                  data={sortedTimesheets}
+                  keyExtractor={(item, index) => item.id || String(index)}
+                  refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchTimesheets(1); }} tintColor={C.primary} />}
+                  ListEmptyComponent={
+                    <View style={{ padding: 40, alignItems: 'center', width: 530 }}>
+                      <Text style={{ color: C.textMuted }}>No timesheets found.</Text>
+                    </View>
+                  }
+                  renderItem={({ item: ts, index: i }) => (
+                    <View style={[s.tableRow, { alignItems: 'flex-start' }, i % 2 === 1 && { backgroundColor: C.bg }]}>
+                      {visibleColumns.date && (
+                        <View style={{ width: 100, paddingVertical: 12, paddingHorizontal: 16 }}>
+                          {(() => {
+                            let d = new Date(ts.date);
+                            if (isNaN(d.getTime()) && ts.date.includes('-')) {
+                              const parts = ts.date.split('-');
+                              if (parts[0].length === 2 && parts[2].length === 4) {
+                                d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+                              }
+                            }
+                            if (isNaN(d.getTime())) return <Text style={[s.tableCell, { paddingVertical: 0, paddingHorizontal: 0 }]}>{ts.date}</Text>;
+                            return (
+                              <View>
+                                <Text style={{ fontSize: 16, fontWeight: '800', color: C.textPrimary }}>{d.getDate().toString().padStart(2, '0')}</Text>
+                                <Text style={{ fontSize: 13, fontWeight: '600', color: C.textSecondary, textTransform: 'capitalize' }}>{MONTHS[d.getMonth()].substring(0, 3)}</Text>
+                                <Text style={{ fontSize: 12, fontWeight: '500', color: C.textMuted }}>{d.getFullYear()}</Text>
+                              </View>
+                            );
+                          })()}
+                        </View>
+                      )}
+                      {visibleColumns.work_code && (
+                        <View style={{ width: 150, paddingVertical: 12, paddingHorizontal: 16, justifyContent: 'flex-start' }}>
+                          <View style={{ backgroundColor: C.primary + '15', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 }}>
+                            <Text style={{ color: C.primary, fontWeight: '700', fontSize: 13 }} numberOfLines={2}>{ts.work_code}</Text>
                           </View>
-                        );
-                      })()}
+                        </View>
+                      )}
+                      {visibleColumns.description && (
+                        <Text style={[s.tableCell, { width: 200, color: C.textSecondary, lineHeight: 20 }]}>{ts.description || '--'}</Text>
+                      )}
+                      {visibleColumns.duration && (
+                        <View style={{ width: 80, paddingVertical: 12, paddingHorizontal: 16, justifyContent: 'flex-start' }}>
+                          <View style={{ backgroundColor: C.green + '15', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 }}>
+                            <Text style={{ color: C.green, fontWeight: '800', fontSize: 14 }}>{Number(ts.duration).toFixed(0)}</Text>
+                          </View>
+                        </View>
+                      )}
                     </View>
-                    <View style={{ width: 150, paddingVertical: 12, paddingHorizontal: 16, justifyContent: 'flex-start' }}>
-                      <View style={{ backgroundColor: C.primary + '15', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 }}>
-                        <Text style={{ color: C.primary, fontWeight: '700', fontSize: 13 }} numberOfLines={2}>{ts.work_code}</Text>
-                      </View>
-                    </View>
-                    <Text style={[s.tableCell, { width: 200, color: C.textSecondary, lineHeight: 20 }]}>{ts.description || '--'}</Text>
-                    <View style={{ width: 80, paddingVertical: 12, paddingHorizontal: 16, justifyContent: 'flex-start' }}>
-                      <View style={{ backgroundColor: C.green + '15', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 }}>
-                        <Text style={{ color: C.green, fontWeight: '800', fontSize: 14 }}>{Number(ts.duration).toFixed(0)}</Text>
-                      </View>
-                    </View>
-                  </View>
-                )}
-              />
+                  )}
+                />
               </View>
             </ScrollView>
+
+            {/* Manual Pagination & Column Settings Footer */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderTopWidth: 1, borderTopColor: C.border, backgroundColor: C.card }}>
+              <Text style={{ color: C.textMuted, fontWeight: '500', width: 60 }}>Page {page}</Text>
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+                <TouchableOpacity
+                  style={{ opacity: page === 1 ? 0.5 : 1, padding: 8 }}
+                  disabled={page === 1}
+                  onPress={() => fetchTimesheets(page - 1, true)}
+                >
+                  <Feather name="chevron-left" size={24} color={C.primary} />
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={() => setColumnsModal(true)} style={{ padding: 8 }}>
+                  <Feather name="menu" size={20} color={C.primary} />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={{ opacity: !hasMore ? 0.5 : 1, padding: 8 }}
+                  disabled={!hasMore}
+                  onPress={() => fetchTimesheets(page + 1, true)}
+                >
+                  <Feather name="chevron-right" size={24} color={C.primary} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={{ width: 60 }} />
+            </View>
           </View>
         </View>
       ) : (
@@ -696,6 +750,29 @@ export default function TimesheetsScreen() {
         currentFilter={filter}
         onApply={setFilter}
       />
+
+      {/* Columns Customization Popover */}
+      <Modal visible={columnsModal} animationType="fade" transparent onRequestClose={() => setColumnsModal(false)}>
+        <TouchableOpacity style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.1)' }} activeOpacity={1} onPress={() => setColumnsModal(false)}>
+          <TouchableOpacity activeOpacity={1} style={{ backgroundColor: C.card, marginHorizontal: 16, marginBottom: 80, paddingVertical: 12, borderRadius: 16, borderWidth: 1, borderColor: C.border, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 5 }}>
+            {Object.keys(visibleColumns).map((colKey) => {
+              const isChecked = visibleColumns[colKey as keyof typeof visibleColumns];
+              return (
+                <TouchableOpacity
+                  key={colKey}
+                  style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 20, gap: 12 }}
+                  onPress={() => setVisibleColumns(prev => ({ ...prev, [colKey]: !isChecked }))}
+                >
+                  <Feather name={isChecked ? "check-square" : "square"} size={22} color={isChecked ? C.primary : C.textMuted} />
+                  <Text style={{ fontSize: 16, color: C.textPrimary, textTransform: 'capitalize', fontWeight: isChecked ? '600' : '500' }}>
+                    {colKey.replace('_', ' ')}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Detail Modal */}
       <Modal visible={detailModal} animationType="slide" transparent onRequestClose={() => setDetailModal(false)}>
@@ -1005,7 +1082,18 @@ export default function TimesheetsScreen() {
       </Modal>
 
       {/* AI Loader Overlay */}
-      {uploadLoading && <DocumentLoader C={C} />}
+      <GlobalLoader
+        C={C}
+        visible={uploadLoading}
+        messages={[
+          'Uploading your file...',
+          'Scanning the document...',
+          'Extracting work logs...',
+          'Analyzing the timesheets...',
+          'Assigning work codes...',
+          'Almost done...'
+        ]}
+      />
 
     </SafeAreaView>
   );

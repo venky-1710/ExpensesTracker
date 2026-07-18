@@ -73,7 +73,7 @@ export default function DashboardScreen() {
   const { C } = useAppTheme();
   const s = getStyles(C);
   const { user } = useAuth();
-  const { filter, setFilter } = useGlobalFilter();
+  const { filter, setFilter, refreshKey } = useGlobalFilter();
   const [filterVisible, setFilterVisible] = useState(false);
   const [notifVisible, setNotifVisible] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -113,6 +113,7 @@ export default function DashboardScreen() {
   };
 
   useEffect(() => { setLoading(true); load(); }, [filter]);
+  useEffect(() => { if (!loading) load(); }, [refreshKey]);
   const onRefresh = () => { setRefreshing(true); load(); };
 
   if (loading) {

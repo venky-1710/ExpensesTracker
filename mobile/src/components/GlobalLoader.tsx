@@ -1,17 +1,16 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Easing, Image } from 'react-native';
+import { View, Text, StyleSheet, Animated, Easing, Image, Modal } from 'react-native';
 import { ThemeColors } from '../context/ThemeContext';
 
-const steps = [
-  'Uploading your file...',
-  'Scanning the document...',
-  'Extracting work logs...',
-  'Analyzing the timesheets...',
-  'Assigning work codes...',
-  'Almost done...',
-];
+interface GlobalLoaderProps {
+  C: ThemeColors;
+  visible: boolean;
+  messages?: string | string[];
+}
 
-export const DocumentLoader = ({ C }: { C: ThemeColors }) => {
+export const GlobalLoader = ({ C, visible, messages = 'Loading...' }: GlobalLoaderProps) => {
+  const isArray = Array.isArray(messages);
+  const steps = isArray ? messages : [messages];
   const [stepIndex, setStepIndex] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
@@ -25,16 +24,22 @@ export const DocumentLoader = ({ C }: { C: ThemeColors }) => {
   const ring2Opacity = useRef(new Animated.Value(0.8)).current;
 
   useEffect(() => {
-    // Text Fade Sequence
-    const textInterval = setInterval(() => {
-      Animated.timing(fadeAnim, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => {
-        setStepIndex((prev) => (prev + 1) % steps.length);
-        Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
-      });
-    }, 1800);
+    if (!visible) return;
+
+    let textInterval: NodeJS.Timeout;
+    if (isArray && steps.length > 1) {
+      textInterval = setInterval(() => {
+        Animated.timing(fadeAnim, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => {
+          setStepIndex((prev) => (prev + 1) % steps.length);
+          Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+        });
+      }, 1800);
+    } else {
+      setStepIndex(0);
+    }
 
     // Logo Pulse (1.6s loop)
-    Animated.loop(
+    const loopLogo = Animated.loop(
       Animated.sequence([
         Animated.parallel([
           Animated.timing(logoPulse, { toValue: 0.93, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
@@ -45,10 +50,11 @@ export const DocumentLoader = ({ C }: { C: ThemeColors }) => {
           Animated.timing(logoOpacity, { toValue: 1, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
         ])
       ])
-    ).start();
+    );
+    loopLogo.start();
 
     // Ring 1 Loop (1.8s)
-    Animated.loop(
+    const loopRing1 = Animated.loop(
       Animated.sequence([
         Animated.parallel([
           Animated.timing(ring1Scale, { toValue: 1.4, duration: 1800, easing: Easing.out(Easing.ease), useNativeDriver: true }),
@@ -57,11 +63,12 @@ export const DocumentLoader = ({ C }: { C: ThemeColors }) => {
         Animated.timing(ring1Scale, { toValue: 0.8, duration: 0, useNativeDriver: true }),
         Animated.timing(ring1Opacity, { toValue: 0.8, duration: 0, useNativeDriver: true })
       ])
-    ).start();
+    );
+    loopRing1.start();
 
     // Ring 2 Loop (1.8s with delay)
     const ring2Timeout = setTimeout(() => {
-      Animated.loop(
+      const loopRing2 = Animated.loop(
         Animated.sequence([
           Animated.parallel([
             Animated.timing(ring2Scale, { toValue: 1.4, duration: 1800, easing: Easing.out(Easing.ease), useNativeDriver: true }),
@@ -70,34 +77,39 @@ export const DocumentLoader = ({ C }: { C: ThemeColors }) => {
           Animated.timing(ring2Scale, { toValue: 0.8, duration: 0, useNativeDriver: true }),
           Animated.timing(ring2Opacity, { toValue: 0.8, duration: 0, useNativeDriver: true })
         ])
-      ).start();
+      );
+      loopRing2.start();
     }, 500);
 
     return () => {
-      clearInterval(textInterval);
+      if (textInterval) clearInterval(textInterval);
       clearTimeout(ring2Timeout);
     };
-  }, []);
+  }, [visible, isArray, steps.length]);
+
+  if (!visible) return null;
 
   return (
-    <View style={[StyleSheet.absoluteFillObject, s.overlay]}>
-      <View style={s.loaderBox}>
-        
-        <View style={s.iconWrap}>
-          <Animated.View style={[s.ring, s.ring1, { transform: [{ scale: ring1Scale }], opacity: ring1Opacity, borderColor: 'rgba(108, 63, 209, 0.5)' }]} />
-          <Animated.View style={[s.ring, s.ring2, { transform: [{ scale: ring2Scale }], opacity: ring2Opacity, borderColor: 'rgba(108, 63, 209, 0.25)' }]} />
-          <Animated.Image 
-            source={require('../../assets/images/webot_logo.jpg')}
-            style={[s.logo, { transform: [{ scale: logoPulse }], opacity: logoOpacity }]}
-          />
+    <Modal transparent animationType="fade" visible={visible} statusBarTranslucent>
+      <View style={[StyleSheet.absoluteFillObject, s.overlay]}>
+        <View style={s.loaderBox}>
+          
+          <View style={s.iconWrap}>
+            <Animated.View style={[s.ring, s.ring1, { transform: [{ scale: ring1Scale }], opacity: ring1Opacity, borderColor: 'rgba(108, 63, 209, 0.5)' }]} />
+            <Animated.View style={[s.ring, s.ring2, { transform: [{ scale: ring2Scale }], opacity: ring2Opacity, borderColor: 'rgba(108, 63, 209, 0.25)' }]} />
+            <Animated.Image 
+              source={require('../../assets/images/webot_logo.jpg')}
+              style={[s.logo, { transform: [{ scale: logoPulse }], opacity: logoOpacity }]}
+            />
+          </View>
+
+          <Animated.Text style={[s.loaderText, { color: C.primary, opacity: fadeAnim }]}>
+            {steps[stepIndex]}
+          </Animated.Text>
+
         </View>
-
-        <Animated.Text style={[s.loaderText, { color: C.primary, opacity: fadeAnim }]}>
-          {steps[stepIndex]}
-        </Animated.Text>
-
       </View>
-    </View>
+    </Modal>
   );
 };
 
@@ -125,8 +137,10 @@ const s = StyleSheet.create({
   logo: {
     width: 64,
     height: 64,
-    borderRadius: 14,
+    borderRadius: 32,
     zIndex: 2,
+    borderWidth: 2,
+    borderColor: 'rgba(109,74,255,0.2)',
   },
   ring: {
     position: 'absolute',
