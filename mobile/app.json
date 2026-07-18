@@ -4,7 +4,7 @@
     "slug": "expensetrack",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/webot_logo.png",
     "scheme": "expensetrack",
     "userInterfaceStyle": "automatic",
     "ios": {
@@ -14,7 +14,7 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "foregroundImage": "./assets/images/webot_logo.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
@@ -27,7 +27,7 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/webot_logo.png"
     },
     "plugins": [
       "expo-router",
@@ -35,11 +35,11 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#f8fafc",
-          "image": "./assets/images/webot_logo_transparent.png",
+          "image": "./assets/images/webot_logo.png",
           "imageWidth": 100,
           "dark": {
             "backgroundColor": "#0a0118",
-            "image": "./assets/images/webot_logo_transparent.png"
+            "image": "./assets/images/webot_logo.png"
           }
         }
       ],
