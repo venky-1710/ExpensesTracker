@@ -35,11 +35,11 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#f8fafc",
-          "image": "./assets/images/webot_logo.png",
-          "imageWidth": 100,
+          "image": "./assets/images/transparent.png",
+          "imageWidth": 1,
           "dark": {
             "backgroundColor": "#0a0118",
-            "image": "./assets/images/webot_logo.png"
+            "image": "./assets/images/transparent.png"
           }
         }
       ],
