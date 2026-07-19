@@ -237,13 +237,14 @@ export default function ChatModal({ onClose }: { onClose: () => void }) {
         {!isUser && (
           <Image source={webotLogo} style={styles.botAvatar} resizeMode="cover" />
         )}
-        <View style={[
-          styles.bubble,
-          isUser
-            ? [styles.bubbleUser, { backgroundColor: C.primary }]
-            : [styles.bubbleModel, { backgroundColor: C.card, borderColor: C.border }]
-        ]}>
-          {item.content.includes('[CHART:category_breakdown]') ? (
+        <View style={{ flexShrink: 1, maxWidth: '100%' }}>
+          <View style={[
+            styles.bubble,
+            isUser
+              ? [styles.bubbleUser, { backgroundColor: C.primary }]
+              : [styles.bubbleModel, { backgroundColor: C.card, borderColor: C.border }]
+          ]}>
+            {item.content.includes('[CHART:category_breakdown]') ? (
             <View>
               <MarkdownText text={item.content.replace('[CHART:category_breakdown]', '')} isUser={isUser} C={C} />
               <View style={{ marginTop: 12, backgroundColor: C.bg, borderRadius: 12, paddingTop: 12, overflow: 'hidden' }}>
@@ -260,11 +261,12 @@ export default function ChatModal({ onClose }: { onClose: () => void }) {
           ) : (
             <MarkdownText text={item.content} isUser={isUser} C={C} />
           )}
-          <Text style={[styles.msgTime, { color: isUser ? 'rgba(255,255,255,0.6)' : C.textMuted }]}>
-            {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </Text>
         </View>
+        <Text style={[styles.msgTime, { color: C.textMuted, alignSelf: isUser ? 'flex-end' : 'flex-start', marginTop: 4, marginHorizontal: 4 }]}>
+          {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        </Text>
       </View>
+    </View>
     );
   };
 
@@ -392,6 +394,7 @@ export default function ChatModal({ onClose }: { onClose: () => void }) {
           </ScrollView>
         ) : (
           <FlatList
+            style={{ flex: 1 }}
             ref={flatListRef}
             data={messages}
             keyExtractor={(_, i) => i.toString()}
@@ -558,11 +561,11 @@ const styles = StyleSheet.create({
   msgWrapper: { marginBottom: 16, maxWidth: '85%', flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
   msgUser: { alignSelf: 'flex-end', flexDirection: 'row-reverse' },
   msgModel: { alignSelf: 'flex-start' },
-  botAvatar: { width: 30, height: 30, borderRadius: 15, marginBottom: 4 },
+  botAvatar: { width: 30, height: 30, borderRadius: 15, marginBottom: 18 },
   bubble: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18, flexShrink: 1 },
   bubbleUser: { borderBottomRightRadius: 4 },
   bubbleModel: { borderWidth: 1, borderBottomLeftRadius: 4 },
-  msgTime: { fontSize: 10, marginTop: 6, alignSelf: 'flex-end' },
+  msgTime: { fontSize: 10, alignSelf: 'flex-end' },
 
   // Markdown
   mdH1: { fontSize: 18, fontWeight: '800', marginBottom: 6, marginTop: 4 },

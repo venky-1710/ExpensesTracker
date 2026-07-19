@@ -86,6 +86,10 @@ export default function TimesheetsScreen() {
     duration: true,
   });
 
+  // Selection Mode State
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
   const fabAnim = React.useRef(new Animated.Value(0)).current;
   const item1Anim = React.useRef(new Animated.Value(0)).current;
   const item2Anim = React.useRef(new Animated.Value(0)).current;
@@ -470,20 +474,64 @@ export default function TimesheetsScreen() {
       }
     }
     const isValidDate = !isNaN(itemDate.getTime());
+    const isSelected = selectedIds.includes(item.id);
 
     return (
       <TouchableOpacity
         style={[s.dayCard, { backgroundColor: cardColor }]}
-        onPress={() => openDetail(item)}
-        onLongPress={() => handleDelete(item)}
+        onPress={() => {
+          if (selectionMode) {
+            setSelectedIds(prev => prev.includes(item.id) ? prev.filter(id => id !== item.id) : [...prev, item.id]);
+          } else {
+            openDetail(item);
+          }
+        }}
+        onLongPress={() => {
+          if (!selectionMode) {
+            setSelectionMode(true);
+            setSelectedIds([item.id]);
+          } else {
+            handleDelete(item);
+          }
+        }}
         activeOpacity={0.9}
       >
         <View style={[s.decorativeBubble, { backgroundColor: textColor + '15' }]} pointerEvents="none" />
 
+        {/* Selection Overlay — does NOT affect layout */}
+        {selectionMode && isSelected && (
+          <View
+            style={{
+              position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+              borderRadius: 20,
+              borderWidth: 3,
+              borderColor: '#ffffff',
+              zIndex: 5,
+              pointerEvents: 'none',
+            }}
+            pointerEvents="none"
+          />
+        )}
+
+        {/* Checkbox */}
+        {selectionMode && (
+          <View style={{ position: 'absolute', top: 14, right: 14, zIndex: 10 }}>
+            {isSelected ? (
+              <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#ffffff', justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.3, shadowRadius: 4, elevation: 5 }}>
+                <Feather name="check" size={17} color={C.primary} />
+              </View>
+            ) : (
+              <View style={{ width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: 'rgba(255,255,255,0.7)', backgroundColor: 'rgba(0,0,0,0.15)' }} />
+            )}
+          </View>
+        )}
+
         {/* Top Right Edit Icon */}
-        <TouchableOpacity onPress={() => openEdit(item)} style={[s.absoluteEditBtn, { backgroundColor: textColor + '1a' }]}>
-          <Feather name="edit-2" size={14} color={textColor} />
-        </TouchableOpacity>
+        {!selectionMode && (
+          <TouchableOpacity onPress={() => openEdit(item)} style={[s.absoluteEditBtn, { backgroundColor: textColor + '1a' }]}>
+            <Feather name="edit-2" size={14} color={textColor} />
+          </TouchableOpacity>
+        )}
 
         <View style={s.dayCardLeft}>
           <Text style={[s.dayCardWeekday, { color: textColor }]}>{isValidDate ? itemDate.toLocaleDateString('en-US', { weekday: 'long' }) : 'Unknown'}</Text>
@@ -532,6 +580,22 @@ export default function TimesheetsScreen() {
             <Text style={[s.segmentText, viewMode === 'table' && s.segmentTextActive]}>Table</Text>
           </TouchableOpacity>
         </View>
+        {viewMode === 'overview' && (
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            {selectionMode ? (
+              <TouchableOpacity style={{ backgroundColor: C.card, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: 1, borderColor: C.border, justifyContent: 'center' }} onPress={() => {
+                setSelectionMode(false);
+                setSelectedIds([]);
+              }} activeOpacity={0.8}>
+                <Text style={{color: C.textPrimary, fontWeight: 'bold', fontSize: 13}}>Cancel</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={s.addBtnCircleSmall} onPress={() => setSelectionMode(true)} activeOpacity={0.8}>
+                <Feather name="check-square" size={14} color={isDark ? '#000' : '#fff'} />
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
         {viewMode === 'table' && (
           <View style={{ flexDirection: 'row', gap: 10 }}>
             <TouchableOpacity style={s.addBtnCircleSmall} onPress={exportExcel} activeOpacity={0.8}>
@@ -717,13 +781,29 @@ export default function TimesheetsScreen() {
             sortedTimesheets.length > 0 ? (
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 24, marginBottom: 16, alignItems: 'center' }}>
                 <Text style={{ fontSize: 13, fontWeight: '800', color: C.textSecondary, letterSpacing: 0.5 }}>TIMELINE</Text>
-                <TouchableOpacity
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.card, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: 1, borderColor: C.border }}
-                  onPress={() => handleSort('date')}
-                >
-                  <Text style={{ fontSize: 12, fontWeight: '700', color: C.textPrimary }}>Sort</Text>
-                  <Feather name={sortAsc ? 'arrow-up' : 'arrow-down'} size={14} color={C.textPrimary} />
-                </TouchableOpacity>
+                {selectionMode ? (
+                  <TouchableOpacity
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 8, paddingVertical: 4 }}
+                    onPress={() => {
+                      if (selectedIds.length === sortedTimesheets.length) {
+                        setSelectedIds([]);
+                      } else {
+                        setSelectedIds(sortedTimesheets.map(t => t.id));
+                      }
+                    }}
+                  >
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: C.primary }}>Select All</Text>
+                    <Feather name={selectedIds.length === sortedTimesheets.length && sortedTimesheets.length > 0 ? "check-square" : "square"} size={18} color={C.primary} />
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.card, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: 1, borderColor: C.border }}
+                    onPress={() => handleSort('date')}
+                  >
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: C.textPrimary }}>Sort</Text>
+                    <Feather name={sortAsc ? 'arrow-up' : 'arrow-down'} size={14} color={C.textPrimary} />
+                  </TouchableOpacity>
+                )}
               </View>
             ) : null
           }
@@ -738,11 +818,61 @@ export default function TimesheetsScreen() {
       )}
 
       {/* Floating Add Button */}
-      <TouchableOpacity style={[s.fab, { zIndex: 101 }]} onPress={() => setActionSheet(!actionSheet)} activeOpacity={0.8}>
-        <Animated.View style={{ transform: [{ rotate: spin }] }}>
-          <Feather name="plus" size={24} color="#fff" />
-        </Animated.View>
-      </TouchableOpacity>
+      {!selectionMode && (
+        <TouchableOpacity style={[s.fab, { zIndex: 101 }]} onPress={() => setActionSheet(!actionSheet)} activeOpacity={0.8}>
+          <Animated.View style={{ transform: [{ rotate: spin }] }}>
+            <Feather name="plus" size={24} color="#fff" />
+          </Animated.View>
+        </TouchableOpacity>
+      )}
+
+      {/* Floating Bulk Delete Button */}
+      {selectionMode && selectedIds.length > 0 && (
+        <View style={{ position: 'absolute', bottom: 30, left: 24, right: 24, zIndex: 100 }}>
+          <TouchableOpacity 
+            style={{ 
+              backgroundColor: isDark ? '#991b1b' : '#dc2626',
+              paddingVertical: 18, 
+              paddingHorizontal: 24,
+              borderRadius: 100,
+              flexDirection: 'row',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: 12,
+              shadowColor: '#dc2626',
+              shadowOffset: {width: 0, height: 8},
+              shadowOpacity: 0.4,
+              shadowRadius: 16,
+              elevation: 8,
+              borderWidth: 1,
+              borderColor: 'rgba(255,255,255,0.2)'
+            }}
+            onPress={() => {
+              Alert.alert('Delete Timesheets', `Are you sure you want to delete ${selectedIds.length} timesheets?`, [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Delete', style: 'destructive',
+                  onPress: async () => {
+                    try {
+                      await timesheetService.deleteMultipleTimesheets(selectedIds);
+                      Toast.show({ type: 'success', text1: 'Success', text2: 'Timesheets deleted' });
+                      setSelectionMode(false);
+                      setSelectedIds([]);
+                      fetchTimesheets();
+                    } catch (err) {
+                      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to delete' });
+                    }
+                  }
+                }
+              ]);
+            }}
+            activeOpacity={0.8}
+          >
+            <Feather name="trash-2" size={20} color="#ffffff" />
+            <Text style={{ color: '#ffffff', fontSize: 17, fontWeight: '800', letterSpacing: 0.5 }}>Delete {selectedIds.length} Selected</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <DateFilterModal
         visible={filterVisible}

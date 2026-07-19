@@ -4,6 +4,7 @@ Timesheet Routes - API endpoints for timesheet management.
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Dict, Any, Optional
 from models.payloads import APIResponse, TimesheetCreate, TimesheetUpdate
+from pydantic import BaseModel
 from apis.timesheet_api import TimesheetAPI
 from routes.auth_routes import get_current_user
 
@@ -76,6 +77,27 @@ async def delete_timesheet(
     try:
         user_id = str(current_user["id"])
         result = await TimesheetAPI.delete_timesheet(user_id, timesheet_id)
+        return APIResponse(
+            success=True,
+            data=None
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class BulkDeletePayload(BaseModel):
+    ids: List[str]
+
+@router.post("/bulk-delete", response_model=APIResponse)
+async def bulk_delete_timesheets(
+    payload: BulkDeletePayload,
+    current_user: dict = Depends(get_current_user)
+):
+    """Delete multiple timesheets."""
+    try:
+        user_id = str(current_user["id"])
+        result = await TimesheetAPI.delete_multiple_timesheets(user_id, payload.ids)
         return APIResponse(
             success=True,
             data=None

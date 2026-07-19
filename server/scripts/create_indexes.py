@@ -50,9 +50,20 @@ async def create_indexes():
     # Chat History collection indexes
     print("  - chat_history indexes...")
     await db.chat_history.create_index("user_id")
-    # TTL Index: Automatically purge documents 7 days (604800 seconds) after 'created_at'
-    await db.chat_history.create_index("created_at", expireAfterSeconds=604800)
-    
+    # TTL Index: Automatically purge documents 30 days (2592000 seconds) after 'created_at'
+    await db.chat_history.create_index("created_at", expireAfterSeconds=2592000)
+
+    # Notifications collection indexes
+    print("  - notifications indexes...")
+    await db.notifications.create_index([("user_id", 1), ("created_at", -1)])
+    await db.notifications.create_index([("user_id", 1), ("is_read", 1)])
+
+    # Timesheets collection indexes
+    print("  - timesheets indexes...")
+    # Unique index to enforce 1 timesheet per user per day
+    await db.timesheets.create_index([("user_id", 1), ("date", 1)], unique=True)
+    await db.timesheets.create_index([("user_id", 1), ("date", -1)])
+
     print("[OK] All indexes created successfully!")
     
     client.close()

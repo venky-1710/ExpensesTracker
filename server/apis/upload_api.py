@@ -268,15 +268,15 @@ class UploadAPI:
 
     @staticmethod
     async def confirm_timesheets(timesheets: list, user_id: str) -> Dict[str, Any]:
-        """Accept reviewed timesheets and insert into database."""
+        """Accept reviewed timesheets and upsert into database (1 per day per user)."""
         try:
             logger.info(f"[UPLOAD] Confirming {len(timesheets)} timesheets for user_id={user_id}")
 
             if not timesheets:
                 return {"message": "No timesheets to import.", "count": 0}
 
-            timesheets_to_insert = []
             now = datetime.now()
+            upserted = 0
 
             for item in timesheets:
                 try:
@@ -287,27 +287,35 @@ class UploadAPI:
                     except ValueError:
                         parsed_date = datetime.strptime(item.date, "%d-%m-%Y")
 
-                timesheet = {
+                # Normalize date to YYYY-MM-DD string to match manual entry format
+                date_str = parsed_date.strftime("%Y-%m-%d")
+
+                doc = {
                     "user_id": ObjectId(user_id),
                     "work_code": item.work_code.strip() if getattr(item, "work_code", None) else "General",
                     "duration": float(item.duration),
                     "description": item.description.strip() if getattr(item, "description", None) else "",
-                    "date": parsed_date,
-                    "created_at": now,
+                    "date": date_str,
                     "updated_at": now
                 }
-                timesheets_to_insert.append(timesheet)
 
-            result = await db.timesheets.insert_many(timesheets_to_insert)
-            logger.info(f"[UPLOAD] Imported {len(result.inserted_ids)} timesheets for user_id={user_id}")
+                # Atomic upsert: if a timesheet already exists for this user+date, update it
+                await db.timesheets.update_one(
+                    {"user_id": ObjectId(user_id), "date": date_str},
+                    {
+                        "$set": doc,
+                        "$setOnInsert": {"created_at": now}
+                    },
+                    upsert=True
+                )
+                upserted += 1
 
-            # Invalidate cache if there's any related to timesheets
-            # (assuming user_id is the key for anything related)
+            logger.info(f"[UPLOAD] Upserted {upserted} timesheets for user_id={user_id}")
             cache_service.invalidate_user_cache(user_id)
 
             return {
                 "message": "Timesheets imported successfully!",
-                "count": len(result.inserted_ids)
+                "count": upserted
             }
 
         except Exception as e:

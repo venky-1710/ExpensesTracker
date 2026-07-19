@@ -27,5 +27,10 @@ export const timesheetService = {
   deleteTimesheet: async (id) => {
     const res = await api.delete(`/timesheets/${id}`);
     return res.data.data;
+  },
+
+  deleteMultipleTimesheets: async (ids) => {
+    const res = await api.post('/timesheets/bulk-delete', { ids });
+    return res.data;
   }
 };

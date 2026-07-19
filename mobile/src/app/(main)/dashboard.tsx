@@ -92,23 +92,30 @@ export default function DashboardScreen() {
         ...(filter.endDate && { end_date: filter.endDate }),
         ...(filter.granularity && { granularity: filter.granularity })
       };
-      const [k, ch, w, n] = await Promise.all([
+      // Load core dashboard data first — don't let notifications block it
+      const [k, ch, w] = await Promise.all([
         dashboardService.getKPIs(params),
         dashboardService.getCharts(params),
         dashboardService.getWidgets(params),
-        notificationService.getNotifications(),
       ]);
       setKpis(k?.data || k);
       setCharts(ch?.data || ch);
       setWidgets(w?.data || w);
-
-      const unread = (n || []).filter((x: any) => !x.is_read).length;
-      setUnreadCount(unread);
     } catch (e: any) {
       console.warn('Dashboard load error:', e.message || e);
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+
+    // Load notifications separately — silently, so any delay doesn't affect dashboard UX
+    try {
+      const n = await notificationService.getNotifications();
+      const unread = (n || []).filter((x: any) => !x.is_read).length;
+      setUnreadCount(unread);
+    } catch (e: any) {
+      // Notifications failing is non-fatal — just log it silently
+      console.log('Notifications unavailable:', e.message || e);
     }
   };
 

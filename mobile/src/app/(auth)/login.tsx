@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Image
+  KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Image, Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
@@ -181,7 +181,13 @@ export default function LoginScreen() {
               <View style={s.form}>
                 {!isLogin && signupStep === 2 ? (
                   <View style={s.fieldGroup}>
-                    <Text style={s.fieldLabel}>6-Digit Verification Code</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                      <TouchableOpacity onPress={() => setSignupStep(1)} style={{ marginRight: 12, padding: 4 }}>
+                        <Feather name="arrow-left" size={20} color={C.textPrimary} />
+                      </TouchableOpacity>
+                      <Text style={[s.fieldLabel, { marginBottom: 0 }]}>6-Digit Verification Code</Text>
+                    </View>
+                    
                     <TouchableOpacity
                       activeOpacity={1}
                       style={s.otpContainer}
@@ -203,7 +209,22 @@ export default function LoginScreen() {
                         autoFocus
                       />
                     </TouchableOpacity>
-                    <Text style={s.fieldHint}>We sent a code to {email}</Text>
+                    
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+                      <Text style={[s.fieldHint, { marginBottom: 0 }]}>We sent a code to {email}</Text>
+                      <TouchableOpacity onPress={async () => {
+                        setSubmitting(true);
+                        try {
+                          await requestSignup({ email, password, full_name: name, username });
+                          Alert.alert('Success', 'Verification code resent successfully.');
+                        } catch (e: any) {
+                          Alert.alert('Error', e.message || 'Failed to resend code');
+                        }
+                        setSubmitting(false);
+                      }}>
+                        <Text style={{ color: C.primary, fontWeight: '700', fontSize: 13 }}>Resend</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 ) : (
                   <>

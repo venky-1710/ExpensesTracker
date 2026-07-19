@@ -1,5 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Animated, StyleSheet } from 'react-native';
+import { View, Animated, StyleSheet, Image } from 'react-native';
+
+const webotLogo = require('../../assets/images/webot_logo.jpg');
 
 interface ThemeColors {
   primary: string;
@@ -36,6 +38,7 @@ export const TypingIndicator = ({ C, style }: TypingIndicatorProps) => {
 
   return (
     <View style={[styles.msgWrapper, style]}>
+      <Image source={webotLogo} style={styles.botAvatar} resizeMode="cover" />
       <View style={[styles.bubble, { backgroundColor: C.card, borderColor: C.border }]}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4 }}>
           {[dot1, dot2, dot3].map((d, i) => (
@@ -62,7 +65,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 20,
-    borderBottomLeftRadius: 4,
     borderWidth: 1
-  }
+  },
+  botAvatar: { width: 30, height: 30, borderRadius: 15, marginBottom: 14, marginRight: 8 }
 });

@@ -33,23 +33,35 @@ async def get_user_notifications(user_id: str, limit: int = 50):
         cursor = notifications_collection.find({"user_id": user_id}).sort("created_at", -1).limit(limit)
         notifications = await cursor.to_list(length=limit)
 
-        # Enrich payment_due notifications with event payment info
-        events_collection = db["calendar_events"]
+        # Collect all related event IDs in one pass
+        related_event_ids = []
         for n in notifications:
             n["id"] = str(n["_id"])
             del n["_id"]
-            # Attach event info if this notification has a related event
             if n.get("related_event_id"):
                 try:
-                    from bson import ObjectId as ObjId
-                    ev = await events_collection.find_one({"_id": ObjId(n["related_event_id"])})
-                    if ev:
-                        n["related_event_start_time"] = ev.get("start_time")
-                        if n.get("type") == "payment_due":
-                            n["related_event_amount"]         = ev.get("amount")
-                            n["related_event_payment_method"] = ev.get("payment_method")
+                    related_event_ids.append(ObjectId(n["related_event_id"]))
                 except Exception:
                     pass
+
+        # Fetch ALL related events in a single query (avoids N+1)
+        events_map = {}
+        if related_event_ids:
+            events_collection = db["calendar_events"]
+            ev_cursor = events_collection.find({"_id": {"$in": related_event_ids}})
+            async for ev in ev_cursor:
+                events_map[str(ev["_id"])] = ev
+
+        # Enrich notifications using the in-memory events map
+        for n in notifications:
+            if n.get("related_event_id"):
+                ev = events_map.get(n["related_event_id"])
+                if ev:
+                    n["related_event_start_time"] = ev.get("start_time")
+                    if n.get("type") == "payment_due":
+                        n["related_event_amount"] = ev.get("amount")
+                        n["related_event_payment_method"] = ev.get("payment_method")
+
         return notifications
     except Exception as e:
         logger.error(f"[DB ERROR] get_user_notifications failed: {str(e)}")

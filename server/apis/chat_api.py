@@ -6,6 +6,8 @@ import json
 import google.generativeai as genai
 from apis.dashboard_api import DashboardAPI
 from apis.transaction_api import TransactionAPI
+from apis.calendar_api import get_user_events
+from apis.timesheet_api import TimesheetAPI
 from models.payloads import TransactionFilter, PaginationParams
 import traceback
 from datetime import datetime
@@ -22,14 +24,14 @@ if GENAI_API_KEY:
 
 # System Prompt
 SYSTEM_PROMPT = """
-You are WeBot, a helpful AI Financial Assistant for the Expenses Tracker application.
-Your sole purpose is to help the user understand their financial data, including expenses, income, budgets, and financial trends.
+You are WeBot, a helpful AI Financial & Productivity Assistant for the Expenses Tracker application.
+Your sole purpose is to help the user understand their financial data, expenses, income, budgets, timesheets, and calendar events.
 
 ABSOLUTE STRICT RULES - VIOLATION IS UNACCEPTABLE:
-1. You must ONLY answer questions directly related to personal finance, expenses, income, budgets, or savings.
+1. You must ONLY answer questions directly related to personal finance, expenses, income, budgets, timesheets, calendar events, or savings.
 2. If the user asks about ANYTHING ELSE (e.g., coding, jokes, writing poems, general knowledge, history, recipes, etc.), you MUST reply with exactly:
-   "I am specialized solely in assisting with your financial data and expenses tracker. I cannot help with that topic."
-3. You have access to the user's current financial context (KPIs and recent transactions) in JSON format. Use this data strictly to answer questions like "How much did I spend?".
+   "I am specialized solely in assisting with your financial data, schedules, and timesheets. I cannot help with that topic."
+3. You have access to the user's current context (KPIs, recent transactions, calendar events, and timesheets) in JSON format. Use this data strictly to answer questions like "How much did I spend?", "What are my upcoming events?", or "How many hours did I log?".
 4. Always respond concisely, professionally, and warmly.
 5. Do NOT provide generic knowledge if it doesn't tie into personal finance.
 6. Format currency in Indian Rupees (₹).
@@ -46,10 +48,11 @@ async def get_chat_history(user_id: str, limit: int = 200) -> list:
     try:
         pipeline = [
             {"$match": {"user_id": ObjectId(user_id)}},
-            {"$sort": {"created_at": 1}},
+            {"$sort": {"created_at": -1}},
             {"$limit": limit}
         ]
         history = await db.chat_history.aggregate(pipeline).to_list(length=None)
+        history.reverse()
         
         # Group by thread_id
         threads_map = {}
@@ -158,6 +161,10 @@ async def generate_chat_response(user_id: str, message: str, thread_id: str = No
         pagination = PaginationParams(page=1, limit=10)
         transactions_data = await TransactionAPI.list_transactions(user_id, filters, pagination)
         transactions = transactions_data.get("transactions", [])
+        
+        calendar_events = await get_user_events(user_id)
+        timesheets_data = await TimesheetAPI.get_timesheets(user_id, page=1, limit=20)
+        timesheets = timesheets_data.get("timesheets", [])
 
         # Prepare Context String
         context_data = {
@@ -172,6 +179,23 @@ async def generate_chat_response(user_id: str, message: str, thread_id: str = No
                     "category": t["category"],
                     "description": t.get("description", "")
                 } for t in transactions
+            ],
+            "calendar_events": [
+                {
+                    "title": e.get("title"),
+                    "start_time": e.get("start_time"),
+                    "end_time": e.get("end_time"),
+                    "status": e.get("status"),
+                    "amount": e.get("amount")
+                } for e in calendar_events[-20:]
+            ],
+            "recent_timesheets": [
+                {
+                    "date": t.get("date"),
+                    "work_code": t.get("work_code"),
+                    "hours": t.get("hours"),
+                    "notes": t.get("notes")
+                } for t in timesheets
             ]
         }
         context_str = json.dumps(context_data, default=str)

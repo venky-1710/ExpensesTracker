@@ -15,17 +15,24 @@ class TimesheetAPI:
 
     @staticmethod
     async def create_timesheet(user_id: str, timesheet_data: TimesheetCreate) -> Dict[str, Any]:
-        """Create a new timesheet."""
+        """Create a new timesheet or update if one exists for the same date (atomic upsert)."""
         try:
-            logger.info(f"[TIMESHEET] Creating timesheet for user_id: {user_id}")
+            logger.info(f"[TIMESHEET] Upserting timesheet for user_id: {user_id} on {timesheet_data.date}")
             doc = timesheet_data.dict()
             doc["user_id"] = ObjectId(user_id)
-            doc["created_at"] = datetime.utcnow()
             doc["updated_at"] = datetime.utcnow()
-            
-            result = await db.timesheets.insert_one(doc)
-            doc["_id"] = result.inserted_id
-            return format_transaction_doc(doc)
+
+            # Use MongoDB's atomic findOneAndUpdate with upsert=True to avoid race conditions
+            result = await db.timesheets.find_one_and_update(
+                {"user_id": ObjectId(user_id), "date": doc["date"]},
+                {
+                    "$set": {k: v for k, v in doc.items() if k != "created_at"},
+                    "$setOnInsert": {"created_at": datetime.utcnow()}
+                },
+                upsert=True,
+                return_document=True
+            )
+            return format_transaction_doc(result)
         except Exception as e:
             logger.error(f"[TIMESHEET] Error creating timesheet: {e}")
             raise HTTPException(status_code=500, detail="Failed to create timesheet")
@@ -123,3 +130,16 @@ class TimesheetAPI:
         except Exception as e:
             logger.error(f"[TIMESHEET] Error deleting timesheet: {e}")
             raise HTTPException(status_code=500, detail="Failed to delete timesheet")
+
+    @staticmethod
+    async def delete_multiple_timesheets(user_id: str, timesheet_ids: List[str]) -> dict:
+        """Bulk delete multiple timesheets."""
+        try:
+            object_ids = [ObjectId(tid) for tid in timesheet_ids]
+            result = await db.timesheets.delete_many(
+                {"_id": {"$in": object_ids}, "user_id": ObjectId(user_id)}
+            )
+            return {"message": f"Deleted {result.deleted_count} timesheets successfully"}
+        except Exception as e:
+            logger.error(f"[TIMESHEET] Error bulk deleting timesheets: {e}")
+            raise HTTPException(status_code=500, detail="Failed to delete timesheets")
